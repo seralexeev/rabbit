@@ -1,0 +1,7 @@
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.whl filter=lfs diff=lfs merge=lfs -text
+*.so filter=lfs diff=lfs merge=lfs -text
+*.x_t filter=lfs diff=lfs merge=lfs -text
+zed/resources/* filter=lfs diff=lfs merge=lfs -text
+workspaces/rabbit-zed/zed/resources/*.model filter=lfs diff=lfs merge=lfs -text
+*.model filter=lfs diff=lfs merge=lfs -text
