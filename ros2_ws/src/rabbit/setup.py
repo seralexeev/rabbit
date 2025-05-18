@@ -4,7 +4,7 @@ package_name = "rabbit"
 
 setup(
     name=package_name,
-    version="0.0.0",
+    version="0.0.1",
     packages=find_packages(exclude=["test"]),
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
@@ -17,6 +17,8 @@ setup(
     description="Robot Rabbit",
     license="MIT",
     entry_points={
-        "console_scripts": [],
+        "console_scripts": [
+            "rabbit_control = rabbit.rabbit_control:main",
+        ],
     },
 )
