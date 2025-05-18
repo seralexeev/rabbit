@@ -118,6 +118,7 @@ sudo apt install wireguard wireguard-tools
 
 ```bash
 sudo systemctl enable wg-quick@wg0
+sudo wg-quick up wg0
 ```
 
 ## UFW

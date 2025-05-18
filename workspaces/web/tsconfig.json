@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.common.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "ESNext"]
+  },
+  "references": []
+}
