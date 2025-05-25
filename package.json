@@ -1,7 +1,7 @@
 {
   "name": "@rabbit/root",
   "workspaces": [
-    "workspaces/**"
+    "workspaces/web"
   ],
   "engines": {
     "node": "23.6.0"

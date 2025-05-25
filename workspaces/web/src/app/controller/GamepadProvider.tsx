@@ -48,7 +48,11 @@ export const GamepadProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const stateString = JSON.stringify(state);
         if (last.current !== stateString) {
             last.current = stateString;
-            emitter.emit('onUpdate', state);
+            try {
+                emitter.emit('onUpdate', state);
+            } catch (e) {
+                console.error(e);
+            }
         }
 
         requestAnimationFrame(updateLoop);
@@ -117,7 +121,7 @@ type ButtonState = {
     value: number;
 };
 
-type Stick = {
+export type StickState = {
     x: number;
     y: number;
 };
@@ -142,7 +146,7 @@ export type DualSenseState = {
         right: ButtonState;
     };
     sticks: {
-        left: Stick;
-        right: Stick;
+        left: StickState;
+        right: StickState;
     };
 };

@@ -1,3 +1,7 @@
+:root {
+    --color: #00ff41;
+}
+
 *,
 *::before,
 *::after {
@@ -20,7 +24,7 @@ html {
     -webkit-text-size-adjust: none;
     text-size-adjust: none;
     background-color: #000;
-    color: #00ff41;
+    color: var(--color);
     padding: 0;
     margin: 0;
 }
@@ -46,11 +50,8 @@ body {
     line-height: 14px;
     font-optical-sizing: auto;
     font-style: normal;
-    font-family: 'Pixelify Sans', monospace;
-    image-rendering: pixelated;
-    -webkit-font-smoothing: none;
-    -moz-osx-font-smoothing: grayscale;
-    font-smooth: never;
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
 }
 
 h1,
