@@ -1,0 +1,13 @@
+sync:
+  rabbit-workspace:
+    alpha: 'workspaces/rabbit'
+    beta: 'rabbit:/root/rabbit'
+    mode: 'two-way-resolved'
+    ignore:
+      vcs: true
+      paths:
+        - '.venv'
+    configurationBeta:
+      permissions:
+        defaultFileMode: 0644
+        defaultDirectoryMode: 0755

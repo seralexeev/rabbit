@@ -1,0 +1,24 @@
+services:
+  rabbit:
+    build: .
+    volumes:
+      - ./src:/app/src
+    devices:
+      - '/dev/input/event0:/dev/joy'
+      - '/dev/ttyAMA0:/dev/roboclaw'
+    privileged: true
+    working_dir: /app
+    command: uv run src/main.py
+    tty: true
+    stdin_open: true
+  video_stream:
+    build: .
+    volumes:
+      - ./src:/app
+    devices:
+      - '/dev/video0:/dev/video0'
+    ports:
+      - '8080:8080'
+    privileged: true
+    working_dir: /app
+    command: uv run src/video_stream.py

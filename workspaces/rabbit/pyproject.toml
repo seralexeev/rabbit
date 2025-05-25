@@ -1,0 +1,11 @@
+[project]
+name = "rabbit"
+version = "0.0.1"
+requires-python = ">=3.13"
+dependencies = [
+    "evdev",
+    "pyserial",
+    "adafruit-blinka",
+    "adafruit-circuitpython-pca9685",
+    "RPi.GPIO",
+]

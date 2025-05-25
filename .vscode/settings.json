@@ -1,6 +1,11 @@
 {
     "cSpell.words": [
+        "libevdev",
+        "libgpiod",
+        "libusb",
         "nanoevents",
+        "pyproject",
+        "Roboclaw",
         "sergey"
     ]
 }

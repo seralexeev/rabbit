@@ -13,6 +13,7 @@ class Roboclaw:
         self.timeout = timeout
         self._trystimeout = retries
         self._crc = 0
+        self._port = None
 
     # Command Enums
     class Cmd:
@@ -144,7 +145,7 @@ class Roboclaw:
     def _readbyte(self):
         data = self._port.read(1)
         if len(data):
-            val = ord(data)
+            val = data[0]
             self.crc_update(val)
             return (1, val)
         return (0, 0)
@@ -601,7 +602,7 @@ class Roboclaw:
     def _write4S444S441(self, address, cmd, val1, val2, val3, val4, val5, val6, val7):
         trys = self._trystimeout
         while trys:
-            self._sendcommand(self, address, cmd)
+            self._sendcommand(address, cmd)
             self._writelong(val1)
             self._writeslong(val2)
             self._writelong(val3)
@@ -887,7 +888,7 @@ class Roboclaw:
 
     def SpeedAccelM1M2_2(self, address, accel1, speed1, accel2, speed2):
         return self._write4S44S4(
-            address, self.Cmd.MIXEDSPEED2ACCEL, accel, speed1, accel2, speed2
+            address, self.Cmd.MIXEDSPEED2ACCEL, accel1, speed1, accel2, speed2
         )
 
     def SpeedAccelDistanceM1M2_2(
@@ -1165,7 +1166,7 @@ class Roboclaw:
             self._port.flushInput()
             self._sendcommand(address, self.Cmd.READEEPROM)
             self.crc_update(ee_address)
-            self._port.write(chr(ee_address))
+            self._port.write(ee_address.to_bytes(1, "big"))
             val1 = self._readword()
             if val1[0]:
                 crc = self._readchecksumword()
