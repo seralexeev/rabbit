@@ -27,6 +27,7 @@ Robot control system using WebRTC and gamepad input.
 - Use `uv sync` to install dependencies in Python workspaces
 - Use `yarn` for Node.js dependencies
 - Use English for code comments and documentation
+- Do not create README for instructions
 - Respond in the same language as the question
 - Use TypeScript for Node.js and React projects
 - Use Python for the robot code

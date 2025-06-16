@@ -76,23 +76,14 @@ export const useWebRTC = () => {
         const unsubscribe = ws.subscribe(async (msg: any) => {
             try {
                 if (msg.type === 'offer') {
-                    // Reset connection if needed
-                    if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-                        console.log('� Resetting peer connection for new offer');
-                        const newPc = setupPeerConnection();
-                        await newPc.setRemoteDescription(new RTCSessionDescription(msg));
-                        const answer = await newPc.createAnswer();
-                        await newPc.setLocalDescription(answer);
-                        ws.send(answer);
-                        console.log('� Answer sent to robot');
-                    } else {
-                        // Handle offer normally
-                        await pc.setRemoteDescription(new RTCSessionDescription(msg));
-                        const answer = await pc.createAnswer();
-                        await pc.setLocalDescription(answer);
-                        ws.send(answer);
-                        console.log('� Answer sent to robot');
-                    }
+                    // Always reset connection when receiving new offer to handle robot reconnections
+                    console.log('🔄 Received offer from robot - setting up new connection');
+                    const newPc = setupPeerConnection();
+                    await newPc.setRemoteDescription(new RTCSessionDescription(msg));
+                    const answer = await newPc.createAnswer();
+                    await newPc.setLocalDescription(answer);
+                    ws.send(answer);
+                    console.log('📤 Answer sent to robot');
                 } else if (msg.type === 'ice') {
                     try {
                         await pc.addIceCandidate(new RTCIceCandidate(msg));
