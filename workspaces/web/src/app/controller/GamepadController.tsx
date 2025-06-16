@@ -13,7 +13,7 @@ export const GamepadController: React.FC = () => {
         return subscribe((state) => {
             setState(state);
             if (connected) {
-                sendMessage({ type: 'joy/STATE', data: state });
+                sendMessage({ type: 'joy/STATE', data: state, ts: Date.now() });
             }
         });
     }, [gamepad, connected, sendMessage]);
@@ -30,18 +30,17 @@ export const GamepadController: React.FC = () => {
             <div>Gamepad Controller</div>
             <p>Selected Gamepad: {gamepad ? gamepad.id : 'None'}</p>
             <p>
-                WebRTC Status: 
-                <span style={{ 
-                    color: connected ? 'green' : 'red', 
-                    marginLeft: '8px',
-                    fontWeight: 'bold'
-                }}>
+                WebRTC Status:
+                <span
+                    style={{
+                        color: connected ? 'green' : 'red',
+                        marginLeft: '8px',
+                        fontWeight: 'bold',
+                    }}>
                     {connected ? '🟢 Connected' : '🔴 Disconnected'}
                 </span>
                 {connectionState && (
-                    <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.7 }}>
-                        ({connectionState})
-                    </span>
+                    <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.7 }}>({connectionState})</span>
                 )}
             </p>
             {state && (

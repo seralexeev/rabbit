@@ -6,27 +6,29 @@ import { useEvent } from '../hooks.ts';
 export const useWebRTC = () => {
     const ws = useWebSocket();
     const pcRef = React.useRef<RTCPeerConnection | null>(null);
-    const [connected, setConnected] = React.useState(false);
     const channelRef = React.useRef<RTCDataChannel | null>(null);
+    
+    const [isConnected, setIsConnected] = React.useState(false); // True when data channel is open
     const [connectionState, setConnectionState] = React.useState<RTCPeerConnectionState>('new');
 
     const setupPeerConnection = useEvent(() => {
-        // Close existing connection if any
         if (pcRef.current) {
-            pcRef.current.close();
+            pcRef.current.close(); // Close any existing connection
+            pcRef.current = null;
         }
 
-        const pc = new RTCPeerConnection();
+        const pc = new RTCPeerConnection(); // Consider adding STUN/TURN server configuration here if needed
         pcRef.current = pc;
 
-        // Monitor connection state
         pc.onconnectionstatechange = () => {
             setConnectionState(pc.connectionState);
             console.log('🔗 WebRTC connection state:', pc.connectionState);
             
-            if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-                setConnected(false);
-                console.warn('🟡 WebRTC connection lost, will retry on next offer');
+            if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected' || pc.connectionState === 'closed') {
+                setIsConnected(false);
+                if (pc.connectionState !== 'closed') { // Avoid warning if closed intentionally
+                    console.warn('🟡 WebRTC connection lost or failed.');
+                }
             }
         };
 
@@ -36,95 +38,119 @@ export const useWebRTC = () => {
             }
         };
 
-        // Handle incoming data channels from robot
         pc.ondatachannel = (event) => {
             const channel = event.channel;
             channelRef.current = channel;
             
             channel.onopen = () => {
                 console.log('🟢 Data channel opened');
-                setConnected(true);
+                setIsConnected(true);
             };
             
             channel.onmessage = (e) => {
-                console.log('🔵 Message received:', e.data);
+                // Optionally, handle incoming messages from robot here if needed
+                console.log('🔵 Data channel message received:', e.data);
             };
             
             channel.onclose = () => {
                 console.log('🟡 Data channel closed');
-                setConnected(false);
+                setIsConnected(false);
             };
             
             channel.onerror = (error) => {
                 console.error('🔴 Data channel error:', error);
-                setConnected(false);
+                setIsConnected(false);
             };
         };
-
         return pc;
     });
 
-    // Request WebRTC connection when WebSocket connects
-    const requestConnection = useEvent(() => {
-        console.log('🔄 Requesting WebRTC connection from robot');
+    const requestOfferFromRobot = useEvent(() => {
+        console.log('🔄 Requesting WebRTC offer from robot');
         ws.send({ type: 'request_offer' });
     });
 
     React.useEffect(() => {
-        setupPeerConnection(); // Initial setup
+        const handleOffer = async (offerMessage: RTCSessionDescriptionInit) => {
+            console.log('🔄 Received offer from robot, setting up connection...');
+            const pc = setupPeerConnection(); // Creates/resets pcRef.current
 
-        const unsubscribe = ws.subscribe(async (msg: any) => {
             try {
-                if (msg.type === 'offer') {
-                    console.log('🔄 Received offer from robot - setting up new connection');
-                    const currentPC = setupPeerConnection(); // Ensures pcRef.current is fresh
-                    if (!currentPC) {
-                        console.error('🔴 Failed to setup peer connection for offer');
-                        return;
-                    }
-                    await currentPC.setRemoteDescription(new RTCSessionDescription(msg));
-                    const answer = await currentPC.createAnswer();
-                    await currentPC.setLocalDescription(answer);
-                    ws.send(answer);
-                    console.log('📤 Answer sent to robot');
-                } else if (msg.type === 'ice') {
-                    if (pcRef.current && pcRef.current.signalingState !== 'closed') {
-                        try {
-                            await pcRef.current.addIceCandidate(new RTCIceCandidate(msg));
-                        } catch (e) {
-                            console.warn('🟡 Failed to add ICE candidate', e);
-                        }
-                    } else {
-                        console.warn('🟡 Received ICE candidate for a closed or non-existent peer connection. Current state:', pcRef.current?.signalingState);
-                    }
-                } else if (msg.type === 'ws_connected') {
-                    console.log('🟢 WebSocket connected, requesting WebRTC connection');
-                    requestConnection();
+                await pc.setRemoteDescription(new RTCSessionDescription(offerMessage));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                ws.send(answer);
+                console.log('📤 Answer sent to robot');
+            } catch (error) {
+                console.error('🔴 Error processing offer or creating answer:', error);
+            }
+        };
+
+        const handleIceCandidate = async (iceCandidateMessage: RTCIceCandidateInit) => {
+            if (pcRef.current && pcRef.current.signalingState !== 'closed') {
+                try {
+                    await pcRef.current.addIceCandidate(new RTCIceCandidate(iceCandidateMessage));
+                } catch (e) {
+                    console.warn('🟡 Failed to add ICE candidate:', e);
+                }
+            } else {
+                console.warn('🟡 Received ICE candidate for a closed or non-existent peer connection. Signaling state:', pcRef.current?.signalingState);
+            }
+        };
+
+        const unsubscribeWs = ws.subscribe(async (msg: any) => {
+            try {
+                switch (msg.type) {
+                    case 'offer':
+                        await handleOffer(msg);
+                        break;
+                    case 'ice':
+                        await handleIceCandidate(msg);
+                        break;
+                    case 'ws_connected':
+                        console.log('🟢 WebSocket connected, now requesting WebRTC offer.');
+                        requestOfferFromRobot();
+                        break;
                 }
             } catch (error) {
-                console.error('🔴 Error handling WebRTC message:', error);
+                console.error('🔴 Error handling WebSocket message for WebRTC:', error);
             }
         });
 
-        requestConnection();
+        // Initial request for an offer, in case WebSocket was already connected
+        // before this hook's subscription was established.
+        // The 'ws_connected' message handles the primary flow.
+        if (ws && typeof (ws as any).isConnected === 'function' && (ws as any).isConnected()) {
+             // If WebSocketWrapper had an isConnected method. For now, rely on ws_connected or initial request.
+             requestOfferFromRobot();
+        } else if (ws) {
+            // If ws object exists, assume we might need to kickstart if ws_connected was missed.
+            // This is a bit of a guess; ideally, WebSocketProvider guarantees ws_connected fires post-subscription.
+            // Given current WebSocketProvider, ws_connected should fire after connect() in its useEffect.
+            // So, this initial call might be redundant if ws_connected is always caught.
+            // However, it acts as a fallback.
+             requestOfferFromRobot();
+        }
+
 
         return () => {
-            unsubscribe();
+            unsubscribeWs();
             if (pcRef.current) {
                 pcRef.current.close();
-                pcRef.current = null; // Nullify the ref
+                pcRef.current = null;
             }
+            console.log('🧹 WebRTC connection cleaned up');
         };
-    }, [ws, setupPeerConnection, requestConnection]);
+    }, [ws, setupPeerConnection, requestOfferFromRobot]);
 
     const sendMessage = useEvent((message: unknown) => {
-        console.log('🔵 Sending message:', message);
-        if (channelRef.current?.readyState === 'open' && connected) {
+        if (channelRef.current?.readyState === 'open') {
+            console.log('🔵 Sending message via WebRTC:', message);
             channelRef.current.send(JSON.stringify(message));
         } else {
-            console.warn('🟡 Cannot send message: data channel not open');
+            console.warn(`🟡 Cannot send message: data channel not open. State: ${channelRef.current?.readyState}, Connected: ${isConnected}`);
         }
     });
 
-    return { connected, sendMessage, connectionState };
+    return { connected: isConnected, sendMessage, connectionState };
 };

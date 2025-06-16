@@ -80,41 +80,43 @@ export const useGamepad = () => {
     return context;
 };
 
-function mapDualSenseState(gamepad: Gamepad): DualSenseState {
+const round = (num: number) => Math.round(num * 100) / 100;
+
+const mapDualSenseState = (gamepad: Gamepad): DualSenseState => {
     const b = gamepad.buttons;
     const a = gamepad.axes;
 
     return {
         buttons: {
-            up: { pressed: b[12]?.pressed ?? false, value: b[12]?.value ?? 0 },
-            down: { pressed: b[13]?.pressed ?? false, value: b[13]?.value ?? 0 },
-            left: { pressed: b[14]?.pressed ?? false, value: b[14]?.value ?? 0 },
-            right: { pressed: b[15]?.pressed ?? false, value: b[15]?.value ?? 0 },
-            cross: { pressed: b[0]?.pressed ?? false, value: b[0]?.value ?? 0 },
-            circle: { pressed: b[1]?.pressed ?? false, value: b[1]?.value ?? 0 },
-            square: { pressed: b[2]?.pressed ?? false, value: b[2]?.value ?? 0 },
-            triangle: { pressed: b[3]?.pressed ?? false, value: b[3]?.value ?? 0 },
-            l1: { pressed: b[4]?.pressed ?? false, value: b[4]?.value ?? 0 },
-            r1: { pressed: b[5]?.pressed ?? false, value: b[5]?.value ?? 0 },
-            l2: { pressed: b[6]?.pressed ?? false, value: b[6]?.value ?? 0 },
-            r2: { pressed: b[7]?.pressed ?? false, value: b[7]?.value ?? 0 },
-            share: { pressed: b[8]?.pressed ?? false, value: b[8]?.value ?? 0 },
-            options: { pressed: b[9]?.pressed ?? false, value: b[9]?.value ?? 0 },
-            l3: { pressed: b[10]?.pressed ?? false, value: b[10]?.value ?? 0 },
-            r3: { pressed: b[11]?.pressed ?? false, value: b[11]?.value ?? 0 },
+            up: { pressed: b[12]?.pressed ?? false, value: round(b[12]?.value ?? 0) },
+            down: { pressed: b[13]?.pressed ?? false, value: round(b[13]?.value ?? 0) },
+            left: { pressed: b[14]?.pressed ?? false, value: round(b[14]?.value ?? 0) },
+            right: { pressed: b[15]?.pressed ?? false, value: round(b[15]?.value ?? 0) },
+            cross: { pressed: b[0]?.pressed ?? false, value: round(b[0]?.value ?? 0) },
+            circle: { pressed: b[1]?.pressed ?? false, value: round(b[1]?.value ?? 0) },
+            square: { pressed: b[2]?.pressed ?? false, value: round(b[2]?.value ?? 0) },
+            triangle: { pressed: b[3]?.pressed ?? false, value: round(b[3]?.value ?? 0) },
+            l1: { pressed: b[4]?.pressed ?? false, value: round(b[4]?.value ?? 0) },
+            r1: { pressed: b[5]?.pressed ?? false, value: round(b[5]?.value ?? 0) },
+            l2: { pressed: b[6]?.pressed ?? false, value: round(b[6]?.value ?? 0) },
+            r2: { pressed: b[7]?.pressed ?? false, value: round(b[7]?.value ?? 0) },
+            share: { pressed: b[8]?.pressed ?? false, value: round(b[8]?.value ?? 0) },
+            options: { pressed: b[9]?.pressed ?? false, value: round(b[9]?.value ?? 0) },
+            l3: { pressed: b[10]?.pressed ?? false, value: round(b[10]?.value ?? 0) },
+            r3: { pressed: b[11]?.pressed ?? false, value: round(b[11]?.value ?? 0) },
         },
         sticks: {
             left: {
-                x: a[0] ?? 0,
-                y: a[1] ?? 0,
+                x: round(a[0] ?? 0),
+                y: round(a[1] ?? 0),
             },
             right: {
-                x: a[2] ?? 0,
-                y: a[3] ?? 0,
+                x: round(a[2] ?? 0),
+                y: round(a[3] ?? 0),
             },
         },
     };
-}
+};
 
 type ButtonState = {
     pressed: boolean;
