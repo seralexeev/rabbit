@@ -39,3 +39,7 @@ Robot control system using WebRTC and gamepad input.
     - `🟢` for successes
     - `🟡` for warnings
     - `🔵` for information
+- Run projects:
+    - Use `yarn workspace @rabbit/web dev` for the web interface
+    - Use `yarn workspace @rabbit/server dev` for the signaling server
+    - Use `uv run src/client.py` for the robot client

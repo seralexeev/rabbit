@@ -64,6 +64,12 @@ export const useWebRTC = () => {
         return pc;
     });
 
+    // Request WebRTC connection when WebSocket connects
+    const requestConnection = useEvent(() => {
+        console.log('🔄 Requesting WebRTC connection from robot');
+        ws.send({ type: 'request_offer' });
+    });
+
     React.useEffect(() => {
         const pc = setupPeerConnection();
 
@@ -93,11 +99,18 @@ export const useWebRTC = () => {
                     } catch (e) {
                         console.warn('🟡 Failed to add ICE candidate', e);
                     }
+                } else if (msg.type === 'ws_connected') {
+                    // WebSocket connection established - request WebRTC connection
+                    console.log('🟢 WebSocket connected, requesting WebRTC connection');
+                    requestConnection();
                 }
             } catch (error) {
                 console.error('🔴 Error handling WebRTC message:', error);
             }
         });
+
+        // Request connection immediately when effect runs
+        requestConnection();
 
         return () => {
             unsubscribe();
@@ -105,7 +118,7 @@ export const useWebRTC = () => {
                 pcRef.current.close();
             }
         };
-    }, [ws, setupPeerConnection]);
+    }, [ws, setupPeerConnection, requestConnection]);
 
     const sendMessage = useEvent((message: unknown) => {
         console.log('� Sending message:', message);

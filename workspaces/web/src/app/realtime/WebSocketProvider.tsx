@@ -74,6 +74,9 @@ class WebSocketWrapper {
         }
 
         console.log('🟢 WebSocket connected');
+        
+        // Notify listeners that WebSocket is connected
+        this.listeners.forEach((listener) => listener({ type: 'ws_connected' }));
     };
 
     private onClose = (ws: WebSocket, e: CloseEvent) => {

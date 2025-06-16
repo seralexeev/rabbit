@@ -73,14 +73,7 @@ class RobotClient:
                     logger.info("🟢 WebRTC connection established")
             
             # Create offer and send it
-            offer = await pc.createOffer()  # type: ignore
-            await pc.setLocalDescription(offer)  # type: ignore
-            
-            await self.send_ws_message({
-                "type": "offer",
-                "sdp": pc.localDescription.sdp  # type: ignore
-            })
-            logger.info("📤 WebRTC offer created and sent")
+            await self.create_and_send_offer()
             
             self.running = True
             
@@ -102,6 +95,26 @@ class RobotClient:
                 logger.debug(f"📤 Sent WS message: {message.get('type', 'unknown')}")
         except Exception as e:
             logger.error(f"🔴 Error sending WS message: {e}")
+            
+    async def create_and_send_offer(self):
+        """Create and send WebRTC offer"""
+        try:
+            if not self.pc:
+                logger.error("🔴 Peer connection not initialized")
+                return
+                
+            # Create offer and send it
+            offer = await self.pc.createOffer()  # type: ignore
+            await self.pc.setLocalDescription(offer)  # type: ignore
+            
+            await self.send_ws_message({
+                "type": "offer",
+                "sdp": self.pc.localDescription.sdp  # type: ignore
+            })
+            logger.info("📤 WebRTC offer created and sent")
+            
+        except Exception as e:
+            logger.error(f"🔴 Error creating offer: {e}")
             
     async def listen_websocket(self):
         """Listen for WebSocket messages"""
@@ -158,6 +171,11 @@ class RobotClient:
                 logger.debug("🔵 ICE candidate added")
             except Exception as e:
                 logger.warning(f"🟡 Failed to add ICE candidate: {e}")
+        
+        elif msg_type == "request_offer":
+            # Browser requests a new offer - create and send one
+            logger.info("🔄 Browser requested new offer")
+            await self.create_and_send_offer()
         
         else:
             logger.debug(f"🔵 Received unknown message type: {msg_type}")

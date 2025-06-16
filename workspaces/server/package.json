@@ -2,7 +2,7 @@
   "name": "@rabbit/server",
   "type": "module",
   "scripts": {
-    "dev": "node --no-warnings src/index.ts",
+    "dev": "node --no-warnings --watch src/index.ts",
     "tsc": "../../node_modules/.bin/tsc --build"
   },
   "dependencies": {
