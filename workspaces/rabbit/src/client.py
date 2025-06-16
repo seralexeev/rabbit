@@ -57,6 +57,8 @@ class RobotClient:
         except Exception as e:
             logger.error(f"🔴 Connection error: {e}")
             await self.cleanup()
+            logger.info("🔵 Waiting 2 seconds before reconnecting...")
+            await asyncio.sleep(2)
 
     async def send_ws_message(self, message):
         """Send message via WebSocket"""
@@ -386,6 +388,7 @@ class RobotClient:
         @data_channel.on("close")  # type: ignore
         def on_close():
             logger.info("🟡 Data channel closed")
+            asyncio.create_task(self.reset_webrtc_connection())
 
         @data_channel.on("message")  # type: ignore
         def on_message(message):
