@@ -1,5 +1,5 @@
 :root {
-    --color: #00ff41;
+    --color-primary: #00ff41;
 }
 
 *,
@@ -24,7 +24,7 @@ html {
     -webkit-text-size-adjust: none;
     text-size-adjust: none;
     background-color: #000;
-    color: var(--color);
+    color: var(--color-primary);
     padding: 0;
     margin: 0;
 }

@@ -1,32 +1,49 @@
 import { css } from '@emotion/css';
 import React from 'react';
 
-import { useWebSocket } from '../realtime/WebSocketProvider.tsx';
+import { useWebRTC } from '../realtime/useWebRTC.tsx';
 import { type DualSenseState, type StickState, useGamepad } from './GamepadProvider.tsx';
 
 export const GamepadController: React.FC = () => {
-    const ws = useWebSocket();
+    const { sendMessage, connected, connectionState } = useWebRTC();
     const { gamepad, subscribe } = useGamepad();
     const [state, setState] = React.useState<DualSenseState | null>(null);
 
     React.useEffect(() => {
         return subscribe((state) => {
             setState(state);
-            ws.send({ type: 'joy/STATE' });
+            if (connected) {
+                sendMessage({ type: 'joy/STATE', data: state });
+            }
         });
-    }, [gamepad]);
+    }, [gamepad, connected, sendMessage]);
 
     return (
         <div
             className={css`
                 width: 100%;
                 height: 500px;
-                border: 1px solid var(--color);
+                border: 1px solid var(--color-primary);
                 display: flex;
                 flex-direction: column;
             `}>
             <div>Gamepad Controller</div>
             <p>Selected Gamepad: {gamepad ? gamepad.id : 'None'}</p>
+            <p>
+                WebRTC Status: 
+                <span style={{ 
+                    color: connected ? 'green' : 'red', 
+                    marginLeft: '8px',
+                    fontWeight: 'bold'
+                }}>
+                    {connected ? '🟢 Connected' : '🔴 Disconnected'}
+                </span>
+                {connectionState && (
+                    <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.7 }}>
+                        ({connectionState})
+                    </span>
+                )}
+            </p>
             {state && (
                 <div>
                     <div
@@ -50,7 +67,7 @@ const Stick: React.FC<{ stick: StickState }> = ({ stick }) => {
                 width: 128px;
                 height: 128px;
                 border-radius: 50%;
-                border: 2px solid var(--color);
+                border: 2px solid var(--color-primary);
                 position: relative;
                 --dot-size: 8px;
             `}>
@@ -58,7 +75,7 @@ const Stick: React.FC<{ stick: StickState }> = ({ stick }) => {
                 className={css`
                     width: 0px;
                     height: 100%;
-                    border: 1px dashed var(--color);
+                    border: 1px dashed var(--color-primary);
                     position: absolute;
                     left: 50%;
                     transform-origin: center;
@@ -69,7 +86,7 @@ const Stick: React.FC<{ stick: StickState }> = ({ stick }) => {
                 className={css`
                     height: 0px;
                     width: 100%;
-                    border: 1px dashed var(--color);
+                    border: 1px dashed var(--color-primary);
                     position: absolute;
                     top: 50%;
                     transform-origin: center;
@@ -82,7 +99,7 @@ const Stick: React.FC<{ stick: StickState }> = ({ stick }) => {
                     width: var(--dot-size);
                     height: var(--dot-size);
                     border-radius: 50%;
-                    background-color: var(--color);
+                    background-color: var(--color-primary);
                     position: absolute;
                 `}
                 style={{

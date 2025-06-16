@@ -9,10 +9,7 @@ dns.setDefaultResultOrder('verbatim');
 // https://vitejs.dev/config/
 export default defineConfig({
     cacheDir: '../../node_modules/.vite',
-    plugins: [
-        react(),
-        svgr(),
-    ],
+    plugins: [react(), svgr()],
     css: {
         postcss: {
             plugins: [autoprefixer({})],
@@ -21,8 +18,9 @@ export default defineConfig({
     server: {
         port: 3005,
         proxy: {
-            '/api': {
-                target: 'http://localhost:3000',
+            '/ws': {
+                target: 'ws://localhost:3000',
+                ws: true,
             },
         },
     },

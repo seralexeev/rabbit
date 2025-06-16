@@ -7,22 +7,29 @@ from roboclaw import Roboclaw
 from board import SCL, SDA
 import busio
 from adafruit_pca9685 import PCA9685
-
+# 950 1750 2700
 
 class Servo:
-    def __init__(self, channel, min_pulse=450, max_pulse=1100):
+    def __init__(self, channel):
         i2c = busio.I2C(SCL, SDA)
         self.pca = PCA9685(i2c)
         self.pca.frequency = 50
         self.channel = channel
-        self.min_pulse = min_pulse
-        self.max_pulse = max_pulse
+        self.min_pulse = 1200
+        self.max_pulse = 2700
+        self.mid_pulse = 1750
+        
+    def map_angle(self, angle):
+        if angle < 0:
+            return self.mid_pulse + angle * (self.mid_pulse - self.min_pulse)
+        else:
+            return self.mid_pulse + angle * (self.max_pulse - self.mid_pulse)
 
     # angle between -1 and 1
     def set_angle(self, angle):
         angle = max(min(angle, 1), -1)
-        value = self.min_pulse + (self.max_pulse - self.min_pulse) * (angle + 1) / 2
-        print(f"Setting servo angle: {angle}, Pulse length: {value} us")
+        
+        value = self.map_angle(angle)
 
         pulse_length_s = value / 1_000_000
         duty_cycle = int(pulse_length_s * self.pca.frequency * 65536)
@@ -60,8 +67,6 @@ class RabbitRoboclaw:
             return False
 
     def set_motor_duty(self, m1_duty, m2_duty):
-        print(f"Setting motor duty: M1={m1_duty}, M2={m2_duty}")
-
         if not self.is_connected or not self.rc:
             print("🔴 Roboclaw not connected")
             return False
@@ -172,8 +177,6 @@ class Rabbit:
                     self.roboclaw.min_duty,
                 )
 
-                print(f"Gamepad state: {gamepad_state}, Speed: {speed}")
-
                 self.roboclaw.set_motor_duty(
                     speed * self.roboclaw.direction_modifier,
                     speed * self.roboclaw.direction_modifier,
@@ -183,7 +186,7 @@ class Rabbit:
                 left_stick_x = gamepad_state["left_stick_x"]
                 angle = (left_stick_x - 128) / 128  # Normalize to -1 to 1
                 self.servo.set_angle(angle)
-
+                
                 time.sleep(0.01)
 
         except Exception as e:

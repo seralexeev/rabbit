@@ -7,58 +7,65 @@ export const useWebSocket = () => {
     if (ws == null) {
         throw new Error('useWebSocket must be used within a WebSocketProvider');
     }
-
     return ws;
 };
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [ws] = React.useState(() => {
-        return new WebSocketWrapper('ws://localhost:3005/realtime');
+        return new WebSocketWrapper('ws://localhost:3000?role=browser');
     });
 
-    React.useEffect(ws.connect, [ws]);
+    React.useEffect(() => {
+        ws.connect();
+        return () => ws.disconnect();
+    }, [ws]);
 
-    return <WebSocketContext.Provider value={ws} children={children} />;
+    return <WebSocketContext.Provider value={ws}>{children}</WebSocketContext.Provider>;
 };
 
 class WebSocketWrapper {
     private url;
     private ws: WebSocket | null = null;
     private reconnect = true;
+    private listeners: ((data: any) => void)[] = [];
 
-    public constructor(url: string) {
+    constructor(url: string) {
         this.url = url;
     }
 
-    public connect = () => {
-        if (this.ws != null) {
-            return;
-        }
+    connect = () => {
+        if (this.ws != null) return;
 
         const ws = new WebSocket(this.url);
         this.reconnect = true;
 
         ws.onopen = () => this.onOpen(ws);
-        ws.onmessage = (e: MessageEvent) => this.onMessage(ws, e);
-        ws.onclose = (e: CloseEvent) => this.onClose(ws, e);
-        ws.onerror = (e: Event) => this.onError(ws, e);
+        ws.onmessage = (e) => this.onMessage(ws, e);
+        ws.onclose = (e) => this.onClose(ws, e);
+        ws.onerror = (e) => this.onError(ws, e);
 
         this.ws = ws;
     };
 
-    public disconnect = () => {
+    disconnect = () => {
         this.reconnect = false;
+        this.ws?.close();
+        this.ws = null;
+    };
 
-        if (this.ws !== null) {
-            this.ws.close();
-            this.ws = null;
+    send = (message: object) => {
+        if (this.ws?.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(message));
         }
     };
 
-    public send = (data: { type: string; payload?: unknown }) => {
-        if (this.ws != null) {
-            this.ws.send(JSON.stringify(data));
-        }
+    subscribe = (listener: (data: any) => void) => {
+        this.listeners.push(listener);
+        return () => this.unsubscribe(listener);
+    };
+
+    unsubscribe = (listener: (data: any) => void) => {
+        this.listeners = this.listeners.filter((l) => l !== listener);
     };
 
     private onOpen = (ws: WebSocket) => {
@@ -74,20 +81,38 @@ class WebSocketWrapper {
             return;
         }
 
-        console.log('🔴 Socket is closed', e.code, e.reason);
+        console.log('� Socket closed', e.code, e.reason);
+
         if (this.reconnect) {
             setTimeout(this.connect, 1000);
         }
-
         this.ws = null;
     };
 
-    private onMessage = (ws: WebSocket, e: MessageEvent) => {
+    private onMessage = async (ws: WebSocket, e: MessageEvent) => {
         if (this.ws !== ws) {
             return;
         }
 
-        console.log('🔵 Received:', e.data);
+        try {
+            let messageData: string;
+            
+            // Handle different data types
+            if (e.data instanceof Blob) {
+                messageData = await e.data.text();
+            } else if (typeof e.data === 'string') {
+                messageData = e.data;
+            } else {
+                messageData = String(e.data);
+            }
+
+            const data = JSON.parse(messageData);
+            console.log('🔵 Message received:', data);
+            this.listeners.forEach((listener) => listener(data));
+        } catch (error) {
+            console.error('🔴 Error parsing WebSocket message:', error);
+            console.error('🔴 Raw message data:', e.data);
+        }
     };
 
     private onError = (ws: WebSocket, e: Event) => {
@@ -95,7 +120,7 @@ class WebSocketWrapper {
             return;
         }
 
-        console.error('🔴 Socket encountered error: ', e);
+        console.error('🔴 WebSocket error:', e);
         ws.close();
     };
 }

@@ -11,14 +11,18 @@ services:
     command: uv run src/main.py
     tty: true
     stdin_open: true
+    network_mode: host
   video_stream:
     build: .
     volumes:
-      - ./src:/app
+      - ./src:/app/src
     devices:
-      - '/dev/video0:/dev/video0'
+      - "/dev/video0:/dev/video0"
     ports:
       - '8080:8080'
     privileged: true
     working_dir: /app
     command: uv run src/video_stream.py
+    tty: true
+    stdin_open: true
+    network_mode: host
