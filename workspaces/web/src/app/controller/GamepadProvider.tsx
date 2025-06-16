@@ -51,7 +51,7 @@ export const GamepadProvider: React.FC<{ children: React.ReactNode }> = ({ child
             try {
                 emitter.emit('onUpdate', state);
             } catch (e) {
-                console.error(e);
+                console.error('🔴 Error emitting gamepad update:', e);
             }
         }
 

@@ -84,7 +84,7 @@ class WebSocketWrapper {
             return;
         }
 
-        console.log('� Socket closed', e.code, e.reason);
+        console.log('🟡 Socket closed', e.code, e.reason);
 
         if (this.reconnect) {
             setTimeout(this.connect, 1000);
