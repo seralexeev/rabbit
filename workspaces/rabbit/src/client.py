@@ -174,9 +174,6 @@ class RobotClient:
             if browser_ts is not None:
                 now_ms = int(datetime.now().timestamp() * 1000)
                 delay = now_ms - int(browser_ts)
-                logger.info(
-                    f"🔵 [CONTROLLER DELAY] {delay} ms (browser sent: {browser_ts}, now: {now_ms})"
-                )
 
             if msg_type == "joy/STATE":
                 # Log controller state
@@ -203,7 +200,7 @@ class RobotClient:
                 )
 
                 if active_buttons or has_stick_movement:
-                    log_parts = [f"[{timestamp}] 🎮 CONTROLLER:"]
+                    log_parts = [f"🎮 [{delay}ms]:"]
 
                     if active_buttons:
                         log_parts.append(f"Buttons: {', '.join(active_buttons)}")

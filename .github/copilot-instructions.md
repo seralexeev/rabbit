@@ -30,6 +30,11 @@ Robot control system using WebRTC and gamepad input.
 - Do not create README for instructions
 - Respond in the same language as the question
 - Use TypeScript for Node.js and React projects
+    - Always use access modifiers (public, private, protected) for class members
+    - For simple array types, use `string` `SomeType` use `...[]`
+    - For complex types `{ id: string }` or `SomeType<User>` use `Array<...>`
+    - Always check for null or undefined using `if (value != null)`
+    - Always use curly braces for single-line blocks
 - Use Python for the robot code
 - React
     - Never use `React.useCallback` or `React.useMemo` unless absolutely necessary, use `useEvent` from `workspaces/web/src/app/hooks.ts` instead

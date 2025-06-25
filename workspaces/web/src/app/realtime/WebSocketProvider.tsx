@@ -1,4 +1,5 @@
 import React from 'react';
+import { z } from 'zod/v4';
 
 const WebSocketContext = React.createContext<WebSocketWrapper | null>(null);
 
@@ -7,6 +8,7 @@ export const useWebSocket = () => {
     if (ws == null) {
         throw new Error('useWebSocket must be used within a WebSocketProvider');
     }
+
     return ws;
 };
 
@@ -27,14 +29,19 @@ class WebSocketWrapper {
     private url;
     private ws: WebSocket | null = null;
     private reconnect = true;
-    private listeners: ((data: any) => void)[] = [];
+    private listeners: Array<{
+        schema: z.ZodType;
+        listener: (data: unknown) => void;
+    }> = [];
 
-    constructor(url: string) {
+    public constructor(url: string) {
         this.url = url;
     }
 
-    connect = () => {
-        if (this.ws != null) return;
+    public connect = () => {
+        if (this.ws != null) {
+            return;
+        }
 
         const ws = new WebSocket(this.url);
         this.reconnect = true;
@@ -47,25 +54,25 @@ class WebSocketWrapper {
         this.ws = ws;
     };
 
-    disconnect = () => {
+    public disconnect = () => {
         this.reconnect = false;
         this.ws?.close();
         this.ws = null;
     };
 
-    send = (message: object) => {
+    public send = (message: object) => {
         if (this.ws?.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(message));
         }
     };
 
-    subscribe = (listener: (data: any) => void) => {
-        this.listeners.push(listener);
-        return () => this.unsubscribe(listener);
-    };
+    public subscribe = <T extends z.ZodType>(schema: T, listener: (data: z.infer<T>) => void) => {
+        const item = { schema, listener };
+        this.listeners.push(item as never);
 
-    unsubscribe = (listener: (data: any) => void) => {
-        this.listeners = this.listeners.filter((l) => l !== listener);
+        return () => {
+            this.listeners = this.listeners.filter((x) => x !== item);
+        };
     };
 
     private onOpen = (ws: WebSocket) => {
@@ -74,9 +81,6 @@ class WebSocketWrapper {
         }
 
         console.log('🟢 WebSocket connected');
-        
-        // Notify listeners that WebSocket is connected
-        this.listeners.forEach((listener) => listener({ type: 'ws_connected' }));
     };
 
     private onClose = (ws: WebSocket, e: CloseEvent) => {
@@ -93,28 +97,30 @@ class WebSocketWrapper {
     };
 
     private onMessage = async (ws: WebSocket, e: MessageEvent) => {
+        console.log('🔵 Message received', { type: typeof e.data });
+
         if (this.ws !== ws) {
             return;
         }
 
-        try {
-            let messageData: string;
-            
-            // Handle different data types
-            if (e.data instanceof Blob) {
-                messageData = await e.data.text();
-            } else if (typeof e.data === 'string') {
-                messageData = e.data;
-            } else {
-                messageData = String(e.data);
-            }
+        if (typeof e.data !== 'string') {
+            console.error('🔴 Received non-string message:', e.data);
+            return;
+        }
 
-            const data = JSON.parse(messageData);
-            console.log('🔵 Message received:', data);
-            this.listeners.forEach((listener) => listener(data));
+        try {
+            const data = JSON.parse(e.data);
+            for (const { schema, listener } of this.listeners) {
+                const parsed = schema.safeParse(data);
+                if (parsed.success) {
+                    listener(parsed.data);
+                }
+            }
         } catch (error) {
-            console.error('🔴 Error parsing WebSocket message:', error);
-            console.error('🔴 Raw message data:', e.data);
+            console.error('🔴 Error parsing WebSocket message', {
+                error,
+                message: e.data,
+            });
         }
     };
 
@@ -123,7 +129,7 @@ class WebSocketWrapper {
             return;
         }
 
-        console.error('🔴 WebSocket error:', e);
+        console.error('🔴 WebSocket error', e);
         ws.close();
     };
 }

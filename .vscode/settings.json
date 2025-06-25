@@ -1,11 +1,14 @@
 {
     "cSpell.words": [
+        "aiortc",
+        "connectionstatechange",
         "libevdev",
         "libgpiod",
         "libusb",
         "nanoevents",
         "pyproject",
         "Roboclaw",
-        "sergey"
+        "sergey",
+        "webrtc"
     ]
 }
