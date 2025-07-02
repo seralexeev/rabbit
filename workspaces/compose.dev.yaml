@@ -6,3 +6,16 @@ services:
     network_mode: host
     tty: true
     stdin_open: true
+    restart: unless-stopped
+
+  # rabbit-test:
+  #   build: ./rabbit-test
+  #   tty: true
+  #   stdin_open: true
+  #   restart: unless-stopped
+
+  foxglove-bridge:
+    build: ./foxglove-bridge
+    ports:
+      - '8765:8765'
+    restart: unless-stopped

@@ -11,12 +11,12 @@ from aiortc import (
 )
 from aiortc.sdp import candidate_from_sdp
 from datetime import datetime
-import os
 
 
-class RobotClient:
-    def __init__(self, ws_url: str):
+class WebRTCClient:
+    def __init__(self, ws_url: str, on_message: Optional[Any] = None):
         self.ws_url = ws_url
+        self.on_message = on_message
 
         self.ws: Optional[Any] = None
         self.pc: Optional[RTCPeerConnection] = None
@@ -67,9 +67,7 @@ class RobotClient:
                 return
 
             offer = await self.pc.createOffer()
-            print(offer)
             await self.pc.setLocalDescription(offer)
-
             await self.send_ws_message(
                 {"type": "offer", "sdp": self.pc.localDescription.sdp}
             )
@@ -136,7 +134,7 @@ class RobotClient:
 
                 candidate_sdp = message.get("candidate", "")
                 candidate = candidate_from_sdp(candidate_sdp)
-                
+
                 if candidate:
                     candidate.sdpMid = message.get("sdpMid")
                     candidate.sdpMLineIndex = message.get("sdpMLineIndex")
@@ -154,77 +152,6 @@ class RobotClient:
 
         else:
             print("Received unknown message", {msg_type})
-
-    def handle_controller_message(self, message):
-        """Handle messages from controller"""
-        try:
-            data = json.loads(message)
-            msg_type = data.get("type", "unknown")
-            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-
-            browser_ts = data.get("ts")
-            if browser_ts is not None:
-                now_ms = int(datetime.now().timestamp() * 1000)
-                delay = now_ms - int(browser_ts)
-
-            if msg_type == "joy/STATE":
-                # Log controller state
-                controller_data = data.get("data", {})
-                buttons = controller_data.get("buttons", {})
-                sticks = controller_data.get("sticks", {})
-
-                # Only log if there are active buttons or stick movement
-                active_buttons = [
-                    name
-                    for name, state in buttons.items()
-                    if state.get("pressed", False)
-                ]
-                left_stick = sticks.get("left", {"x": 0, "y": 0})
-                right_stick = sticks.get("right", {"x": 0, "y": 0})
-
-                # Check for significant changes (threshold value for sticks)
-                stick_threshold = 0.1
-                has_stick_movement = (
-                    abs(left_stick["x"]) > stick_threshold
-                    or abs(left_stick["y"]) > stick_threshold
-                    or abs(right_stick["x"]) > stick_threshold
-                    or abs(right_stick["y"]) > stick_threshold
-                )
-
-                if active_buttons or has_stick_movement:
-                    log_parts = [f"🎮 [{delay}ms]:"]
-
-                    if active_buttons:
-                        log_parts.append(f"Buttons: {', '.join(active_buttons)}")
-
-                    if has_stick_movement:
-                        stick_info = []
-                        if (
-                            abs(left_stick["x"]) > stick_threshold
-                            or abs(left_stick["y"]) > stick_threshold
-                        ):
-                            stick_info.append(
-                                f"L({left_stick['x']:.2f}, {left_stick['y']:.2f})"
-                            )
-                        if (
-                            abs(right_stick["x"]) > stick_threshold
-                            or abs(right_stick["y"]) > stick_threshold
-                        ):
-                            stick_info.append(
-                                f"R({right_stick['x']:.2f}, {right_stick['y']:.2f})"
-                            )
-                        log_parts.append(f"Sticks: {', '.join(stick_info)}")
-
-                    print(" | ".join(log_parts))
-
-                    # Here you can add robot command processing
-                    # self.process_robot_commands(controller_data)
-
-            else:
-                print(f"[{timestamp}] Received message type: {msg_type}")
-
-        except Exception as e:
-            print("Controller message handling error", e)
 
     def process_robot_commands(self, controller_data):
         """Process robot commands (stub for future implementation)"""
@@ -260,7 +187,7 @@ class RobotClient:
             except asyncio.CancelledError:
                 pass
             except Exception as e:
-                print(f"Error cancelling task: {e}")
+                print("Error cancelling task", e)
 
         # Close WebRTC components
         if self.data_channel:
@@ -268,7 +195,7 @@ class RobotClient:
                 self.data_channel.close()
                 print("Data channel closed")
             except Exception as e:
-                print(f"Error closing data channel: {e}")
+                print("Error closing data channel", e)
             finally:
                 self.data_channel = None
 
@@ -277,7 +204,7 @@ class RobotClient:
                 await self.pc.close()
                 print("Peer connection closed")
             except Exception as e:
-                print(f"Error closing peer connection: {e}")
+                print("Error closing peer connection", e)
             finally:
                 self.pc = None
 
@@ -287,7 +214,7 @@ class RobotClient:
                 await self.ws.close()
                 print("WebSocket closed")
             except Exception as e:
-                print(f"Error closing WebSocket: {e}")
+                print("Error closing WebSocket", e)
             finally:
                 self.ws = None
 
@@ -315,7 +242,7 @@ class RobotClient:
                         print("Periodic offer sent for reconnection")
 
                 except Exception as e:
-                    print(f"Error sending periodic offer: {e}")
+                    print("Error sending periodic offer", e)
 
     async def connection_watchdog(self):
         """Monitor connection health and cleanup stale connections"""
@@ -342,7 +269,7 @@ class RobotClient:
             if self.data_channel:
                 self.data_channel.close()
                 self.data_channel = None
-                
+
             if self.pc:
                 await self.pc.close()
                 self.pc = None
@@ -351,7 +278,7 @@ class RobotClient:
             await self.create_and_send_offer()
 
         except Exception as e:
-            print(f"Error resetting WebRTC connection: {e}")
+            print("Error resetting WebRTC connection", e)
 
     async def setup_webrtc_connection(self):
         """Setup WebRTC peer connection with all handlers"""
@@ -378,9 +305,10 @@ class RobotClient:
             asyncio.create_task(self.reset_webrtc_connection())
 
         @data_channel.on("message")
-        def on_message(message):
-            self.handle_controller_message(message)
+        def on_message_impl(message):
             self.last_activity = datetime.now()
+            if self.on_message:
+                self.on_message(message)
 
         @pc.on("icecandidate")
         async def on_icecandidate(candidate):
@@ -398,38 +326,10 @@ class RobotClient:
         @pc.on("connectionstatechange")
         def on_connectionstatechange():
             state = pc.connectionState
-            print(f"WebRTC connection state: {state}")
+            print(f"WebRTC connection state", state)
 
             if state == "failed" or state == "disconnected":
                 print("WebRTC connection lost")
             elif state == "connected":
                 print("WebRTC connection established")
                 self.last_activity = datetime.now()
-
-
-async def main():
-    ws_url = os.environ.get("RABBIT_WS_URL")
-    if ws_url is None:
-        raise ValueError("RABBIT_WS_URL environment variable is not set")
-
-    while True:
-        client = RobotClient(ws_url=ws_url)
-
-        try:
-            await client.connect()
-        except KeyboardInterrupt:
-            print("Stop signal received")
-            await client.cleanup()
-            break
-        except Exception as e:
-            print(f"Connection error: {e}")
-            await client.cleanup()
-
-            print("Reconnecting in 3 seconds...")
-            await asyncio.sleep(3)
-            continue
-
-
-if __name__ == "__main__":
-    print("Starting robot client...")
-    asyncio.run(main())

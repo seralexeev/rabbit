@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM ros:jazzy-ros-base
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -8,6 +8,6 @@ COPY pyproject.toml ./
 
 RUN uv sync
 
-COPY main.py main.py
+COPY src/ src/
 
-CMD ["uv", "run", "main.py"]
+CMD ["uv", "run", "src/main.py"]
