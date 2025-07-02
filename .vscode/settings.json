@@ -2,6 +2,7 @@
     "cSpell.words": [
         "aiortc",
         "connectionstatechange",
+        "icecandidate",
         "libevdev",
         "libgpiod",
         "libusb",

@@ -1,63 +1,51 @@
 import asyncio
 import json
-import logging
 import websockets
-from typing import Optional
+from typing import Optional, Any
 from aiortc import (
     RTCPeerConnection,
     RTCSessionDescription,
-    RTCIceCandidate,
     RTCDataChannel,
 )
+from aiortc.sdp import candidate_from_sdp
 from datetime import datetime
-
-# Logging setup
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+import os
 
 
 class RobotClient:
-    def __init__(self, ws_url="ws://localhost:3000?role=robot"):
+    def __init__(self, ws_url: str):
         self.ws_url = ws_url
-        self.ws: Optional[websockets.WebSocketServerProtocol] = None
+
+        self.ws: Optional[Any] = None
         self.pc: Optional[RTCPeerConnection] = None
         self.data_channel: Optional[RTCDataChannel] = None
+
         self.running = False
         self.last_activity = None
         self.offer_task = None
-        self.connection_timeout = 30  # seconds
+        self.connection_timeout = 30
         self.watchdog_task = None
 
     async def connect(self):
-        """Connect to WebSocket server and establish WebRTC connection"""
         try:
-            logger.info(f"🔌 Connecting to {self.ws_url}")
+            print("Connecting to ws", {"ws_url": self.ws_url})
+
             self.ws = await websockets.connect(self.ws_url)
-            logger.info("🟢 Connected to WebSocket server")
+            print("Connected to WebSocket server")
 
-            # Initialize WebRTC peer connection
             await self.setup_webrtc_connection()
-
-            # Create offer and send it
             await self.create_and_send_offer()
 
             self.running = True
-
-            # Start periodic offer sending task
             self.offer_task = asyncio.create_task(self.periodic_offer())
-
-            # Start connection watchdog
             self.watchdog_task = asyncio.create_task(self.connection_watchdog())
 
-            # Start listening for WebSocket messages
             await self.listen_websocket()
 
         except Exception as e:
-            logger.error(f"🔴 Connection error: {e}")
+            print("Connection error", e)
             await self.cleanup()
-            logger.info("🔵 Waiting 2 seconds before reconnecting...")
+            print("Waiting before reconnecting...")
             await asyncio.sleep(2)
 
     async def send_ws_message(self, message):
@@ -65,28 +53,27 @@ class RobotClient:
         try:
             if self.ws:
                 await self.ws.send(json.dumps(message))
-                logger.debug(f"📤 Sent WS message: {message.get('type', 'unknown')}")
+                print("Sent WS message", {message.get("type", "unknown")})
         except Exception as e:
-            logger.error(f"🔴 Error sending WS message: {e}")
+            print("Error sending WS message", e)
 
     async def create_and_send_offer(self):
         """Create and send WebRTC offer"""
         try:
             if not self.pc:
-                logger.error("🔴 Peer connection not initialized")
+                print("Peer connection not initialized")
                 return
 
-            # Create offer and send it
-            offer = await self.pc.createOffer()  # type: ignore
-            await self.pc.setLocalDescription(offer)  # type: ignore
+            offer = await self.pc.createOffer()
+            await self.pc.setLocalDescription(offer)
 
             await self.send_ws_message(
-                {"type": "offer", "sdp": self.pc.localDescription.sdp}  # type: ignore
+                {"type": "offer", "sdp": self.pc.localDescription.sdp}
             )
-            logger.info("📤 WebRTC offer created and sent")
+            print("WebRTC offer created and sent")
 
         except Exception as e:
-            logger.error(f"🔴 Error creating offer: {e}")
+            print("Error creating offer", e)
 
     async def listen_websocket(self):
         """Listen for WebSocket messages"""
@@ -100,12 +87,12 @@ class RobotClient:
                         data = json.loads(message)
                         await self.handle_ws_message(data)
                     except json.JSONDecodeError as e:
-                        logger.error(f"🔴 JSON parsing error: {e}")
+                        print("JSON parsing error", e)
 
         except websockets.exceptions.ConnectionClosed:
-            logger.info("🟡 WebSocket connection closed")
+            print("WebSocket connection closed")
         except Exception as e:
-            logger.error(f"🔴 WebSocket error: {e}")
+            print("WebSocket error", e)
         finally:
             await self.cleanup()
 
@@ -117,23 +104,23 @@ class RobotClient:
             # Handle WebRTC answer from browser
             try:
                 if not self.pc:
-                    logger.error("🔴 Peer connection not initialized")
+                    print("Peer connection not initialized")
                     return
 
                 # Check if this is a new connection (browser refresh)
                 if self.pc.connectionState in ["connected", "connecting"]:
-                    logger.info(
-                        "🔄 Received answer while already connecting/connected - resetting"
+                    print(
+                        "Received answer while already connecting/connected - resetting"
                     )
                     await self.reset_webrtc_connection()
                     return
 
                 answer = RTCSessionDescription(sdp=message["sdp"], type=message["type"])
                 await self.pc.setRemoteDescription(answer)
-                logger.info("📥 WebRTC answer received and set")
+                print("WebRTC answer received and set")
 
             except Exception as e:
-                logger.error(f"🔴 Error handling answer: {e}")
+                print("Error handling answer", e)
                 # Try to reset connection on error
                 await self.reset_webrtc_connection()
 
@@ -141,27 +128,35 @@ class RobotClient:
             # Handle ICE candidate
             try:
                 if not self.pc:
-                    logger.error("🔴 Peer connection not initialized")
+                    print("Peer connection not initialized")
                     return
 
-                # aiortc expects positional arguments: sdpMid, sdpMLineIndex, candidate
-                candidate = RTCIceCandidate(
-                    message.get("sdpMid"),
-                    message.get("sdpMLineIndex"),
-                    message.get("candidate", ""),
-                )
-                await self.pc.addIceCandidate(candidate)
-                logger.debug("🔵 ICE candidate added")
+                # aiortc expects ICE candidate as SDP string, use from_sdp
+                candidate_sdp = message.get("candidate", "")
+                sdp_mid = message.get("sdpMid")
+                sdp_mline_index = message.get("sdpMLineIndex")
+                if (
+                    candidate_sdp
+                    and sdp_mid is not None
+                    and sdp_mline_index is not None
+                ):
+                    candidate = candidate_from_sdp(candidate_sdp)
+                    candidate.sdpMid = sdp_mid
+                    candidate.sdpMLineIndex = sdp_mline_index
+                    await self.pc.addIceCandidate(candidate)
+                    print("ICE candidate added")
+                else:
+                    print("Incomplete ICE candidate message received")
             except Exception as e:
-                logger.warning(f"🟡 Failed to add ICE candidate: {e}")
+                print("Failed to add ICE candidate", e)
 
         elif msg_type == "request_offer":
             # Browser requests a new offer - reset connection and create new one
-            logger.info("🔄 Browser requested new offer - resetting connection")
+            print("Browser requested new offer - resetting connection")
             await self.reset_webrtc_connection()
 
         else:
-            logger.debug(f"🔵 Received unknown message type: {msg_type}")
+            print("Received unknown message", {msg_type})
 
     def handle_controller_message(self, message):
         """Handle messages from controller"""
@@ -223,18 +218,16 @@ class RobotClient:
                             )
                         log_parts.append(f"Sticks: {', '.join(stick_info)}")
 
-                    logger.info(" | ".join(log_parts))
+                    print(" | ".join(log_parts))
 
                     # Here you can add robot command processing
                     # self.process_robot_commands(controller_data)
 
             else:
-                logger.info(f"[{timestamp}] 📨 Received message type: {msg_type}")
+                print(f"[{timestamp}] Received message type: {msg_type}")
 
-        except json.JSONDecodeError as e:
-            logger.error(f"🔴 Controller message parsing error: {e}")
         except Exception as e:
-            logger.error(f"🔴 Controller message handling error: {e}")
+            print("Controller message handling error", e)
 
     def process_robot_commands(self, controller_data):
         """Process robot commands (stub for future implementation)"""
@@ -247,7 +240,7 @@ class RobotClient:
 
     async def cleanup(self):
         """Clean up resources"""
-        logger.info("🧹 Starting cleanup process...")
+        print("Starting cleanup process...")
         self.running = False
 
         # Cancel all background tasks
@@ -270,24 +263,24 @@ class RobotClient:
             except asyncio.CancelledError:
                 pass
             except Exception as e:
-                logger.debug(f"Error cancelling task: {e}")
+                print(f"Error cancelling task: {e}")
 
         # Close WebRTC components
         if self.data_channel:
             try:
                 self.data_channel.close()
-                logger.debug("Data channel closed")
+                print("Data channel closed")
             except Exception as e:
-                logger.debug(f"Error closing data channel: {e}")
+                print(f"Error closing data channel: {e}")
             finally:
                 self.data_channel = None
 
         if self.pc:
             try:
                 await self.pc.close()
-                logger.debug("Peer connection closed")
+                print("Peer connection closed")
             except Exception as e:
-                logger.debug(f"Error closing peer connection: {e}")
+                print(f"Error closing peer connection: {e}")
             finally:
                 self.pc = None
 
@@ -295,42 +288,42 @@ class RobotClient:
         if self.ws:
             try:
                 await self.ws.close()
-                logger.debug("WebSocket closed")
+                print("WebSocket closed")
             except Exception as e:
-                logger.debug(f"Error closing WebSocket: {e}")
+                print(f"Error closing WebSocket: {e}")
             finally:
                 self.ws = None
 
-        logger.info("🟢 Cleanup completed successfully")
+        print("Cleanup completed successfully")
 
     async def periodic_offer(self):
         """Send periodic offers to enable browser reconnection"""
         while self.running:
-            await asyncio.sleep(10)  # Send offer every 10 seconds
+            await asyncio.sleep(10)
 
             if self.pc and self.ws:
                 try:
                     # Check if we have an active data channel connection
                     if not self.data_channel or self.data_channel.readyState != "open":
                         # Recreate offer if no active connection
-                        offer = await self.pc.createOffer()  # type: ignore
-                        await self.pc.setLocalDescription(offer)  # type: ignore
+                        offer = await self.pc.createOffer()
+                        await self.pc.setLocalDescription(offer)
 
                         await self.send_ws_message(
                             {
                                 "type": "offer",
-                                "sdp": self.pc.localDescription.sdp,  # type: ignore
+                                "sdp": self.pc.localDescription.sdp,
                             }
                         )
-                        logger.debug("� Periodic offer sent for reconnection")
+                        print("Periodic offer sent for reconnection")
 
                 except Exception as e:
-                    logger.debug(f"Error sending periodic offer: {e}")
+                    print(f"Error sending periodic offer: {e}")
 
     async def connection_watchdog(self):
         """Monitor connection health and cleanup stale connections"""
         while self.running:
-            await asyncio.sleep(5)  # Check every 5 seconds
+            await asyncio.sleep(5)
 
             if not self.running:
                 break
@@ -338,16 +331,16 @@ class RobotClient:
             # Check if WebRTC connection is still alive
             if self.pc and self.data_channel:
                 if self.pc.connectionState in ["failed", "disconnected", "closed"]:
-                    logger.warning("🟡 WebRTC connection lost, cleaning up...")
+                    print("WebRTC connection lost, cleaning up...")
                     await self.reset_webrtc_connection()
                 elif self.data_channel.readyState == "closed":
-                    logger.warning("🟡 Data channel closed, cleaning up...")
+                    print("Data channel closed, cleaning up...")
                     await self.reset_webrtc_connection()
 
     async def reset_webrtc_connection(self):
         """Reset WebRTC connection and prepare for new one"""
         try:
-            logger.info("🔄 Resetting WebRTC connection...")
+            print("Resetting WebRTC connection...")
 
             # Close existing data channel
             if self.data_channel:
@@ -366,34 +359,32 @@ class RobotClient:
             await self.create_and_send_offer()
 
         except Exception as e:
-            logger.error(f"🔴 Error resetting WebRTC connection: {e}")
+            print(f"Error resetting WebRTC connection: {e}")
 
     async def setup_webrtc_connection(self):
         """Setup WebRTC peer connection with all handlers"""
         self.pc = RTCPeerConnection()
         pc = self.pc  # Local variable for typing
 
-        # Create data channel (as connection initiator)
-        self.data_channel = pc.createDataChannel("chat")  # type: ignore
+        self.data_channel = pc.createDataChannel("chat")
         data_channel = self.data_channel
 
-        @data_channel.on("open")  # type: ignore
+        @data_channel.on("open")
         def on_open():
-            logger.info("🟢 Data channel opened and ready to receive data")
+            print("Data channel opened and ready to receive data")
             self.last_activity = datetime.now()
 
-        @data_channel.on("close")  # type: ignore
+        @data_channel.on("close")
         def on_close():
-            logger.info("🟡 Data channel closed")
+            print("Data channel closed")
             asyncio.create_task(self.reset_webrtc_connection())
 
-        @data_channel.on("message")  # type: ignore
+        @data_channel.on("message")
         def on_message(message):
             self.handle_controller_message(message)
             self.last_activity = datetime.now()
 
-        # ICE candidate handler
-        @pc.on("icecandidate")  # type: ignore
+        @pc.on("icecandidate")
         async def on_icecandidate(candidate):
             if candidate:
                 await self.send_ws_message(
@@ -406,39 +397,41 @@ class RobotClient:
                 )
 
         # Connection state monitoring
-        @pc.on("connectionstatechange")  # type: ignore
+        @pc.on("connectionstatechange")
         def on_connectionstatechange():
-            state = pc.connectionState  # type: ignore
-            logger.info(f"🔗 WebRTC connection state: {state}")
+            state = pc.connectionState
+            print(f"WebRTC connection state: {state}")
 
             if state == "failed" or state == "disconnected":
-                logger.warning("🔴 WebRTC connection lost")
+                print("WebRTC connection lost")
             elif state == "connected":
-                logger.info("🟢 WebRTC connection established")
+                print("WebRTC connection established")
                 self.last_activity = datetime.now()
 
 
 async def main():
-    """Main function with automatic reconnection"""
+    ws_url = os.environ.get("RABBIT_WS_URL")
+    if ws_url is None:
+        raise ValueError("RABBIT_WS_URL environment variable is not set")
+
     while True:
-        client = RobotClient()
+        client = RobotClient(ws_url=ws_url)
 
         try:
             await client.connect()
         except KeyboardInterrupt:
-            logger.info("� Stop signal received")
+            print("Stop signal received")
             await client.cleanup()
             break
         except Exception as e:
-            logger.error(f"🔴 Connection error: {e}")
+            print(f"Connection error: {e}")
             await client.cleanup()
 
-            # Wait before reconnecting
-            logger.info("� Reconnecting in 3 seconds...")
+            print("Reconnecting in 3 seconds...")
             await asyncio.sleep(3)
             continue
 
 
 if __name__ == "__main__":
-    logger.info("🤖 Starting robot client...")
+    print("Starting robot client...")
     asyncio.run(main())
