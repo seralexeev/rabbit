@@ -3,5 +3,6 @@ services:
     build: ./rabbit-webrtc
     environment:
       - RABBIT_WS_URL=ws://host.docker.internal:3000?role=robot
+    network_mode: host
     tty: true
     stdin_open: true

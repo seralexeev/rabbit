@@ -6,7 +6,8 @@ from aiortc import (
     RTCPeerConnection,
     RTCSessionDescription,
     RTCDataChannel,
-    RTCIceCandidate,
+    RTCConfiguration,
+    RTCIceServer,
 )
 from aiortc.sdp import candidate_from_sdp
 from datetime import datetime
@@ -133,13 +134,16 @@ class RobotClient:
                     print("Peer connection not initialized")
                     return
 
-                candidate = RTCIceCandidate(
-                    message.get("sdpMid"),
-                    message.get("sdpMLineIndex"),
-                    message.get("candidate", ""),
-                )
-                await self.pc.addIceCandidate(candidate)
-                print("ICE candidate added")
+                candidate_sdp = message.get("candidate", "")
+                candidate = candidate_from_sdp(candidate_sdp)
+                
+                if candidate:
+                    candidate.sdpMid = message.get("sdpMid")
+                    candidate.sdpMLineIndex = message.get("sdpMLineIndex")
+                    await self.pc.addIceCandidate(candidate)
+                    print("ICE candidate added successfully")
+                else:
+                    print("Failed to parse ICE candidate from SDP")
             except Exception as e:
                 print("Failed to add ICE candidate", e)
 
@@ -335,20 +339,15 @@ class RobotClient:
         try:
             print("Resetting WebRTC connection...")
 
-            # Close existing data channel
             if self.data_channel:
                 self.data_channel.close()
                 self.data_channel = None
-
-            # Close existing peer connection
+                
             if self.pc:
                 await self.pc.close()
                 self.pc = None
 
-            # Reinitialize WebRTC components
             await self.setup_webrtc_connection()
-
-            # Send new offer immediately
             await self.create_and_send_offer()
 
         except Exception as e:
@@ -356,7 +355,13 @@ class RobotClient:
 
     async def setup_webrtc_connection(self):
         """Setup WebRTC peer connection with all handlers"""
-        self.pc = RTCPeerConnection()
+        configuration = RTCConfiguration(
+            iceServers=[
+                RTCIceServer(urls=["stun:stun.l.google.com:19302"]),
+                RTCIceServer(urls=["stun:stun1.l.google.com:19302"]),
+            ]
+        )
+        self.pc = RTCPeerConnection(configuration)
         pc = self.pc  # Local variable for typing
 
         self.data_channel = pc.createDataChannel("chat")
