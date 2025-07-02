@@ -6,6 +6,7 @@ from aiortc import (
     RTCPeerConnection,
     RTCSessionDescription,
     RTCDataChannel,
+    RTCIceCandidate,
 )
 from aiortc.sdp import candidate_from_sdp
 from datetime import datetime
@@ -65,6 +66,7 @@ class RobotClient:
                 return
 
             offer = await self.pc.createOffer()
+            print(offer)
             await self.pc.setLocalDescription(offer)
 
             await self.send_ws_message(
@@ -131,22 +133,13 @@ class RobotClient:
                     print("Peer connection not initialized")
                     return
 
-                # aiortc expects ICE candidate as SDP string, use from_sdp
-                candidate_sdp = message.get("candidate", "")
-                sdp_mid = message.get("sdpMid")
-                sdp_mline_index = message.get("sdpMLineIndex")
-                if (
-                    candidate_sdp
-                    and sdp_mid is not None
-                    and sdp_mline_index is not None
-                ):
-                    candidate = candidate_from_sdp(candidate_sdp)
-                    candidate.sdpMid = sdp_mid
-                    candidate.sdpMLineIndex = sdp_mline_index
-                    await self.pc.addIceCandidate(candidate)
-                    print("ICE candidate added")
-                else:
-                    print("Incomplete ICE candidate message received")
+                candidate = RTCIceCandidate(
+                    message.get("sdpMid"),
+                    message.get("sdpMLineIndex"),
+                    message.get("candidate", ""),
+                )
+                await self.pc.addIceCandidate(candidate)
+                print("ICE candidate added")
             except Exception as e:
                 print("Failed to add ICE candidate", e)
 
