@@ -4,8 +4,10 @@ services:
     environment:
       - RABBIT_WS_URL=ws://host.docker.internal:3000?role=robot
     network_mode: host
-    tty: true
-    stdin_open: true
+    restart: unless-stopped
+
+  rabbit-power:
+    build: ./rabbit-power
     restart: unless-stopped
 
   # rabbit-test:
@@ -22,11 +24,11 @@ services:
       - '8765:8765'
     restart: unless-stopped
 
-  # rabbit-ros2:
-  #   image: ros:jazzy-ros-base
-  #   volumes:
-  #     - ./rabbit-ros2:/ros2_ws
-  #   working_dir: /ros2_ws
-  #   tty: true
-  #   stdin_open: true
-  #   command: colcon build
+  rabbit-ros2:
+    image: ros:jazzy-ros-base
+    volumes:
+      - ./rabbit-ros2:/ros2_ws
+    working_dir: /ros2_ws
+    tty: true
+    stdin_open: true
+    command: colcon build

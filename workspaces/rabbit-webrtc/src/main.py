@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 
 import rclpy
@@ -31,7 +30,6 @@ class RabbitWebRTCNode(Node):
 
     def on_message(self, message):
         type = message.get("type", "")
-
         if type == "joy/STATE":
             self.handle_controller_message(message)
 

@@ -1,7 +1,11 @@
 FROM ros:jazzy-ros-base
 
+SHELL ["/bin/bash", "-c"]
+
 WORKDIR /ros2_ws
+COPY ./src /ros2_ws/src
 
-COPY ./src src
-
-RUN bash -c "source /opt/ros/jazzy/setup.bash && colcon build"
+RUN <<EOF
+    source /opt/ros/jazzy/setup.bash
+    colcon build
+EOF

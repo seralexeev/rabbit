@@ -12,6 +12,7 @@
         "libusb",
         "nanoevents",
         "pyproject",
+        "rclpy",
         "Roboclaw",
         "rosidl",
         "sergey",
