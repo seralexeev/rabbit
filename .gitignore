@@ -139,6 +139,6 @@ yarn-error.log
 
 .sqlc
 
-workspaces/rabbit-ros2/install/
-workspaces/rabbit-ros2/build/
-workspaces/rabbit-ros2/log/
+workspaces/ros2_ws/install/
+workspaces/ros2_ws/build/
+workspaces/ros2_ws/log/

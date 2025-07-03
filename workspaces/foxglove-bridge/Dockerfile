@@ -8,7 +8,7 @@ RUN apt-get install -y \
 RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws
-COPY ./rabbit-ros2/src /ros2_ws/src
+COPY ./ros2_ws/src /ros2_ws/src
 COPY ./foxglove-bridge/entrypoint.sh /ros2_ws/entrypoint.sh
 
 RUN <<EOF

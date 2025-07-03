@@ -4,7 +4,7 @@ import random
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Header
-from msg.sensor_reading import SensorReading
+from rabbit_interface.msg import SensorReading
 
 
 class RabbitPowerNode(Node):
