@@ -1,7 +1,11 @@
 {
     "cSpell.words": [
         "aiortc",
+        "Alekseev",
+        "buildtool",
+        "colcon",
         "connectionstatechange",
+        "DISTRO",
         "icecandidate",
         "libevdev",
         "libgpiod",
@@ -9,6 +13,7 @@
         "nanoevents",
         "pyproject",
         "Roboclaw",
+        "rosidl",
         "sergey",
         "webrtc"
     ]

@@ -307,8 +307,12 @@ class WebRTCClient:
         @data_channel.on("message")
         def on_message_impl(message):
             self.last_activity = datetime.now()
-            if self.on_message:
-                self.on_message(message)
+            try:
+                parsed = json.loads(message)
+                if self.on_message:
+                    self.on_message(parsed)
+            except Exception as e:
+                print(f"Error processing message from data channel: {e}")
 
         @pc.on("icecandidate")
         async def on_icecandidate(candidate):

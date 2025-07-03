@@ -1,5 +1,5 @@
 FROM ros:jazzy-ros-base
 
-SHELL ["/bin/bash", "-c", "source /opt/ros/jazzy/setup.bash && exec bash"]
+SHELL ["/bin/bash", "-c", "source /opt/ros/jazzy/setup.bash"]
 
-CMD ["ros2", "topic", "echo", "/rabbit/joy"]
+CMD ["ros2", "topic", "echo", "/joy"]

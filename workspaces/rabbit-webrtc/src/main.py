@@ -1,49 +1,82 @@
 import asyncio
 import json
 import os
+
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Joy
+from std_msgs.msg import Header
 from webrtc import WebRTCClient
-from ros2_publisher import ROS2Publisher
 
 
-class RobotClient:
+class RabbitWebRTCNode(Node):
     def __init__(self, ws_url):
-        self.ws_url = ws_url
-        self.client = WebRTCClient(
-            ws_url=self.ws_url, on_message=self.handle_controller_message
-        )
+        super().__init__("rabbit_webrtc_node")
 
-        self.ros2_publisher = ROS2Publisher()
-        self.ros2_publisher.initialize()
+        self.get_logger().info("Initializing RabbitWebRTCNode...")
+        self.ws_url = ws_url
+        self.webrtc = WebRTCClient(ws_url=self.ws_url, on_message=self.on_message)
+        self.joy_publisher = self.create_publisher(Joy, "/joy", 10)
+        self.get_logger().info("RabbitWebRTCNode initialized successfully.")
 
     async def connect(self):
-        await self.client.connect()
+        self.get_logger().info("Connecting to webrtc server...")
+        await self.webrtc.connect()
+        self.get_logger().info("Connected to webrtc server.")
 
     async def cleanup(self):
-        await self.client.cleanup()
+        self.get_logger().info("Cleaning up RabbitWebRTCNode...")
+        await self.webrtc.cleanup()
+        self.destroy_node()
 
-        # Очистка ROS2 ресурсов
-        if self.ros2_publisher:
-            self.ros2_publisher.cleanup()
+    def on_message(self, message):
+        type = message.get("type", "")
+
+        if type == "joy/STATE":
+            self.handle_controller_message(message)
 
     def handle_controller_message(self, message):
-        try:
-            data = json.loads(message)
-            msg_type = data.get("type")
+        data = message["data"]
 
-            if msg_type == "joy/STATE":
-                controller_data = data.get("data", {})
-                if not controller_data:
-                    print("Invalid controller data received")
-                    return
+        joy_msg = Joy()
+        joy_msg.header = Header()
+        joy_msg.header.stamp = self.get_clock().now().to_msg()
+        joy_msg.header.frame_id = "gamepad"
 
-                if self.ros2_publisher.initialized:
-                    self.ros2_publisher.publish_message("hello")
+        buttons = data.get("buttons", {})
+        joy_msg.buttons = [
+            1 if buttons.get("cross", {}).get("pressed", False) else 0,
+            1 if buttons.get("circle", {}).get("pressed", False) else 0,
+            1 if buttons.get("square", {}).get("pressed", False) else 0,
+            1 if buttons.get("triangle", {}).get("pressed", False) else 0,
+            1 if buttons.get("l1", {}).get("pressed", False) else 0,
+            1 if buttons.get("r1", {}).get("pressed", False) else 0,
+            1 if buttons.get("l2", {}).get("pressed", False) else 0,
+            1 if buttons.get("r2", {}).get("pressed", False) else 0,
+            1 if buttons.get("share", {}).get("pressed", False) else 0,
+            1 if buttons.get("options", {}).get("pressed", False) else 0,
+            1 if buttons.get("l3", {}).get("pressed", False) else 0,
+            1 if buttons.get("r3", {}).get("pressed", False) else 0,
+            1 if buttons.get("up", {}).get("pressed", False) else 0,
+            1 if buttons.get("down", {}).get("pressed", False) else 0,
+            1 if buttons.get("left", {}).get("pressed", False) else 0,
+            1 if buttons.get("right", {}).get("pressed", False) else 0,
+        ]
 
-            else:
-                print("Received message type", {msg_type})
+        sticks = data.get("sticks", {})
+        left_stick = sticks.get("left", {})
+        right_stick = sticks.get("right", {})
 
-        except Exception as e:
-            print("Controller message handling error", e)
+        joy_msg.axes = [
+            left_stick.get("x", 0.0),
+            left_stick.get("y", 0.0),
+            right_stick.get("x", 0.0),
+            right_stick.get("y", 0.0),
+            buttons.get("l2", {}).get("value", 0.0),
+            buttons.get("r2", {}).get("value", 0.0),
+        ]
+
+        self.joy_publisher.publish(joy_msg)
 
 
 async def main():
@@ -51,8 +84,10 @@ async def main():
     if ws_url is None:
         raise ValueError("RABBIT_WS_URL environment variable is not set")
 
+    rclpy.init()
+
     while True:
-        client = RobotClient(ws_url=ws_url)
+        client = RabbitWebRTCNode(ws_url=ws_url)
 
         try:
             await client.connect()
@@ -67,7 +102,9 @@ async def main():
             await asyncio.sleep(3)
             continue
 
+    rclpy.shutdown()
+
 
 if __name__ == "__main__":
-    print("Starting robot client...")
+    print("Starting rabbit client...")
     asyncio.run(main())

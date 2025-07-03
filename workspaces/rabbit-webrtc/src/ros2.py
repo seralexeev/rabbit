@@ -13,7 +13,7 @@ class ROS2Publisher:
         try:
             rclpy.init()
             self.node = Node("rabbit_webrtc_node")
-            self.publisher = self.node.create_publisher(String, "/rabbit/joy", 10)
+            self.publisher = self.node.create_publisher(String, "/joy", 10)
             self.initialized = True
             print("ROS2 publisher initialized successfully")
         except Exception as e:

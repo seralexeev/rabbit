@@ -15,7 +15,18 @@ services:
   #   restart: unless-stopped
 
   foxglove-bridge:
-    build: ./foxglove-bridge
+    build:
+      context: .
+      dockerfile: ./foxglove-bridge/Dockerfile
     ports:
       - '8765:8765'
     restart: unless-stopped
+
+  # rabbit-ros2:
+  #   image: ros:jazzy-ros-base
+  #   volumes:
+  #     - ./rabbit-ros2:/ros2_ws
+  #   working_dir: /ros2_ws
+  #   tty: true
+  #   stdin_open: true
+  #   command: colcon build
