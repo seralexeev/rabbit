@@ -8,7 +8,7 @@
   <license>MIT</license>
 
   <buildtool_depend>ament_python</buildtool_depend>
-  
+
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
   <depend>rabbit_interfaces</depend>
