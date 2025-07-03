@@ -2,7 +2,7 @@
 import random
 
 import rclpy
-from rabbit.msg import SensorReading
+from rabbit_interfaces.msg import SensorReading
 from rclpy.node import Node
 from std_msgs.msg import Header
 
