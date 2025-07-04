@@ -2,6 +2,7 @@ import { css } from '@emotion/css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
+import { CameraView } from './camera/CameraView.tsx';
 import { GamepadController } from './controller/GamepadController.tsx';
 import { GamepadProvider } from './controller/GamepadProvider.tsx';
 import { NatsProvider } from './realtime/NatsProvider.tsx';
@@ -22,6 +23,7 @@ export const App: React.FC = () => {
                     <NatsProvider>
                         <GamepadProvider>
                             <GamepadController />
+                            <CameraView />
                         </GamepadProvider>
                     </NatsProvider>
                 </div>

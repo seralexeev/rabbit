@@ -7,8 +7,7 @@ dependencies = [
     "aiohttp", 
     "aiohttp-cors",
     "av",
-    "opencv-python-headless",
-    "websockets"
+    "opencv-python-headless"
 ]
 
 [project.optional-dependencies]

@@ -22,6 +22,7 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 reconnect: true,
                 maxReconnectAttempts: -1,
                 waitOnFirstConnect: true,
+                name: 'rabbit-web',
             });
         },
     });

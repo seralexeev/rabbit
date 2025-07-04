@@ -123,7 +123,7 @@ export const useWebRTC = () => {
                             return;
                         }
                         case 'ws_connected': {
-                            console.log('🟢 WebSocket connected, requesting WebRTC offer from robot');
+                            console.log('🟢 NATS connected, requesting WebRTC offer from robot');
                             requestOfferFromRobot();
                             return;
                         }
@@ -131,21 +131,21 @@ export const useWebRTC = () => {
                             t satisfies never; // Ensure all cases are handled
                     }
                 } catch (error) {
-                    console.error('🔴 Error handling WebSocket message for WebRTC:', error);
+                    console.error('🔴 Error handling NATS message for WebRTC:', error);
                 }
             },
         });
 
-        // Initial request for an offer, in case WebSocket was already connected
+        // Initial request for an offer, in case NATS was already connected
         // before this hook's subscription was established.
         // The 'ws_connected' message handles the primary flow.
         if (nc && typeof (nc as any).isConnected === 'function' && (nc as any).isConnected()) {
-            // If WebSocketWrapper had an isConnected method. For now, rely on ws_connected or initial request.
+            // If NATS connection had an isConnected method. For now, rely on ws_connected or initial request.
             requestOfferFromRobot();
         } else if (nc) {
-            // If ws object exists, assume we might need to kickstart if ws_connected was missed.
-            // This is a bit of a guess; ideally, WebSocketProvider guarantees ws_connected fires post-subscription.
-            // Given current WebSocketProvider, ws_connected should fire after connect() in its useEffect.
+            // If NATS connection exists, assume we might need to kickstart if ws_connected was missed.
+            // This is a bit of a guess; ideally, NATS provider guarantees ws_connected fires post-subscription.
+            // Given current NATS provider, ws_connected should fire after connect() in its useEffect.
             // So, this initial call might be redundant if ws_connected is always caught.
             // However, it acts as a fallback.
             requestOfferFromRobot();

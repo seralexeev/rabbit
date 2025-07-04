@@ -16,16 +16,6 @@ export const GamepadController: React.FC = () => {
         });
     }, [gamepad, nc]);
 
-    React.useEffect(() => {
-        const subscription = nc.subscribe('rabbit.cmd.joy', {
-            callback: (_, msg) => {
-                console.log('Received gamepad state update:', msg.json());
-            },
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
-
     return (
         <div
             className={css`

@@ -1,4 +1,14 @@
 services:
+  # Rabbit Camera Service
+  # Not available on MacOS due to hardware access limitations
+  # rabbit-camera:
+  #   build: ./rabbit-camera
+  #   devices:
+  #     - /dev/video0:/dev/video0
+  #   network_mode: host
+  #   privileged: true
+  #   restart: unless-stopped
+
   nats:
     image: nats:latest
     command: -c /etc/nats/nats-server.conf
@@ -19,9 +29,39 @@ services:
     depends_on:
       - nats
 
-  # rabbit-webrtc:
-  #   build: ./rabbit-webrtc
-  #   environment:
-  #     - RABBIT_WS_URL=ws://host.docker.internal:3000?role=robot
-  #   network_mode: host
-  #   restart: unless-stopped
+  loki:
+    image: grafana/loki
+    container_name: loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./monitoring/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+    ports:
+      - '3100:3100'
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail
+    container_name: promtail
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    volumes:
+      - ./monitoring/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on: [loki]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss
+    container_name: grafana
+    environment:
+      - GF_PROVISIONING_CONFIG_ENABLE=1
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_BASIC_ENABLED=false
+      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
+    volumes:
+      # - ./monitoring/grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - '3000:3000'
+    restart: unless-stopped

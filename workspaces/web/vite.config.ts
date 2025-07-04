@@ -17,11 +17,5 @@ export default defineConfig({
     },
     server: {
         port: 3005,
-        proxy: {
-            '/ws': {
-                target: 'ws://localhost:3000',
-                ws: true,
-            },
-        },
     },
 });
