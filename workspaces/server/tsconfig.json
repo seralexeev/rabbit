@@ -1,9 +1,0 @@
-{
-  "extends": "../../tsconfig.common.json",
-  "compilerOptions": {
-    "noEmit": true,
-    "emitDeclarationOnly": false,
-    "lib": ["ESNext"]
-  },
-  "references": []
-}

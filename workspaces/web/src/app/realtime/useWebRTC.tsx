@@ -38,7 +38,7 @@ export const useWebRTC = () => {
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
-                nc.publish('webrtc.signaling', JSON.stringify({ type: 'ice', ...event.candidate.toJSON() }));
+                nc.publish('webrtc.signaling.browser', JSON.stringify({ type: 'ice', ...event.candidate.toJSON() }));
             }
         };
 
@@ -72,7 +72,7 @@ export const useWebRTC = () => {
     React.useEffect(() => {
         const requestOfferFromRobot = () => {
             console.log('🔄 Requesting WebRTC offer from robot');
-            nc.publish('webrtc.signaling', JSON.stringify({ type: 'request_offer' }));
+            nc.publish('webrtc.signaling.browser', JSON.stringify({ type: 'request_offer' }));
         };
 
         const handleOffer = async (offerMessage: RTCSessionDescriptionInit) => {
@@ -81,7 +81,7 @@ export const useWebRTC = () => {
             await pc.setRemoteDescription(new RTCSessionDescription(offerMessage));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            nc.publish('webrtc.signaling', JSON.stringify(answer));
+            nc.publish('webrtc.signaling.browser', JSON.stringify(answer));
             console.log('📤 Answer sent to robot');
         };
 
@@ -94,7 +94,7 @@ export const useWebRTC = () => {
             await pcRef.current.addIceCandidate(new RTCIceCandidate(iceCandidateMessage));
         };
 
-        const subscription = nc.subscribe('webrtc.signaling', {
+        const subscription = nc.subscribe('webrtc.signaling.rabbit', {
             callback: (err, raw) => {
                 if (err) {
                     console.error('🔴 Error receiving WebRTC signaling message:', err);

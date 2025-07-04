@@ -1,6 +1,6 @@
 import asyncio
 import json
-import websockets
+import nats
 from typing import Optional, Any
 from aiortc import (
     RTCPeerConnection,
@@ -14,11 +14,13 @@ from datetime import datetime
 
 
 class WebRTCClient:
-    def __init__(self, ws_url: str, on_message: Optional[Any] = None):
-        self.ws_url = ws_url
+    def __init__(
+        self, nats_url: str = "nats://localhost:4222", on_message: Optional[Any] = None
+    ):
+        self.nats_url = nats_url
         self.on_message = on_message
 
-        self.ws: Optional[Any] = None
+        self.nc: Optional[Any] = None
         self.pc: Optional[RTCPeerConnection] = None
         self.data_channel: Optional[RTCDataChannel] = None
 
@@ -27,13 +29,14 @@ class WebRTCClient:
         self.offer_task = None
         self.connection_timeout = 30
         self.watchdog_task = None
+        self.subscription = None
 
     async def connect(self):
         try:
-            print("Connecting to ws", {"ws_url": self.ws_url})
+            print("Connecting to NATS", {"nats_url": self.nats_url})
 
-            self.ws = await websockets.connect(self.ws_url)
-            print("Connected to WebSocket server")
+            self.nc = await nats.connect(self.nats_url)
+            print("Connected to NATS server")
 
             await self.setup_webrtc_connection()
             await self.create_and_send_offer()
@@ -42,7 +45,7 @@ class WebRTCClient:
             self.offer_task = asyncio.create_task(self.periodic_offer())
             self.watchdog_task = asyncio.create_task(self.connection_watchdog())
 
-            await self.listen_websocket()
+            await self.listen_nats()
 
         except Exception as e:
             print("Connection error", e)
@@ -50,14 +53,16 @@ class WebRTCClient:
             print("Waiting before reconnecting...")
             await asyncio.sleep(2)
 
-    async def send_ws_message(self, message):
-        """Send message via WebSocket"""
+    async def send_nats_message(self, message):
+        """Send message via NATS"""
         try:
-            if self.ws:
-                await self.ws.send(json.dumps(message))
-                print("Sent WS message", {message.get("type", "unknown")})
+            if self.nc:
+                await self.nc.publish(
+                    "webrtc.signaling.rabbit", json.dumps(message).encode()
+                )
+                print("Sent NATS message", message.get("type", "unknown"))
         except Exception as e:
-            print("Error sending WS message", e)
+            print("Error sending NATS message", e)
 
     async def create_and_send_offer(self):
         """Create and send WebRTC offer"""
@@ -68,7 +73,7 @@ class WebRTCClient:
 
             offer = await self.pc.createOffer()
             await self.pc.setLocalDescription(offer)
-            await self.send_ws_message(
+            await self.send_nats_message(
                 {"type": "offer", "sdp": self.pc.localDescription.sdp}
             )
             print("WebRTC offer created and sent")
@@ -76,29 +81,40 @@ class WebRTCClient:
         except Exception as e:
             print("Error creating offer", e)
 
-    async def listen_websocket(self):
-        """Listen for WebSocket messages"""
+    async def listen_nats(self):
+        """Listen for NATS messages"""
         try:
-            if self.ws:
-                async for message in self.ws:
+            if self.nc:
+
+                async def message_handler(msg):
                     if not self.running:
-                        break
+                        return
 
                     try:
-                        data = json.loads(message)
-                        await self.handle_ws_message(data)
+                        data = json.loads(msg.data.decode())
+                        await self.handle_nats_message(data)
                     except json.JSONDecodeError as e:
                         print("JSON parsing error", e)
 
-        except websockets.exceptions.ConnectionClosed:
-            print("WebSocket connection closed")
+                self.subscription = await self.nc.subscribe(
+                    "webrtc.signaling.browser", cb=message_handler
+                )
+                print("Subscribed to NATS topic webrtc.signaling.browser")
+
+                # Send ws_connected message to signal that we're ready
+                await self.send_nats_message({"type": "ws_connected"})
+
+                # Keep the connection alive
+                while self.running:
+                    await asyncio.sleep(1)
+
         except Exception as e:
-            print("WebSocket error", e)
+            print("NATS error", e)
         finally:
             await self.cleanup()
 
-    async def handle_ws_message(self, message):
-        """Handle incoming WebSocket messages"""
+    async def handle_nats_message(self, message):
+        """Handle incoming NATS messages"""
         msg_type = message.get("type")
 
         if msg_type == "answer":
@@ -208,15 +224,24 @@ class WebRTCClient:
             finally:
                 self.pc = None
 
-        # Close WebSocket
-        if self.ws:
+        # Close NATS components
+        if self.subscription:
             try:
-                await self.ws.close()
-                print("WebSocket closed")
+                await self.subscription.unsubscribe()
+                print("NATS subscription closed")
             except Exception as e:
-                print("Error closing WebSocket", e)
+                print("Error closing NATS subscription", e)
             finally:
-                self.ws = None
+                self.subscription = None
+
+        if self.nc:
+            try:
+                await self.nc.close()
+                print("NATS connection closed")
+            except Exception as e:
+                print("Error closing NATS connection", e)
+            finally:
+                self.nc = None
 
         print("Cleanup completed successfully")
 
@@ -225,7 +250,7 @@ class WebRTCClient:
         while self.running:
             await asyncio.sleep(10)
 
-            if self.pc and self.ws:
+            if self.pc and self.nc:
                 try:
                     # Check if we have an active data channel connection
                     if not self.data_channel or self.data_channel.readyState != "open":
@@ -233,7 +258,7 @@ class WebRTCClient:
                         offer = await self.pc.createOffer()
                         await self.pc.setLocalDescription(offer)
 
-                        await self.send_ws_message(
+                        await self.send_nats_message(
                             {
                                 "type": "offer",
                                 "sdp": self.pc.localDescription.sdp,
@@ -317,7 +342,7 @@ class WebRTCClient:
         @pc.on("icecandidate")
         async def on_icecandidate(candidate):
             if candidate:
-                await self.send_ws_message(
+                await self.send_nats_message(
                     {
                         "type": "ice",
                         "candidate": candidate.candidate,

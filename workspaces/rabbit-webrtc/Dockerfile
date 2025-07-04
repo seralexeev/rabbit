@@ -1,6 +1,5 @@
-FROM ros:jazzy-ros-base
+FROM ubuntu:24.04
 
-SHELL ["/bin/bash", "-c"]
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /rabbit
