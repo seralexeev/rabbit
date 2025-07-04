@@ -16,6 +16,7 @@
         "Roboclaw",
         "rosidl",
         "sergey",
-        "webrtc"
+        "webrtc",
+        "wsconnect"
     ]
 }

@@ -1,22 +1,30 @@
 import { css } from '@emotion/css';
 import React from 'react';
 
-import { useWebRTC } from '../realtime/useWebRTC.tsx';
+import { useNats } from '../realtime/NatsProvider.tsx';
 import { type DualSenseState, type StickState, useGamepad } from './GamepadProvider.tsx';
 
 export const GamepadController: React.FC = () => {
-    const { sendMessage, connected, connectionState } = useWebRTC();
+    const nc = useNats();
     const { gamepad, subscribe } = useGamepad();
     const [state, setState] = React.useState<DualSenseState | null>(null);
 
     React.useEffect(() => {
         return subscribe((state) => {
             setState(state);
-            if (connected) {
-                sendMessage({ type: 'joy/STATE', data: state, ts: Date.now() });
-            }
+            nc.publish('rabbit.cmd.joy', JSON.stringify(state));
         });
-    }, [gamepad, connected, sendMessage]);
+    }, [gamepad, nc]);
+
+    React.useEffect(() => {
+        const subscription = nc.subscribe('rabbit.cmd.joy', {
+            callback: (_, msg) => {
+                console.log('Received gamepad state update:', msg.json());
+            },
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     return (
         <div
@@ -31,7 +39,7 @@ export const GamepadController: React.FC = () => {
             <p>Selected Gamepad: {gamepad ? gamepad.id : 'None'}</p>
             <p>
                 WebRTC Status:
-                <span
+                {/* <span
                     style={{
                         color: connected ? 'green' : 'red',
                         marginLeft: '8px',
@@ -41,7 +49,7 @@ export const GamepadController: React.FC = () => {
                 </span>
                 {connectionState && (
                     <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.7 }}>({connectionState})</span>
-                )}
+                )} */}
             </p>
             {state && (
                 <div>

@@ -2,10 +2,10 @@ import React from 'react';
 import { z } from 'zod/v4';
 
 import { useEvent } from '../hooks.ts';
-import { useWebSocket } from './WebSocketProvider.tsx';
+import { useNats } from './NatsProvider.tsx';
 
 export const useWebRTC = () => {
-    const ws = useWebSocket();
+    const nc = useNats();
     const pcRef = React.useRef<RTCPeerConnection | null>(null);
     const channelRef = React.useRef<RTCDataChannel | null>(null);
 
@@ -18,7 +18,9 @@ export const useWebRTC = () => {
             pcRef.current = null;
         }
 
-        const pc = new RTCPeerConnection(); // Consider adding STUN/TURN server configuration here if needed
+        const pc = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }],
+        }); // Consider adding STUN/TURN server configuration here if needed
         pcRef.current = pc;
 
         pc.onconnectionstatechange = () => {
@@ -36,7 +38,7 @@ export const useWebRTC = () => {
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
-                ws.send({ type: 'ice', ...event.candidate.toJSON() });
+                nc.publish('webrtc.signaling', JSON.stringify({ type: 'ice', ...event.candidate.toJSON() }));
             }
         };
 
@@ -70,7 +72,7 @@ export const useWebRTC = () => {
     React.useEffect(() => {
         const requestOfferFromRobot = () => {
             console.log('🔄 Requesting WebRTC offer from robot');
-            ws.send({ type: 'request_offer' });
+            nc.publish('webrtc.signaling', JSON.stringify({ type: 'request_offer' }));
         };
 
         const handleOffer = async (offerMessage: RTCSessionDescriptionInit) => {
@@ -79,7 +81,7 @@ export const useWebRTC = () => {
             await pc.setRemoteDescription(new RTCSessionDescription(offerMessage));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            ws.send(answer);
+            nc.publish('webrtc.signaling', JSON.stringify(answer));
             console.log('📤 Answer sent to robot');
         };
 
@@ -92,37 +94,55 @@ export const useWebRTC = () => {
             await pcRef.current.addIceCandidate(new RTCIceCandidate(iceCandidateMessage));
         };
 
-        const unsubscribeWs = ws.subscribe(Message, async (msg) => {
-            try {
-                const t = msg.type;
-                switch (t) {
-                    case 'offer': {
-                        console.log('🟢 Received offer from robot, setting up connection...');
-                        return handleOffer(msg);
-                    }
-                    case 'ice': {
-                        console.log('🟢 Received ICE candidate from robot');
-                        return handleIceCandidate(msg);
-                    }
-                    case 'ws_connected': {
-                        console.log('🟢 WebSocket connected, requesting WebRTC offer from robot');
-                        return requestOfferFromRobot();
-                    }
-                    default:
-                        t satisfies never; // Ensure all cases are handled
+        const subscription = nc.subscribe('webrtc.signaling', {
+            callback: (err, raw) => {
+                if (err) {
+                    console.error('🔴 Error receiving WebRTC signaling message:', err);
+                    return;
                 }
-            } catch (error) {
-                console.error('🔴 Error handling WebSocket message for WebRTC:', error);
-            }
+
+                const parsed = Message.safeParse(raw.json());
+                if (!parsed.success) {
+                    console.error('🔴 Invalid WebRTC signaling message:', parsed.error);
+                    return;
+                }
+
+                const msg = parsed.data;
+
+                try {
+                    const t = msg.type;
+                    switch (t) {
+                        case 'offer': {
+                            console.log('🟢 Received offer from robot, setting up connection...');
+                            void handleOffer(msg);
+                            return;
+                        }
+                        case 'ice': {
+                            console.log('🟢 Received ICE candidate from robot');
+                            void handleIceCandidate(msg);
+                            return;
+                        }
+                        case 'ws_connected': {
+                            console.log('🟢 WebSocket connected, requesting WebRTC offer from robot');
+                            requestOfferFromRobot();
+                            return;
+                        }
+                        default:
+                            t satisfies never; // Ensure all cases are handled
+                    }
+                } catch (error) {
+                    console.error('🔴 Error handling WebSocket message for WebRTC:', error);
+                }
+            },
         });
 
         // Initial request for an offer, in case WebSocket was already connected
         // before this hook's subscription was established.
         // The 'ws_connected' message handles the primary flow.
-        if (ws && typeof (ws as any).isConnected === 'function' && (ws as any).isConnected()) {
+        if (nc && typeof (nc as any).isConnected === 'function' && (nc as any).isConnected()) {
             // If WebSocketWrapper had an isConnected method. For now, rely on ws_connected or initial request.
             requestOfferFromRobot();
-        } else if (ws) {
+        } else if (nc) {
             // If ws object exists, assume we might need to kickstart if ws_connected was missed.
             // This is a bit of a guess; ideally, WebSocketProvider guarantees ws_connected fires post-subscription.
             // Given current WebSocketProvider, ws_connected should fire after connect() in its useEffect.
@@ -132,14 +152,15 @@ export const useWebRTC = () => {
         }
 
         return () => {
-            unsubscribeWs();
+            subscription.unsubscribe();
+
             if (pcRef.current) {
                 pcRef.current.close();
                 pcRef.current = null;
             }
             console.log('🧹 WebRTC connection cleaned up');
         };
-    }, [ws, setupPeerConnection]);
+    }, [nc, setupPeerConnection]);
 
     const sendMessage = useEvent((message: unknown) => {
         if (channelRef.current?.readyState === 'open') {

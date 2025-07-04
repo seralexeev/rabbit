@@ -1,4 +1,24 @@
 services:
+  nats:
+    image: nats:latest
+    command: -c /etc/nats/nats-server.conf
+    ports:
+      - '4222:4222'
+      - '9222:9222'
+      - '8222:8222'
+    volumes:
+      - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+    restart: unless-stopped
+
+  nats-dashboard:
+    image: mdawar/nats-dashboard
+    ports:
+      - '8000:80'
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - nats
+
   # rabbit-webrtc:
   #   build: ./rabbit-webrtc
   #   environment:
@@ -6,10 +26,10 @@ services:
   #   network_mode: host
   #   restart: unless-stopped
 
-  rabbit-power:
-    build: ./ros2_ws
-    restart: unless-stopped
-    command: ./run.sh
+  # rabbit-power:
+  #   build: ./ros2_ws
+  #   restart: unless-stopped
+  #   command: ./run.sh
 
   # rabbit-test:
   #   build: ./rabbit-test
