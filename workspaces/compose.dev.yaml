@@ -3,6 +3,7 @@ services:
   # Not available on MacOS due to hardware access limitations
   # rabbit-camera:
   #   build: ./rabbit-camera
+  #   container_name: rabbit-camera
   #   devices:
   #     - /dev/video0:/dev/video0
   #   network_mode: host
@@ -11,6 +12,7 @@ services:
 
   nats:
     image: nats:latest
+    container_name: nats
     command: -c /etc/nats/nats-server.conf
     ports:
       - '4222:4222'
@@ -22,6 +24,7 @@ services:
 
   nats-dashboard:
     image: mdawar/nats-dashboard
+    container_name: nats-dashboard
     ports:
       - '8000:80'
     environment:

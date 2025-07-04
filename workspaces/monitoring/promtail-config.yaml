@@ -7,25 +7,23 @@ clients:
 
 scrape_configs:
   - job_name: docker
-    # --- 1️⃣ Docker service-discovery ---
     docker_sd_configs:
-      - host: unix:///var/run/docker.sock # требуется маунт docker.sock
-        refresh_interval: 10s
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
 
-    # --- 2️⃣ Куда идти за логами  ---
     relabel_configs:
-      # путь до *.log файла контейнера → __path__
       - source_labels: [__meta_docker_container_log_path]
         target_label: __path__
 
-      # из label com.docker.compose.service делаем красивую service_name
-      - source_labels: [__meta_docker_label_com_docker_compose_service]
-        target_label: service_name
-
-      # заодно оставим container_name, если нужно
       - source_labels: [__meta_docker_container_name]
         target_label: container_name
 
-    # --- 3️⃣ Парсим docker-json и сохраняем метаданные ---
     pipeline_stages:
-      - docker: {} # добавляет stream, attrs, image, id и пр.
+      - docker: {}
+
+      - regex:
+          source: container_name
+          expression: '^/(?P<clean_name>.+)$'
+
+      - labels:
+          service_name: clean_name
