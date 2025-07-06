@@ -5,6 +5,43 @@ from typing import Optional, Tuple
 from dataclasses import dataclass
 
 
+# RoboClaw Command Constants
+class RoboClawCommands:
+    """RoboClaw command codes from official documentation"""
+
+    # Motor Control - Legacy Commands
+    M1_FORWARD = 0
+    M1_BACKWARD = 1
+    M2_FORWARD = 4
+    M2_BACKWARD = 5
+
+    # Motor Control - Duty Cycle Commands
+    M1_DUTY = 32
+    M2_DUTY = 33
+
+    # Motor Control - Speed Commands
+    M1_SPEED = 35
+    M2_SPEED = 36
+
+    # Encoder Reading Commands
+    GET_M1_ENC = 16
+    GET_M2_ENC = 17
+
+    # Speed Reading Commands
+    GET_M1_SPEED = 18
+    GET_M2_SPEED = 19
+
+    # Reset Commands
+    RESET_ENC = 20
+
+    # System Information Commands
+    GET_VERSION = 21
+    GET_MBATT = 24
+    GET_LBATT = 25
+    GET_CURRENTS = 49
+    GET_TEMP = 82
+
+
 @dataclass
 class RoboClawStatus:
     """RoboClaw status data"""
@@ -56,7 +93,7 @@ class RoboClaw:
                 port=self.port,
                 baudrate=self.baudrate,
                 timeout=self.timeout,
-                interCharTimeout=self.timeout,
+                inter_byte_timeout=self.timeout,
             )
             time.sleep(0.1)
             return True
@@ -148,25 +185,25 @@ class RoboClaw:
         # Convert percentage to RoboClaw duty value (-32767 to 32767)
         duty = int(max(-32767, min(32767, pwm * 327.67)))
 
-        cmd = 32 if motor == 1 else 33  # M1DUTY/M2DUTY
+        cmd = RoboClawCommands.M1_DUTY if motor == 1 else RoboClawCommands.M2_DUTY
         return self._write_command(cmd, duty)
 
     def set_motor_pwm_legacy(self, motor: int, pwm: float) -> bool:
         """Set motor PWM using legacy commands (0-127 range)"""
         if pwm >= 0:
-            # Forward commands (0=M1FORWARD, 4=M2FORWARD)
-            cmd = 0 if motor == 1 else 4
+            # Forward commands
+            cmd = RoboClawCommands.M1_FORWARD if motor == 1 else RoboClawCommands.M2_FORWARD
             value = int(min(127, pwm * 1.27))  # Convert 0-100% to 0-127
         else:
-            # Backward commands (1=M1BACKWARD, 5=M2BACKWARD)
-            cmd = 1 if motor == 1 else 5
+            # Backward commands
+            cmd = RoboClawCommands.M1_BACKWARD if motor == 1 else RoboClawCommands.M2_BACKWARD
             value = int(min(127, abs(pwm) * 1.27))  # Convert 0-100% to 0-127
 
         return self._write_command(cmd, value)
 
     def set_motor_speed(self, motor: int, speed: int) -> bool:
         """Set motor speed in QPPS (requires configured encoders and PID)"""
-        cmd = 35 if motor == 1 else 36  # M1SPEED/M2SPEED
+        cmd = RoboClawCommands.M1_SPEED if motor == 1 else RoboClawCommands.M2_SPEED
         return self._write_command(cmd, speed)
 
     def stop_motors(self) -> bool:
@@ -177,19 +214,19 @@ class RoboClaw:
 
     def read_encoder(self, motor: int) -> Optional[int]:
         """Read encoder count for specified motor"""
-        cmd = 16 if motor == 1 else 17  # GETM1ENC/GETM2ENC
+        cmd = RoboClawCommands.GET_M1_ENC if motor == 1 else RoboClawCommands.GET_M2_ENC
         result = self._read_command(cmd, ">IB")  # 4 bytes value + 1 byte status
         return result[0] if result else None
 
     def read_speed(self, motor: int) -> Optional[int]:
         """Read motor speed in QPPS"""
-        cmd = 18 if motor == 1 else 19  # GETM1SPEED/GETM2SPEED
+        cmd = RoboClawCommands.GET_M1_SPEED if motor == 1 else RoboClawCommands.GET_M2_SPEED
         result = self._read_command(cmd, ">iB")  # signed 4 bytes + 1 byte status
         return result[0] if result else None
 
     def read_currents(self) -> Optional[Tuple[int, int]]:
         """Read both motor currents in milliamps"""
-        result = self._read_command(49, ">HH")  # GETCURRENTS
+        result = self._read_command(RoboClawCommands.GET_CURRENTS, ">HH")
         if result:
             # Current values are in 10mA units, convert to mA
             return (result[0] * 10, result[1] * 10)
@@ -197,17 +234,17 @@ class RoboClaw:
 
     def read_main_voltage(self) -> Optional[float]:
         """Read main battery voltage in volts"""
-        result = self._read_command(24, ">H")  # GETMBATT
+        result = self._read_command(RoboClawCommands.GET_MBATT, ">H")
         return result[0] / 10.0 if result else None
 
     def read_logic_voltage(self) -> Optional[float]:
         """Read logic battery voltage in volts"""
-        result = self._read_command(25, ">H")  # GETLBATT
+        result = self._read_command(RoboClawCommands.GET_LBATT, ">H")
         return result[0] / 10.0 if result else None
 
     def read_temperature(self) -> Optional[float]:
         """Read board temperature in Celsius"""
-        result = self._read_command(82, ">H")  # GETTEMP
+        result = self._read_command(RoboClawCommands.GET_TEMP, ">H")
         return result[0] / 10.0 if result else None
 
     def read_version(self) -> Optional[str]:
@@ -220,7 +257,7 @@ class RoboClaw:
                 self._serial.reset_input_buffer()
 
                 # Send command
-                packet = bytearray([self.address, 21])  # GETVERSION
+                packet = bytearray([self.address, RoboClawCommands.GET_VERSION])
                 crc = self._crc16(packet)
                 packet.extend(struct.pack(">H", crc))
                 self._serial.write(packet)
@@ -238,7 +275,7 @@ class RoboClaw:
                 if len(crc_bytes) == 2:
                     received_crc = struct.unpack(">H", crc_bytes)[0]
                     # For version command, CRC includes the version string
-                    check_data = bytearray([self.address, 21]) + version + b"\x00"
+                    check_data = bytearray([self.address, RoboClawCommands.GET_VERSION]) + version + b"\x00"
                     if self._crc16(check_data) == received_crc:
                         return version.decode("ascii", errors="ignore")
 
@@ -249,7 +286,7 @@ class RoboClaw:
 
     def reset_encoders(self) -> bool:
         """Reset both encoder counts to zero"""
-        return self._write_command(20)  # RESETENC
+        return self._write_command(RoboClawCommands.RESET_ENC)
 
     # === ACKERMAN ROBOT HELPERS ===
 
