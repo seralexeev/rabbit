@@ -38,7 +38,7 @@ async def main():
             await nc.publish("rabbit.camera.image.webp", webp_buffer.tobytes())
             await nc.flush()
         except RuntimeError as e:
-            print(f"Error capturing image: {e}")
+            print(f"Something went wrong: {e}")
             await asyncio.sleep(1)
         except KeyboardInterrupt:
             print("Exiting...")

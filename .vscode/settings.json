@@ -15,6 +15,7 @@
         "nanoevents",
         "promtail",
         "pyproject",
+        "pyserial",
         "rclpy",
         "Roboclaw",
         "rosidl",

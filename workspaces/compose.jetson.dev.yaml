@@ -1,0 +1,36 @@
+services:
+  # Rabbit Camera Service
+  # Not available on MacOS due to hardware access limitations
+  # rabbit-camera:
+  #   build: ./rabbit-camera
+  #   container_name: rabbit-camera
+  #   devices:
+  #     - /dev/video0:/dev/video0
+  #   network_mode: host
+  #   privileged: true
+  #   restart: unless-stopped
+
+  rabbit-roboclaw:
+    build: ./rabbit-roboclaw
+    container_name: rabbit-roboclaw
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+
+  nats:
+    image: nats:latest
+    container_name: nats
+    command: -c /etc/nats/nats-server.conf
+    network_mode: host
+    volumes:
+      - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+    restart: unless-stopped
+
+  nats-dashboard:
+    image: mdawar/nats-dashboard
+    container_name: nats-dashboard
+    network_mode: host
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - nats
