@@ -863,19 +863,21 @@ class RoboClaw:
         args = struct.pack(">ii", accel, speed)
         self._send_command_ack(39, args)
 
-    def drive_m1_m2_with_signed_speed_and_acceleration(self, accel: int, speed_m1: int, speed_m2: int):
-        """Drive M1 and M2 motors using signed speed and shared acceleration.
+    def drive_m1_m2_with_signed_speed_and_acceleration(
+        self, accel: int, speed_m1: int, speed_m2: int
+    ):
+        """Drive M1 and M2 motors using signed speed and a shared acceleration.
 
         Command: 40 - Drive M1/M2 Speed+Accel
 
-        Drive both M1 and M2 motors using signed speed and shared acceleration values.
+        Drive both M1 and M2 motors using signed speed values and a shared acceleration.
 
         Protocol:
             Send: [Address, 40, Accel(4 bytes), SpeedM1(4 bytes), SpeedM2(4 bytes), CRC(2 bytes)]
             Receive: [0xFF]
 
         Args:
-            accel: Acceleration value in QPPS per second.
+            accel: Shared acceleration value in QPPS per second.
             speed_m1: M1 speed value in QPPS.
             speed_m2: M2 speed value in QPPS.
         """
@@ -883,12 +885,15 @@ class RoboClaw:
         args = struct.pack(">iii", accel, speed_m1, speed_m2)
         self._send_command_ack(40, args)
 
-    def buffered_drive_m1_with_signed_speed_and_distance(self, speed: int, distance: int, buffer: int):
-        """Drive M1 motor using signed speed and distance (buffered).
+    def buffered_drive_m1_with_signed_speed_and_distance(
+        self, speed: int, distance: int, buffer: int
+    ):
+        """Drive M1 motor with signed speed and distance, buffered.
 
-        Command: 41 - Buffered M1 Speed+Distance
+        Command: 41 - Drive M1 Speed+Dist (Buffered)
 
-        Drive M1 motor using signed speed and distance values with buffering.
+        Drive M1 motor with signed speed and distance. The command is buffered and
+        executes sequentially.
 
         Protocol:
             Send: [Address, 41, Speed(4 bytes), Distance(4 bytes), Buffer, CRC(2 bytes)]
@@ -896,19 +901,22 @@ class RoboClaw:
 
         Args:
             speed: Speed value in QPPS.
-            distance: Distance value in encoder counts.
-            buffer: Buffer mode (0=add to buffer, 1=execute immediately).
+            distance: Distance to travel in pulses.
+            buffer: Buffer flag (0 = execute immediately, 1 = buffer).
         """
 
         args = struct.pack(">iiB", speed, distance, buffer)
         self._send_command_ack(41, args)
 
-    def buffered_drive_m2_with_signed_speed_and_distance(self, speed: int, distance: int, buffer: int):
-        """Drive M2 motor using signed speed and distance (buffered).
+    def buffered_drive_m2_with_signed_speed_and_distance(
+        self, speed: int, distance: int, buffer: int
+    ):
+        """Drive M2 motor with signed speed and distance, buffered.
 
-        Command: 42 - Buffered M2 Speed+Distance
+        Command: 42 - Drive M2 Speed+Dist (Buffered)
 
-        Drive M2 motor using signed speed and distance values with buffering.
+        Drive M2 motor with signed speed and distance. The command is buffered and
+        executes sequentially.
 
         Protocol:
             Send: [Address, 42, Speed(4 bytes), Distance(4 bytes), Buffer, CRC(2 bytes)]
@@ -916,106 +924,126 @@ class RoboClaw:
 
         Args:
             speed: Speed value in QPPS.
-            distance: Distance value in encoder counts.
-            buffer: Buffer mode (0=add to buffer, 1=execute immediately).
+            distance: Distance to travel in pulses.
+            buffer: Buffer flag (0 = execute immediately, 1 = buffer).
         """
 
         args = struct.pack(">iiB", speed, distance, buffer)
         self._send_command_ack(42, args)
 
-    def buffered_drive_m1_m2_with_signed_speed_and_distance(self, speed_m1: int, distance_m1: int, speed_m2: int, distance_m2: int, buffer: int):
-        """Drive M1 and M2 motors using signed speed and distance (buffered).
+    def buffered_drive_m1_m2_with_signed_speed_and_distance(
+        self, speed_m1: int, dist_m1: int, speed_m2: int, dist_m2: int, buffer: int
+    ):
+        """Drive M1 and M2 motors with signed speed and distance, buffered.
 
-        Command: 43 - Buffered M1/M2 Speed+Distance
+        Command: 43 - Drive M1/M2 Speed+Dist (Buffered)
 
-        Drive both M1 and M2 motors using signed speed and distance values with buffering.
+        Drive both M1 and M2 motors with signed speed and distance. The command is
+        buffered and executes sequentially.
 
         Protocol:
-            Send: [Address, 43, SpeedM1(4 bytes), DistanceM1(4 bytes), SpeedM2(4 bytes), DistanceM2(4 bytes), Buffer, CRC(2 bytes)]
+            Send: [Address, 43, SpeedM1(4 bytes), DistM1(4 bytes), SpeedM2(4 bytes), DistM2(4 bytes), Buffer, CRC(2 bytes)]
             Receive: [0xFF]
 
         Args:
             speed_m1: M1 speed value in QPPS.
-            distance_m1: M1 distance value in encoder counts.
+            dist_m1: M1 distance to travel in pulses.
             speed_m2: M2 speed value in QPPS.
-            distance_m2: M2 distance value in encoder counts.
-            buffer: Buffer mode (0=add to buffer, 1=execute immediately).
+            dist_m2: M2 distance to travel in pulses.
+            buffer: Buffer flag (0 = execute immediately, 1 = buffer).
         """
 
-        args = struct.pack(">iiiiB", speed_m1, distance_m1, speed_m2, distance_m2, buffer)
+        args = struct.pack(">iiiiB", speed_m1, dist_m1, speed_m2, dist_m2, buffer)
         self._send_command_ack(43, args)
 
-    def buffered_drive_m1_with_signed_speed_accel_and_distance(self, accel: int, speed: int, distance: int, buffer: int):
-        """Drive M1 motor using signed speed, acceleration, and distance (buffered).
+    def buffered_drive_m1_with_signed_speed_accel_and_distance(
+        self, accel: int, speed: int, distance: int, buffer: int
+    ):
+        """Drive M1 with signed speed, acceleration, and distance, buffered.
 
-        Command: 44 - Buffered M1 Speed+Accel+Distance
+        Command: 44 - Drive M1 Speed+Accel+Dist (Buffered)
 
-        Drive M1 motor using signed speed, acceleration, and distance values with buffering.
+        Drive M1 motor with signed speed, acceleration, and distance. The command
+        is buffered and executes sequentially.
 
         Protocol:
             Send: [Address, 44, Accel(4 bytes), Speed(4 bytes), Distance(4 bytes), Buffer, CRC(2 bytes)]
             Receive: [0xFF]
 
         Args:
-            accel: Acceleration value in QPPS per second.
+            accel: Acceleration in QPPS per second.
             speed: Speed value in QPPS.
-            distance: Distance value in encoder counts.
-            buffer: Buffer mode (0=add to buffer, 1=execute immediately).
+            distance: Distance to travel in pulses.
+            buffer: Buffer flag (0 = execute immediately, 1 = buffer).
         """
 
         args = struct.pack(">iiiB", accel, speed, distance, buffer)
         self._send_command_ack(44, args)
 
-    def buffered_drive_m2_with_signed_speed_accel_and_distance(self, accel: int, speed: int, distance: int, buffer: int):
-        """Drive M2 motor using signed speed, acceleration, and distance (buffered).
+    def buffered_drive_m2_with_signed_speed_accel_and_distance(
+        self, accel: int, speed: int, distance: int, buffer: int
+    ):
+        """Drive M2 with signed speed, acceleration, and distance, buffered.
 
-        Command: 45 - Buffered M2 Speed+Accel+Distance
+        Command: 45 - Drive M2 Speed+Accel+Dist (Buffered)
 
-        Drive M2 motor using signed speed, acceleration, and distance values with buffering.
+        Drive M2 motor with signed speed, acceleration, and distance. The command
+        is buffered and executes sequentially.
 
         Protocol:
             Send: [Address, 45, Accel(4 bytes), Speed(4 bytes), Distance(4 bytes), Buffer, CRC(2 bytes)]
             Receive: [0xFF]
 
         Args:
-            accel: Acceleration value in QPPS per second.
+            accel: Acceleration in QPPS per second.
             speed: Speed value in QPPS.
-            distance: Distance value in encoder counts.
-            buffer: Buffer mode (0=add to buffer, 1=execute immediately).
+            distance: Distance to travel in pulses.
+            buffer: Buffer flag (0 = execute immediately, 1 = buffer).
         """
 
         args = struct.pack(">iiiB", accel, speed, distance, buffer)
         self._send_command_ack(45, args)
 
-    def buffered_drive_m1_m2_with_signed_speed_accel_and_distance(self, accel: int, speed_m1: int, distance_m1: int, speed_m2: int, distance_m2: int, buffer: int):
-        """Drive M1 and M2 motors using signed speed, acceleration, and distance (buffered).
+    def buffered_drive_m1_m2_with_signed_speed_accel_and_distance(
+        self,
+        accel: int,
+        speed_m1: int,
+        dist_m1: int,
+        speed_m2: int,
+        dist_m2: int,
+        buffer: int,
+    ):
+        """Drive M1/M2 with signed speed, acceleration, and distance, buffered.
 
-        Command: 46 - Buffered M1/M2 Speed+Accel+Distance
+        Command: 46 - Drive M1/M2 Speed+Accel+Dist (Buffered)
 
-        Drive both M1 and M2 motors using signed speed, acceleration, and distance values with buffering.
+        Drive both M1 and M2 motors with signed speed, a shared acceleration,
+        and distance. The command is buffered and executes sequentially.
 
         Protocol:
-            Send: [Address, 46, Accel(4 bytes), SpeedM1(4 bytes), DistanceM1(4 bytes), SpeedM2(4 bytes), DistanceM2(4 bytes), Buffer, CRC(2 bytes)]
+            Send: [Address, 46, Accel(4 bytes), SpeedM1(4 bytes), DistM1(4 bytes), SpeedM2(4 bytes), DistM2(4 bytes), Buffer, CRC(2 bytes)]
             Receive: [0xFF]
 
         Args:
-            accel: Acceleration value in QPPS per second.
+            accel: Shared acceleration in QPPS per second.
             speed_m1: M1 speed value in QPPS.
-            distance_m1: M1 distance value in encoder counts.
+            dist_m1: M1 distance to travel in pulses.
             speed_m2: M2 speed value in QPPS.
-            distance_m2: M2 distance value in encoder counts.
-            buffer: Buffer mode (0=add to buffer, 1=execute immediately).
+            dist_m2: M2 distance to travel in pulses.
+            buffer: Buffer flag (0 = execute immediately, 1 = buffer).
         """
 
-        args = struct.pack(">iiiiiB", accel, speed_m1, distance_m1, speed_m2, distance_m2, buffer)
+        args = struct.pack(
+            ">iiiiiB", accel, speed_m1, dist_m1, speed_m2, dist_m2, buffer
+        )
         self._send_command_ack(46, args)
 
     def read_buffer_length(self) -> Tuple[int, int]:
-        """Read command buffer lengths.
+        """Read buffer length.
 
         Command: 47 - Read Buffer Length
 
-        Read the current command buffer lengths for both motors.
+        Read the number of buffered commands for M1 and M2.
 
         Protocol:
             Send: [Address, 47]
@@ -1023,14 +1051,12 @@ class RoboClaw:
 
         Returns:
             Tuple of (buffer_m1, buffer_m2) where:
-            - buffer_m1: M1 buffer length
-            - buffer_m2: M2 buffer length
+            - buffer_m1: Number of commands buffered for M1.
+            - buffer_m2: Number of commands buffered for M2.
         """
 
         response = self._send_command_crc(47, 4)
-        buffer_m1 = response[0]
-        buffer_m2 = response[1]
-
+        buffer_m1, buffer_m2 = struct.unpack(">BB", response[:2])
         return buffer_m1, buffer_m2
 
     def read_motor_pwms(self) -> Tuple[int, int]:
@@ -1079,7 +1105,9 @@ class RoboClaw:
 
         return m1_current, m2_current
 
-    def drive_m1_m2_with_individual_signed_speed_and_acceleration(self, accel_m1: int, speed_m1: int, accel_m2: int, speed_m2: int):
+    def drive_m1_m2_with_individual_signed_speed_and_acceleration(
+        self, accel_m1: int, speed_m1: int, accel_m2: int, speed_m2: int
+    ):
         """Drive M1 and M2 motors using individual signed speed and acceleration.
 
         Command: 50 - Drive M1/M2 Individual Accel
@@ -1100,7 +1128,16 @@ class RoboClaw:
         args = struct.pack(">iiii", accel_m1, speed_m1, accel_m2, speed_m2)
         self._send_command_ack(50, args)
 
-    def buffered_drive_m1_m2_with_individual_signed_speed_accel_and_distance(self, accel_m1: int, speed_m1: int, distance_m1: int, accel_m2: int, speed_m2: int, distance_m2: int, buffer: int):
+    def buffered_drive_m1_m2_with_individual_signed_speed_accel_and_distance(
+        self,
+        accel_m1: int,
+        speed_m1: int,
+        distance_m1: int,
+        accel_m2: int,
+        speed_m2: int,
+        distance_m2: int,
+        buffer: int,
+    ):
         """Drive M1 and M2 motors using individual signed speed, acceleration, and distance (buffered).
 
         Command: 51 - Buffered M1/M2 Individual Accel+Distance
@@ -1121,7 +1158,16 @@ class RoboClaw:
             buffer: Buffer mode (0=add to buffer, 1=execute immediately).
         """
 
-        args = struct.pack(">iiiiiiB", accel_m1, speed_m1, distance_m1, accel_m2, speed_m2, distance_m2, buffer)
+        args = struct.pack(
+            ">iiiiiiB",
+            accel_m1,
+            speed_m1,
+            distance_m1,
+            accel_m2,
+            speed_m2,
+            distance_m2,
+            buffer,
+        )
         self._send_command_ack(51, args)
 
     def drive_m1_with_signed_duty_cycle_and_acceleration(self, duty: int, accel: int):
@@ -1162,7 +1208,9 @@ class RoboClaw:
         args = struct.pack(">hh", duty, accel)
         self._send_command_ack(53, args)
 
-    def drive_m1_m2_with_signed_duty_cycle_and_acceleration(self, duty_m1: int, accel_m1: int, duty_m2: int, accel_m2: int):
+    def drive_m1_m2_with_signed_duty_cycle_and_acceleration(
+        self, duty_m1: int, accel_m1: int, duty_m2: int, accel_m2: int
+    ):
         """Drive M1 and M2 motors using signed duty cycle and acceleration.
 
         Command: 54 - Drive M1/M2 Duty+Accel
@@ -1321,7 +1369,16 @@ class RoboClaw:
 
         return min_voltage, max_voltage
 
-    def set_position_pid_m1(self, d: int, p: int, i: int, max_i: int, deadzone: int, min_pos: int, max_pos: int):
+    def set_position_pid_m1(
+        self,
+        d: int,
+        p: int,
+        i: int,
+        max_i: int,
+        deadzone: int,
+        min_pos: int,
+        max_pos: int,
+    ):
         """Set M1 position PID parameters.
 
         Command: 61 - Set Position PID M1
@@ -1345,7 +1402,16 @@ class RoboClaw:
         args = struct.pack(">iiiiiii", d, p, i, max_i, deadzone, min_pos, max_pos)
         self._send_command_ack(61, args)
 
-    def set_position_pid_m2(self, d: int, p: int, i: int, max_i: int, deadzone: int, min_pos: int, max_pos: int):
+    def set_position_pid_m2(
+        self,
+        d: int,
+        p: int,
+        i: int,
+        max_i: int,
+        deadzone: int,
+        min_pos: int,
+        max_pos: int,
+    ):
         """Set M2 position PID parameters.
 
         Command: 62 - Set Position PID M2
@@ -1435,7 +1501,9 @@ class RoboClaw:
 
         return p, i, d, max_i, deadzone, min_pos, max_pos
 
-    def buffered_move_m1_to_position(self, accel: int, speed: int, deccel: int, position: int, buffer: int):
+    def buffered_move_m1_to_position(
+        self, accel: int, speed: int, deccel: int, position: int, buffer: int
+    ):
         """Move M1 motor to position (buffered).
 
         Command: 65 - Buffered M1 Position
@@ -1457,7 +1525,9 @@ class RoboClaw:
         args = struct.pack(">iiiiB", accel, speed, deccel, position, buffer)
         self._send_command_ack(65, args)
 
-    def buffered_move_m2_to_position(self, accel: int, speed: int, deccel: int, position: int, buffer: int):
+    def buffered_move_m2_to_position(
+        self, accel: int, speed: int, deccel: int, position: int, buffer: int
+    ):
         """Move M2 motor to position (buffered).
 
         Command: 66 - Buffered M2 Position
@@ -1479,7 +1549,18 @@ class RoboClaw:
         args = struct.pack(">iiiiB", accel, speed, deccel, position, buffer)
         self._send_command_ack(66, args)
 
-    def buffered_move_m1_m2_to_position(self, accel_m1: int, speed_m1: int, deccel_m1: int, pos_m1: int, accel_m2: int, speed_m2: int, deccel_m2: int, pos_m2: int, buffer: int):
+    def buffered_move_m1_m2_to_position(
+        self,
+        accel_m1: int,
+        speed_m1: int,
+        deccel_m1: int,
+        pos_m1: int,
+        accel_m2: int,
+        speed_m2: int,
+        deccel_m2: int,
+        pos_m2: int,
+        buffer: int,
+    ):
         """Move M1 and M2 motors to positions (buffered).
 
         Command: 67 - Buffered M1/M2 Position
@@ -1502,7 +1583,18 @@ class RoboClaw:
             buffer: Buffer mode (0=add to buffer, 1=execute immediately).
         """
 
-        args = struct.pack(">iiiiiiiiB", accel_m1, speed_m1, deccel_m1, pos_m1, accel_m2, speed_m2, deccel_m2, pos_m2, buffer)
+        args = struct.pack(
+            ">iiiiiiiiB",
+            accel_m1,
+            speed_m1,
+            deccel_m1,
+            pos_m1,
+            accel_m2,
+            speed_m2,
+            deccel_m2,
+            pos_m2,
+            buffer,
+        )
         self._send_command_ack(67, args)
 
     def set_m1_default_duty_acceleration(self, accel: int):
@@ -2339,7 +2431,9 @@ class RoboClaw:
         args = struct.pack(">iB", position, buffer)
         self._send_command_ack(120, args)
 
-    def buffered_move_m1_m2_to_position_simple(self, pos_m1: int, pos_m2: int, buffer: int):
+    def buffered_move_m1_m2_to_position_simple(
+        self, pos_m1: int, pos_m2: int, buffer: int
+    ):
         """Move M1 and M2 motors to positions (simple buffered).
 
         Command: 121 - Buffered M1/M2 Position (Simple)
@@ -2359,7 +2453,9 @@ class RoboClaw:
         args = struct.pack(">iiB", pos_m1, pos_m2, buffer)
         self._send_command_ack(121, args)
 
-    def buffered_move_m1_with_speed_to_position(self, speed: int, position: int, buffer: int):
+    def buffered_move_m1_with_speed_to_position(
+        self, speed: int, position: int, buffer: int
+    ):
         """Move M1 motor with speed to position (buffered).
 
         Command: 122 - Buffered M1 Speed+Position
@@ -2379,7 +2475,9 @@ class RoboClaw:
         args = struct.pack(">iiB", speed, position, buffer)
         self._send_command_ack(122, args)
 
-    def buffered_move_m2_with_speed_to_position(self, speed: int, position: int, buffer: int):
+    def buffered_move_m2_with_speed_to_position(
+        self, speed: int, position: int, buffer: int
+    ):
         """Move M2 motor with speed to position (buffered).
 
         Command: 123 - Buffered M2 Speed+Position
@@ -2399,7 +2497,9 @@ class RoboClaw:
         args = struct.pack(">iiB", speed, position, buffer)
         self._send_command_ack(123, args)
 
-    def buffered_move_m1_m2_with_speed_to_position(self, speed_m1: int, pos_m1: int, speed_m2: int, pos_m2: int, buffer: int):
+    def buffered_move_m1_m2_with_speed_to_position(
+        self, speed_m1: int, pos_m1: int, speed_m2: int, pos_m2: int, buffer: int
+    ):
         """Move M1 and M2 motors with speed to positions (buffered).
 
         Command: 124 - Buffered M1/M2 Speed+Position
@@ -2582,7 +2682,6 @@ class RoboClaw:
 def main():
     """Demo function to test RoboClaw functionality."""
     with RoboClaw("/dev/ttyTHS1") as rc:
-        
 
         while True:
             try:
