@@ -1,5 +1,6 @@
 import asyncio
 import nats
+from roboclaw import RoboClaw
 
 
 async def main():
@@ -11,19 +12,20 @@ async def main():
         reconnect_time_wait=2,
     )
 
-    while True:
-        try:
-            if not nc:
-                raise RuntimeError("NATS connection is not established")
+    with RoboClaw("/dev/ttyTHS1") as rc:
+        while True:
+            try:
+                if not nc:
+                    raise RuntimeError("NATS connection is not established")
 
-            await nc.publish("rabbit.sensor", b"roboclaw")
-            await nc.flush()
-        except RuntimeError as e:
-            print(f"Something went wrong: {e}")
-            await asyncio.sleep(1)
-        except KeyboardInterrupt:
-            print("Exiting...")
-            break
+                await nc.publish("rabbit.sensor", b"roboclaw")
+                await nc.flush()
+            except RuntimeError as e:
+                print(f"Something went wrong: {e}")
+                await asyncio.sleep(1)
+            except KeyboardInterrupt:
+                print("Exiting...")
+                break
 
     await nc.close()
 

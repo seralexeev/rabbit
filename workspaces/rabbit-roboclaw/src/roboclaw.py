@@ -6,11 +6,7 @@ import serial
 
 
 class RoboClaw:
-    """RoboClaw motor controller interface.
-
-    This class provides a Python interface for communicating with RoboClaw motor controllers
-    via serial communication. It supports various motor control commands and sensor readings.
-    """
+    """RoboClaw motor controller interface."""
 
     MAX_DUTY_CYCLE = 32767
     """Maximum duty cycle value for the motor, representing 100% speed."""
@@ -2740,23 +2736,3 @@ class RoboClaw:
         response = self._send_command_crc(83, 4)
         temp_raw = struct.unpack(">H", response)[0]
         return temp_raw / 10.0
-
-
-def main():
-    """Demo function to test RoboClaw functionality."""
-    with RoboClaw("/dev/ttyTHS1") as rc:
-
-        while True:
-            try:
-                response = rc.drive_m1_m2_with_signed_duty_cycle(-32767, 32767)
-                time.sleep(0.5)
-            except KeyboardInterrupt:
-                print("Demo interrupted by user.")
-                break
-            except Exception as e:
-                print(f"An error occurred: {e}")
-                break
-
-
-if __name__ == "__main__":
-    main()
