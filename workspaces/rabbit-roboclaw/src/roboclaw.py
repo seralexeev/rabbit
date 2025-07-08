@@ -2,62 +2,20 @@ import serial
 import struct
 import time
 from typing import Optional, Tuple
-from dataclasses import dataclass
-
-
-# RoboClaw Command Constants
-class RoboClawCommands:
-    """RoboClaw command codes from official documentation"""
-
-    # Motor Control - Legacy Commands
-    M1_FORWARD = 0
-    M1_BACKWARD = 1
-    M2_FORWARD = 4
-    M2_BACKWARD = 5
-
-    # Motor Control - Duty Cycle Commands
-    M1_DUTY = 32
-    M2_DUTY = 33
-
-    # Motor Control - Speed Commands
-    M1_SPEED = 35
-    M2_SPEED = 36
-
-    # Encoder Reading Commands
-    GET_M1_ENC = 16
-    GET_M2_ENC = 17
-
-    # Speed Reading Commands
-    GET_M1_SPEED = 18
-    GET_M2_SPEED = 19
-
-    # Reset Commands
-    RESET_ENC = 20
-
-    # System Information Commands
-    GET_VERSION = 21
-    GET_MBATT = 24
-    GET_LBATT = 25
-    GET_CURRENTS = 49
-    GET_TEMP = 82
-
-
-@dataclass
-class RoboClawStatus:
-    """RoboClaw status data"""
-
-    encoder_m1: Optional[int] = None
-    encoder_m2: Optional[int] = None
-    speed_m1: Optional[int] = None
-    speed_m2: Optional[int] = None
-    current_m1: Optional[int] = None  # mA
-    current_m2: Optional[int] = None  # mA
-    voltage: Optional[float] = None  # V
-    temperature: Optional[float] = None  # °C
 
 
 class RoboClaw:
-    """Minimal RoboClaw driver for Ackerman robots - following official documentation exactly"""
+    """RoboClaw motor controller interface.
+
+    This class provides a Python interface for communicating with RoboClaw motor controllers
+    via serial communication. It supports various motor control commands and sensor readings.
+    """
+
+    MAX_DUTY_CYCLE = 32767
+    """Maximum duty cycle value for the motor, representing 100% speed."""
+
+    MIN_DUTY_CYCLE = -32768
+    """Minimum duty cycle value for the motor, representing -100% speed."""
 
     def __init__(
         self,
@@ -65,17 +23,62 @@ class RoboClaw:
         baudrate: int = 115200,
         address: int = 0x80,
         timeout: float = 0.1,
-        retries: int = 3,
+        retry_count: int = 3,
     ):
+        """Initialize RoboClaw controller.
+
+        Args:
+            port: Serial port path (e.g., '/dev/ttyTHS1', 'COM3').
+            baudrate: Communication baudrate. Defaults to 115200.
+            address: RoboClaw device address. Defaults to 0x80.
+            timeout: Serial communication timeout in seconds. Defaults to 0.1.
+            retry_count: Number of retry attempts for failed commands. Defaults to 3.
+        """
         self.port = port
         self.baudrate = baudrate
         self.address = address
         self.timeout = timeout
-        self.retries = retries
+        self.retry_count = retry_count
         self._serial: Optional[serial.Serial] = None
 
+    def open(self):
+        """Open serial connection to RoboClaw controller."""
+        self._serial = serial.Serial(
+            port=self.port,
+            baudrate=self.baudrate,
+            timeout=self.timeout,
+            inter_byte_timeout=self.timeout,
+        )
+        time.sleep(0.1)
+
+    def close(self):
+        """Close serial connection to RoboClaw controller."""
+        if self._serial and self._serial.is_open:
+            self._serial.close()
+            self._serial = None
+
+    def __enter__(self):
+        """Context manager entry."""
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        self.close()
+
     def _crc16(self, data: bytes) -> int:
-        """Calculate CRC16 exactly as in RoboClaw documentation"""
+        """Calculate CRC16 checksum for data validation.
+
+        RoboClaw uses a CRC (Cyclic Redundancy Check) to validate each packet it receives.
+        This is more complex than a simple checksum but prevents errors that could otherwise
+        cause unexpected actions to execute on the RoboClaw.
+
+        Args:
+            data: Byte data to calculate CRC for.
+
+        Returns:
+            CRC16 checksum value.
+        """
         crc = 0
         for byte in data:
             crc = crc ^ (byte << 8)
@@ -84,303 +87,314 @@ class RoboClaw:
                     crc = ((crc << 1) ^ 0x1021) & 0xFFFF
                 else:
                     crc = (crc << 1) & 0xFFFF
+
         return crc
 
-    def open(self) -> bool:
-        """Open serial connection"""
-        try:
-            self._serial = serial.Serial(
-                port=self.port,
-                baudrate=self.baudrate,
-                timeout=self.timeout,
-                inter_byte_timeout=self.timeout,
+    def _get_response_crc(self, command: int, response: bytes) -> int:
+        """Calculate CRC16 checksum for received data validation.
+
+        The CRC16 calculation can also be used to validate received data from the RoboClaw.
+        The CRC16 value should be calculated using the sent Address and Command byte as well
+        as all the data received back from the RoboClaw except the two CRC16 bytes.
+        The value calculated will match the CRC16 sent by the RoboClaw if there are no errors
+        in the data sent or received.
+
+        Args:
+            command: Command byte that was sent.
+            response: Response bytes received from RoboClaw.
+
+        Returns:
+            CRC16 checksum value for validation.
+
+        Raises:
+            ValueError: If response is too short (less than 2 bytes).
+        """
+        if len(response) < 2:
+            raise ValueError(
+                f"Response too short: expected at least 2 bytes, got {len(response)}"
             )
-            time.sleep(0.1)
-            return True
-        except Exception as e:
-            print(f"Error opening port: {e}")
-            return False
 
-    def close(self):
-        """Close serial connection"""
-        if self._serial and self._serial.is_open:
-            self._serial.close()
-            self._serial = None
+        validation_packet = bytearray([self.address, command])
+        validation_packet.extend(response[:-2])
 
-    def _write_command(self, cmd: int, *args) -> bool:
-        """Send write command and wait for 0xFF acknowledgment"""
+        return self._crc16(validation_packet)
+
+    def _send_command(self, command: int, read_bytes: int, args: bytes = b"") -> bytes:
+        """Send command to RoboClaw and read response.
+
+        Args:
+            command: Command byte to send.
+            read_bytes: Number of bytes to read in response.
+            args: Additional command arguments. Defaults to empty bytes.
+
+        Returns:
+            Response bytes from RoboClaw.
+
+        Raises:
+            RuntimeError: If serial port is not open, response length is invalid,
+                         or command fails after retry attempts.
+        """
         if not self._serial or not self._serial.is_open:
-            return False
+            raise RuntimeError("Serial port not open")
 
-        # Build packet according to documentation
-        packet = bytearray([self.address, cmd])
+        packet = bytearray([self.address, command])
+        packet.extend(args)
+        packet.extend(struct.pack(">H", self._crc16(packet)))
 
-        # Add arguments based on command
-        for arg in args:
-            if isinstance(arg, int):
-                if -128 <= arg <= 127:
-                    packet.append(arg & 0xFF)
-                elif -32768 <= arg <= 32767:
-                    packet.extend(struct.pack(">h", arg))
-                else:
-                    packet.extend(struct.pack(">i", arg))
-
-        # Add CRC
-        crc = self._crc16(packet)
-        packet.extend(struct.pack(">H", crc))
-
-        # Send with retries
-        for _ in range(self.retries):
+        attempt = 0
+        while attempt < self.retry_count:
             try:
                 self._serial.reset_input_buffer()
                 self._serial.write(packet)
+                response = self._serial.read(read_bytes)
+                if len(response) != read_bytes:
+                    raise RuntimeError(
+                        f"Invalid response length: expected {read_bytes}, got {len(response)}"
+                    )
 
-                # Wait for 0xFF acknowledgment
-                ack = self._serial.read(1)
-                if ack and ack[0] == 0xFF:
-                    return True
-            except:
-                continue
+                return response
+            except Exception as e:
+                attempt += 1
+                if attempt < self.retry_count:
+                    time.sleep(0.1)
+                    continue
+                raise RuntimeError(f"Failed to send command: {e}")
 
-        return False
+        # This should never be reached, but added for type checker
+        raise RuntimeError("Command failed after all retry attempts")
 
-    def _read_command(self, cmd: int, format_str: str) -> Optional[Tuple]:
-        """Send read command and return parsed response"""
-        if not self._serial or not self._serial.is_open:
-            return None
+    def _send_command_ack(self, cmd: int, args: bytes = b""):
+        """Send command and wait for 0xFF acknowledgment.
 
-        for _ in range(self.retries):
-            try:
-                self._serial.reset_input_buffer()
+        Args:
+            cmd: Command byte to send.
+            args: Additional command arguments. Defaults to empty bytes.
 
-                # Send command
-                packet = bytearray([self.address, cmd])
-                crc = self._crc16(packet)
-                packet.extend(struct.pack(">H", crc))
-                self._serial.write(packet)
+        Raises:
+            RuntimeError: If acknowledgment is not received or is invalid.
+        """
+        response = self._send_command(cmd, 1, args)
 
-                # Read response
-                data_size = struct.calcsize(format_str)
-                response = self._serial.read(data_size + 2)  # +2 for CRC
+        if len(response) != 1 or response[0] != 0xFF:
+            raise RuntimeError(
+                f"Invalid response: expected 0xFF, got {response[0]:02X}"
+            )
 
-                if len(response) >= data_size + 2:
-                    data = response[:-2]
-                    received_crc = struct.unpack(">H", response[-2:])[0]
+    def _send_command_crc(
+        self, cmd: int, response_size: int, args: bytes = b""
+    ) -> bytes:
+        """Send command and validate response CRC.
 
-                    # Verify CRC - only on received data, not including address/cmd
-                    calculated_crc = self._crc16(bytearray([self.address, cmd]) + data)
+        Args:
+            cmd: Command byte to send.
+            response_size: Expected response size including CRC bytes.
+            args: Additional command arguments. Defaults to empty bytes.
 
-                    if calculated_crc == received_crc:
-                        return struct.unpack(format_str, data)
+        Returns:
+            Response bytes without CRC.
 
-            except:
-                continue
+        Raises:
+            RuntimeError: If CRC validation fails.
+        """
+        response = self._send_command(cmd, response_size, args)
+        crc = struct.unpack(">H", response[-2:])[0]
+        control_crc = self._get_response_crc(cmd, response)
 
-        return None
+        if crc != control_crc:
+            raise RuntimeError(
+                f"CRC mismatch: received {crc:04X}, expected {control_crc:04X}"
+            )
 
-    # === MOTOR CONTROL ===
+        return response[:-2]
 
-    def set_motor_pwm(self, motor: int, pwm: float) -> bool:
-        """Set motor PWM duty cycle: motor=1|2, pwm=-100.0 to 100.0"""
-        # Convert percentage to RoboClaw duty value (-32767 to 32767)
-        duty = int(max(-32767, min(32767, pwm * 327.67)))
+    def _get_duty_cycle(self, percentage: int) -> int:
+        """Convert percentage to signed duty cycle value.
 
-        cmd = RoboClawCommands.M1_DUTY if motor == 1 else RoboClawCommands.M2_DUTY
-        return self._write_command(cmd, duty)
+        The duty cycle is used to control the speed of the motor without a quadrature encoder.
+        The range is -32768 to +32767, where 0 is stop, -32768 is full reverse,
+        and +32767 is full forward.
 
-    def set_motor_pwm_legacy(self, motor: int, pwm: float) -> bool:
-        """Set motor PWM using legacy commands (0-127 range)"""
-        if pwm >= 0:
-            # Forward commands
-            cmd = RoboClawCommands.M1_FORWARD if motor == 1 else RoboClawCommands.M2_FORWARD
-            value = int(min(127, pwm * 1.27))  # Convert 0-100% to 0-127
-        else:
-            # Backward commands
-            cmd = RoboClawCommands.M1_BACKWARD if motor == 1 else RoboClawCommands.M2_BACKWARD
-            value = int(min(127, abs(pwm) * 1.27))  # Convert 0-100% to 0-127
+        Args:
+            percentage: Speed percentage (-100 to 100).
 
-        return self._write_command(cmd, value)
-
-    def set_motor_speed(self, motor: int, speed: int) -> bool:
-        """Set motor speed in QPPS (requires configured encoders and PID)"""
-        cmd = RoboClawCommands.M1_SPEED if motor == 1 else RoboClawCommands.M2_SPEED
-        return self._write_command(cmd, speed)
-
-    def stop_motors(self) -> bool:
-        """Stop both motors"""
-        return self.set_motor_pwm(1, 0) and self.set_motor_pwm(2, 0)
-
-    # === READING FUNCTIONS ===
-
-    def read_encoder(self, motor: int) -> Optional[int]:
-        """Read encoder count for specified motor"""
-        cmd = RoboClawCommands.GET_M1_ENC if motor == 1 else RoboClawCommands.GET_M2_ENC
-        result = self._read_command(cmd, ">IB")  # 4 bytes value + 1 byte status
-        return result[0] if result else None
-
-    def read_speed(self, motor: int) -> Optional[int]:
-        """Read motor speed in QPPS"""
-        cmd = RoboClawCommands.GET_M1_SPEED if motor == 1 else RoboClawCommands.GET_M2_SPEED
-        result = self._read_command(cmd, ">iB")  # signed 4 bytes + 1 byte status
-        return result[0] if result else None
-
-    def read_currents(self) -> Optional[Tuple[int, int]]:
-        """Read both motor currents in milliamps"""
-        result = self._read_command(RoboClawCommands.GET_CURRENTS, ">HH")
-        if result:
-            # Current values are in 10mA units, convert to mA
-            return (result[0] * 10, result[1] * 10)
-        return None
-
-    def read_main_voltage(self) -> Optional[float]:
-        """Read main battery voltage in volts"""
-        result = self._read_command(RoboClawCommands.GET_MBATT, ">H")
-        return result[0] / 10.0 if result else None
-
-    def read_logic_voltage(self) -> Optional[float]:
-        """Read logic battery voltage in volts"""
-        result = self._read_command(RoboClawCommands.GET_LBATT, ">H")
-        return result[0] / 10.0 if result else None
-
-    def read_temperature(self) -> Optional[float]:
-        """Read board temperature in Celsius"""
-        result = self._read_command(RoboClawCommands.GET_TEMP, ">H")
-        return result[0] / 10.0 if result else None
-
-    def read_version(self) -> Optional[str]:
-        """Read firmware version string"""
-        if not self._serial or not self._serial.is_open:
-            return None
-
-        for _ in range(self.retries):
-            try:
-                self._serial.reset_input_buffer()
-
-                # Send command
-                packet = bytearray([self.address, RoboClawCommands.GET_VERSION])
-                crc = self._crc16(packet)
-                packet.extend(struct.pack(">H", crc))
-                self._serial.write(packet)
-
-                # Read version string (up to 48 characters)
-                version = b""
-                for _ in range(48):
-                    byte = self._serial.read(1)
-                    if not byte or byte[0] == 0:  # Null terminator
-                        break
-                    version += byte
-
-                # Read and verify CRC
-                crc_bytes = self._serial.read(2)
-                if len(crc_bytes) == 2:
-                    received_crc = struct.unpack(">H", crc_bytes)[0]
-                    # For version command, CRC includes the version string
-                    check_data = bytearray([self.address, RoboClawCommands.GET_VERSION]) + version + b"\x00"
-                    if self._crc16(check_data) == received_crc:
-                        return version.decode("ascii", errors="ignore")
-
-            except:
-                continue
-
-        return None
-
-    def reset_encoders(self) -> bool:
-        """Reset both encoder counts to zero"""
-        return self._write_command(RoboClawCommands.RESET_ENC)
-
-    # === ACKERMAN ROBOT HELPERS ===
-
-    def set_drive_speed(self, speed: float) -> bool:
-        """Set speed for both rear drive motors"""
-        return self.set_motor_pwm(1, speed) and self.set_motor_pwm(2, speed)
-
-    def move_forward(self, speed: float = 50.0) -> bool:
-        """Move forward at specified speed percentage"""
-        return self.set_drive_speed(speed)
-
-    def move_backward(self, speed: float = 50.0) -> bool:
-        """Move backward at specified speed percentage"""
-        return self.set_drive_speed(-speed)
-
-    def stop(self) -> bool:
-        """Emergency stop - alias for stop_motors()"""
-        return self.stop_motors()
-
-    # === STATUS AND DIAGNOSTICS ===
-
-    def get_status(self) -> RoboClawStatus:
-        """Get complete system status"""
-        currents = self.read_currents()
-        return RoboClawStatus(
-            encoder_m1=self.read_encoder(1),
-            encoder_m2=self.read_encoder(2),
-            speed_m1=self.read_speed(1),
-            speed_m2=self.read_speed(2),
-            current_m1=currents[0] if currents else None,
-            current_m2=currents[1] if currents else None,
-            voltage=self.read_main_voltage(),
-            temperature=self.read_temperature(),
+        Returns:
+            Duty cycle value in range -32768 to +32767.
+        """
+        return int(
+            max(
+                self.MIN_DUTY_CYCLE,
+                min(self.MAX_DUTY_CYCLE, percentage * (self.MAX_DUTY_CYCLE / 100.0)),
+            )
         )
 
-    # === CONTEXT MANAGER ===
+    def read_firmware_version(self) -> str:
+        """Read RoboClaw firmware version.
 
-    def __enter__(self):
-        if not self.open():
-            raise RuntimeError(f"Failed to open {self.port}")
-        return self
+        Command: 21 - Read Firmware Version
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+        Read RoboClaw firmware version. Returns up to 48 bytes (depending on the RoboClaw model)
+        and is terminated by a line feed character and a null character.
+
+        Protocol:
+            Send: [Address, 21]
+            Receive: ["RoboClaw 10.2A v4.1.11", 10, 0, CRC(2 bytes)]
+
+        The command will return up to 48 bytes. The return string includes the product name and
+        firmware version. The return string is terminated with a line feed (10) and null (0) character.
+
+        Returns:
+            Firmware version string.
+        """
+
+        response = self._send_command_crc(21, 48)
+        version = ""
+        for byte in response:
+            if byte == 10:
+                break
+            version += chr(byte)
+
+        return version
+
+    def drive_m1_with_signed_duty_cycle(self, duty: int):
+        """Drive M1 motor using signed duty cycle.
+
+        Command: 32 - Drive M1 With Signed Duty Cycle
+
+        Drive M1 using a duty cycle value. The duty cycle is used to control the speed
+        of the motor without a quadrature encoder.
+
+        Protocol:
+            Send: [Address, 32, Duty(2 Bytes), CRC(2 bytes)]
+            Receive: [0xFF]
+
+        Args:
+            duty: Duty cycle value in range -32767 to +32767 (±100% duty).
+        """
+
+        self._send_command_ack(32, struct.pack(">h", duty))
+
+    def drive_m2_with_signed_duty_cycle(self, duty: int):
+        """Drive M2 motor using signed duty cycle.
+
+        Command: 33 - Drive M2 With Signed Duty Cycle
+
+        Drive M2 using a duty cycle value. The duty cycle is used to control the speed
+        of the motor without a quadrature encoder.
+
+        Protocol:
+            Send: [Address, 33, Duty(2 Bytes), CRC(2 bytes)]
+            Receive: [0xFF]
+
+        Args:
+            duty: Duty cycle value in range -32767 to +32767 (±100% duty).
+        """
+
+        self._send_command_ack(33, struct.pack(">h", duty))
+
+    def read_temperature(self) -> float:
+        """Read board temperature.
+
+        Command: 82 - Read Temperature
+
+        Read the board temperature. Value returned is in 10ths of degrees.
+
+        Protocol:
+            Send: [Address, 82]
+            Receive: [Temperature(2 bytes), CRC(2 bytes)]
+
+        Returns:
+            Temperature in degrees Celsius.
+        """
+
+        response = self._send_command_crc(82, 4)
+        return struct.unpack(">h", response)[0] / 10.0
+
+    def read_temperature_2(self) -> float:
+        """Read second board temperature.
+
+        Command: 83 - Read Temperature 2
+
+        Read the second board temperature (only on supported units).
+        Value returned is in 10ths of degrees.
+
+        Protocol:
+            Send: [Address, 83]
+            Receive: [Temperature(2 bytes), CRC(2 bytes)]
+
+        Returns:
+            Temperature in degrees Celsius.
+        """
+
+        response = self._send_command_crc(83, 4)
+        return struct.unpack(">h", response)[0] / 10.0
+
+    def read_encoder_speed_m1(self) -> Tuple[int, int]:
+        """Read M1 encoder speed.
+
+        Command: 18 - Read Encoder Speed M1
+
+        Read M1 counter speed. Returned value is in pulses per second.
+        RoboClaw keeps track of how many pulses received per second for both encoder channels.
+
+        Protocol:
+            Send: [Address, 18]
+            Receive: [Speed(4 bytes), Status, CRC(2 bytes)]
+
+        Returns:
+            Tuple of (speed, status) where:
+            - speed: Speed in pulses per second
+            - status: Direction indicator (0 = forward, 1 = backward)
+        """
+
+        response = self._send_command_crc(18, 7)
+        speed = struct.unpack(">i", response[:4])[0]
+        status = response[4]
+
+        return speed, status
+
+    def read_encoder_speed_m2(self) -> Tuple[int, int]:
+        """Read M2 encoder speed.
+
+        Command: 19 - Read Encoder Speed M2
+
+        Read M2 counter speed. Returned value is in pulses per second.
+        RoboClaw keeps track of how many pulses received per second for both encoder channels.
+
+        Protocol:
+            Send: [Address, 19]
+            Receive: [Speed(4 bytes), Status, CRC(2 bytes)]
+
+        Returns:
+            Tuple of (speed, status) where:
+            - speed: Speed in pulses per second
+            - status: Direction indicator (0 = forward, 1 = backward)
+        """
+
+        response = self._send_command_crc(19, 7)
+        speed = struct.unpack(">i", response[:4])[0]
+        status = response[4]
+
+        return speed, status
 
 
-# === USAGE EXAMPLE ===
-
-
-def demo():
-    """Demonstration following official examples"""
-
+def main():
+    """Demo function to test RoboClaw functionality."""
     with RoboClaw("/dev/ttyTHS1") as rc:
-        # Test connection
-        version = rc.read_version()
-        if not version:
-            print("Failed to read version - check connection!")
-            return
+        response = rc.read_firmware_version()
+        print(f"Response from command 21: {response}")
 
-        print(f"RoboClaw version: {version}")
-
-        # Read initial status
-        status = rc.get_status()
-        print(f"Main voltage: {status.voltage}V")
-        print(f"Temperature: {status.temperature}°C")
-        print(f"Encoders: M1={status.encoder_m1}, M2={status.encoder_m2}")
-
-        # Test movements
-        print("Moving forward 30%...")
-        rc.move_forward(30)
-        time.sleep(2)
-
-        print("Moving backward 30%...")
-        rc.move_backward(30)
-        time.sleep(2)
-
-        print("Stopping...")
-        rc.stop()
-
-        # Individual motor control
-        print("Left motor 50%, right motor 30%...")
-        rc.set_motor_pwm(1, 50)  # Left rear motor
-        rc.set_motor_pwm(2, 30)  # Right rear motor
-        time.sleep(2)
-
-        print("Final stop")
-        rc.stop()
-
-        # Final status
-        final_status = rc.get_status()
-        print(
-            f"Final encoders: M1={final_status.encoder_m1}, M2={final_status.encoder_m2}"
-        )
+        while True:
+            try:
+                speed, status = rc.read_encoder_speed_m1()
+                print(f"Encoder Speed: {speed} pulses/sec, Status: {status}")
+                time.sleep(0.5)
+            except KeyboardInterrupt:
+                print("Demo interrupted by user.")
+                break
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                break
 
 
 if __name__ == "__main__":
-    demo()
+    main()
