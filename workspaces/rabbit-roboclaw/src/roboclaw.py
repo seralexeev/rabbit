@@ -1,7 +1,8 @@
-import serial
 import struct
 import time
 from typing import Optional, Tuple
+
+import serial
 
 
 class RoboClaw:
