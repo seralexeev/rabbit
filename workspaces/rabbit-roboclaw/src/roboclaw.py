@@ -2678,6 +2678,69 @@ class RoboClaw:
         response = self._send_command_crc(253, 4, struct.pack(">B", address))
         return struct.unpack(">H", response)[0]
 
+    def read_firmware_version(self) -> str:
+        """Read firmware version.
+
+        Command: 21 - Read Firmware Version
+
+        Read firmware version string from RoboClaw.
+
+        Protocol:
+            Send: [Address, 21]
+            Receive: [String + 0x00, CRC(2 bytes)]
+
+        Returns:
+            Firmware version string.
+        """
+
+        response = self._send_command_crc(21, 48)
+        version = ""
+        for byte in response:
+            if byte == 10:
+                break
+            version += chr(byte)
+
+        return version
+
+    def read_temperature(self) -> float:
+        """Read temperature.
+
+        Command: 82 - Read Temperature
+
+        Read board temperature in degrees Celsius.
+
+        Protocol:
+            Send: [Address, 82]
+            Receive: [Temperature(2 bytes), CRC(2 bytes)]
+
+        Returns:
+            Temperature in degrees Celsius.
+        """
+
+        response = self._send_command_crc(82, 4)
+        temp_raw = struct.unpack(">H", response)[0]
+        return temp_raw / 10.0
+
+    def read_temperature_2(self) -> float:
+        """Read second temperature sensor.
+
+        Command: 83 - Read Temperature 2
+
+        Read second board temperature sensor in degrees Celsius.
+        Only available on some RoboClaw models.
+
+        Protocol:
+            Send: [Address, 83]
+            Receive: [Temperature(2 bytes), CRC(2 bytes)]
+
+        Returns:
+            Temperature in degrees Celsius.
+        """
+
+        response = self._send_command_crc(83, 4)
+        temp_raw = struct.unpack(">H", response)[0]
+        return temp_raw / 10.0
+
 
 def main():
     """Demo function to test RoboClaw functionality."""
