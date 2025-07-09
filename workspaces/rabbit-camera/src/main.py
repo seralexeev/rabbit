@@ -22,9 +22,6 @@ async def main():
             if not cap.isOpened():
                 raise RuntimeError("Camera is not opened")
 
-            if not nc:
-                raise RuntimeError("NATS connection is not established")
-
             ret, frame = cap.read()
             if not ret:
                 raise RuntimeError("Failed to capture image from camera")

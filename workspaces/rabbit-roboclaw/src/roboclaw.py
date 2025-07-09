@@ -1,24 +1,19 @@
+from datetime import datetime
 import struct
+import threading
 import time
-from typing import Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import serial
 
 
-class RoboClaw:
-    """RoboClaw motor controller interface."""
-
-    MAX_DUTY_CYCLE = 32767
-    """Maximum duty cycle value for the motor, representing 100% speed."""
-
-    MIN_DUTY_CYCLE = -32768
-    """Minimum duty cycle value for the motor, representing -100% speed."""
+class RoboClawDriver:
 
     def __init__(
         self,
         port: str,
-        baudrate: int = 115200,
-        address: int = 0x80,
+        baudrate: int,
+        address: int,
         timeout: float = 0.1,
         retry_count: int = 3,
     ):
@@ -37,6 +32,7 @@ class RoboClaw:
         self.timeout = timeout
         self.retry_count = retry_count
         self._serial: Optional[serial.Serial] = None
+        self._lock = threading.Lock()
 
     def open(self):
         """Open serial connection to RoboClaw controller."""
@@ -53,15 +49,6 @@ class RoboClaw:
         if self._serial and self._serial.is_open:
             self._serial.close()
             self._serial = None
-
-    def __enter__(self):
-        """Context manager entry."""
-        self.open()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        self.close()
 
     def _crc16(self, data: bytes) -> int:
         """Calculate CRC16 checksum for data validation.
@@ -131,34 +118,36 @@ class RoboClaw:
             RuntimeError: If serial port is not open, response length is invalid,
                          or command fails after retry attempts.
         """
-        if not self._serial or not self._serial.is_open:
-            raise RuntimeError("Serial port not open")
 
-        packet = bytearray([self.address, command])
-        packet.extend(args)
-        packet.extend(struct.pack(">H", self._crc16(packet)))
+        with self._lock:
+            if not self._serial or not self._serial.is_open:
+                raise RuntimeError("Serial port not open")
 
-        attempt = 0
-        while attempt < self.retry_count:
-            try:
-                self._serial.reset_input_buffer()
-                self._serial.write(packet)
-                response = self._serial.read(read_bytes)
-                if len(response) != read_bytes:
-                    raise RuntimeError(
-                        f"Invalid response length: expected {read_bytes}, got {len(response)}"
-                    )
+            packet = bytearray([self.address, command])
+            packet.extend(args)
+            packet.extend(struct.pack(">H", self._crc16(packet)))
 
-                return response
-            except Exception as e:
-                attempt += 1
-                if attempt < self.retry_count:
-                    time.sleep(0.1)
-                    continue
-                raise RuntimeError(f"Failed to send command: {e}")
+            attempt = 0
+            while attempt < self.retry_count:
+                try:
+                    self._serial.reset_input_buffer()
+                    self._serial.write(packet)
+                    response = self._serial.read(read_bytes)
+                    if len(response) != read_bytes:
+                        raise RuntimeError(
+                            f"Invalid response from command ({command}): expected {read_bytes}, got {len(response)}"
+                        )
 
-        # This should never be reached, but added for type checker
-        raise RuntimeError("Command failed after all retry attempts")
+                    return response
+                except Exception as e:
+                    attempt += 1
+                    if attempt < self.retry_count:
+                        time.sleep(0.1)
+                        continue
+                    raise RuntimeError(f"Failed to send command ({command}): {e}")
+
+            # This should never be reached, but added for type checker
+            raise RuntimeError("Command failed after all retry attempts")
 
     def _send_command_ack(self, cmd: int, args: bytes = b""):
         """Send command and wait for 0xFF acknowledgment.
@@ -194,7 +183,7 @@ class RoboClaw:
             RuntimeError: If CRC validation fails.
         """
         response = self._send_command(cmd, response_size, args)
-        crc = struct.unpack(">H", response[-2:])[0]
+        crc = self._unpack_u16(response[-2:])
         control_crc = self._get_response_crc(cmd, response)
 
         if crc != control_crc:
@@ -204,25 +193,26 @@ class RoboClaw:
 
         return response[:-2]
 
-    def _get_duty_cycle(self, percentage: int) -> int:
-        """Convert percentage to signed duty cycle value.
+    def _unpack_u16(self, data: bytes) -> int:
+        return struct.unpack(">H", data)[0]
 
-        The duty cycle is used to control the speed of the motor without a quadrature encoder.
-        The range is -32768 to +32767, where 0 is stop, -32768 is full reverse,
-        and +32767 is full forward.
+    def _unpack_i16(self, data: bytes) -> int:
+        return struct.unpack(">h", data)[0]
 
-        Args:
-            percentage: Speed percentage (-100 to 100).
+    def _unpack_u32(self, data: bytes) -> int:
+        return struct.unpack(">I", data)[0]
 
-        Returns:
-            Duty cycle value in range -32768 to +32767.
-        """
-        return int(
-            max(
-                self.MIN_DUTY_CYCLE,
-                min(self.MAX_DUTY_CYCLE, percentage * (self.MAX_DUTY_CYCLE / 100.0)),
-            )
-        )
+    def _unpack_i32(self, data: bytes) -> int:
+        return struct.unpack(">i", data)[0]
+
+    def _unpack_2i32(self, data: bytes) -> Tuple[int, int]:
+        return struct.unpack(">ii", data)
+
+    def _unpack_2h(self, data: bytes) -> Tuple[int, int]:
+        return struct.unpack(">hh", data)
+
+    def _unpack_2B(self, data: bytes) -> Tuple[int, int]:
+        return struct.unpack(">BB", data)
 
     def drive_forward_m1(self, speed: int):
         """Drive M1 motor forward.
@@ -515,7 +505,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(16, 7)
-        count = struct.unpack(">i", response[:4])[0]
+        count = self._unpack_i32(response[:4])
         status = response[4]
 
         return count, status
@@ -538,7 +528,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(17, 7)
-        count = struct.unpack(">i", response[:4])[0]
+        count = self._unpack_i32(response[:4])
         status = response[4]
 
         return count, status
@@ -607,7 +597,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(24, 4)
-        return struct.unpack(">H", response)[0] / 10.0
+        return self._unpack_u16(response) / 10.0
 
     def read_logic_battery_voltage(self) -> float:
         """Read logic battery voltage.
@@ -625,7 +615,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(25, 4)
-        return struct.unpack(">H", response)[0] / 10.0
+        return self._unpack_u16(response) / 10.0
 
     def set_minimum_logic_voltage(self, voltage: int):
         """Set minimum logic battery voltage.
@@ -721,7 +711,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(30, 7)
-        speed = struct.unpack(">i", response[:4])[0]
+        speed = self._unpack_i32(response[:4])
         status = response[4]
 
         return speed, status
@@ -744,7 +734,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(31, 7)
-        speed = struct.unpack(">i", response[:4])[0]
+        speed = self._unpack_i32(response[:4])
         status = response[4]
 
         return speed, status
@@ -1052,7 +1042,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(47, 4)
-        buffer_m1, buffer_m2 = struct.unpack(">BB", response[:2])
+        buffer_m1, buffer_m2 = self._unpack_2B(response[:2])
         return buffer_m1, buffer_m2
 
     def read_motor_pwms(self) -> Tuple[int, int]:
@@ -1073,8 +1063,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(48, 6)
-        m1_pwm = struct.unpack(">h", response[:2])[0]
-        m2_pwm = struct.unpack(">h", response[2:4])[0]
+        m1_pwm = self._unpack_i16(response[:2])
+        m2_pwm = self._unpack_i16(response[2:4])
 
         return m1_pwm, m2_pwm
 
@@ -1096,8 +1086,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(49, 6)
-        m1_current = struct.unpack(">h", response[:2])[0] / 100.0
-        m2_current = struct.unpack(">h", response[2:4])[0] / 100.0
+        m1_current = self._unpack_i16(response[:2]) / 100.0
+        m2_current = self._unpack_i16(response[2:4]) / 100.0
 
         return m1_current, m2_current
 
@@ -1247,10 +1237,10 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(55, 18)
-        p = struct.unpack(">i", response[:4])[0]
-        i = struct.unpack(">i", response[4:8])[0]
-        d = struct.unpack(">i", response[8:12])[0]
-        qpps = struct.unpack(">i", response[12:16])[0]
+        p = self._unpack_i32(response[:4])
+        i = self._unpack_i32(response[4:8])
+        d = self._unpack_i32(response[8:12])
+        qpps = self._unpack_i32(response[12:16])
 
         return p, i, d, qpps
 
@@ -1274,10 +1264,10 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(56, 18)
-        p = struct.unpack(">i", response[:4])[0]
-        i = struct.unpack(">i", response[4:8])[0]
-        d = struct.unpack(">i", response[8:12])[0]
-        qpps = struct.unpack(">i", response[12:16])[0]
+        p = self._unpack_i32(response[:4])
+        i = self._unpack_i32(response[4:8])
+        d = self._unpack_i32(response[8:12])
+        qpps = self._unpack_i32(response[12:16])
 
         return p, i, d, qpps
 
@@ -1337,8 +1327,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(59, 6)
-        min_voltage = struct.unpack(">H", response[:2])[0]
-        max_voltage = struct.unpack(">H", response[2:4])[0]
+        min_voltage = self._unpack_u16(response[:2])
+        max_voltage = self._unpack_u16(response[2:4])
 
         return min_voltage, max_voltage
 
@@ -1360,8 +1350,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(60, 6)
-        min_voltage = struct.unpack(">H", response[:2])[0]
-        max_voltage = struct.unpack(">H", response[2:4])[0]
+        min_voltage = self._unpack_u16(response[:2])
+        max_voltage = self._unpack_u16(response[2:4])
 
         return min_voltage, max_voltage
 
@@ -1454,13 +1444,13 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(63, 30)
-        p = struct.unpack(">i", response[:4])[0]
-        i = struct.unpack(">i", response[4:8])[0]
-        d = struct.unpack(">i", response[8:12])[0]
-        max_i = struct.unpack(">i", response[12:16])[0]
-        deadzone = struct.unpack(">i", response[16:20])[0]
-        min_pos = struct.unpack(">i", response[20:24])[0]
-        max_pos = struct.unpack(">i", response[24:28])[0]
+        p = self._unpack_i32(response[:4])
+        i = self._unpack_i32(response[4:8])
+        d = self._unpack_i32(response[8:12])
+        max_i = self._unpack_i32(response[12:16])
+        deadzone = self._unpack_i32(response[16:20])
+        min_pos = self._unpack_i32(response[20:24])
+        max_pos = self._unpack_i32(response[24:28])
 
         return p, i, d, max_i, deadzone, min_pos, max_pos
 
@@ -1487,13 +1477,13 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(64, 30)
-        p = struct.unpack(">i", response[:4])[0]
-        i = struct.unpack(">i", response[4:8])[0]
-        d = struct.unpack(">i", response[8:12])[0]
-        max_i = struct.unpack(">i", response[12:16])[0]
-        deadzone = struct.unpack(">i", response[16:20])[0]
-        min_pos = struct.unpack(">i", response[20:24])[0]
-        max_pos = struct.unpack(">i", response[24:28])[0]
+        p = self._unpack_i32(response[:4])
+        i = self._unpack_i32(response[4:8])
+        d = self._unpack_i32(response[8:12])
+        max_i = self._unpack_i32(response[12:16])
+        deadzone = self._unpack_i32(response[16:20])
+        min_pos = self._unpack_i32(response[20:24])
+        max_pos = self._unpack_i32(response[24:28])
 
         return p, i, d, max_i, deadzone, min_pos, max_pos
 
@@ -1679,8 +1669,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(72, 6)
-        m1_speed = struct.unpack(">h", response[:2])[0]
-        m2_speed = struct.unpack(">h", response[2:4])[0]
+        m1_speed = self._unpack_i16(response[:2])
+        m2_speed = self._unpack_i16(response[2:4])
 
         return m1_speed, m2_speed
 
@@ -1789,8 +1779,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(78, 10)
-        enc1_count = struct.unpack(">i", response[:4])[0]
-        enc2_count = struct.unpack(">i", response[4:8])[0]
+        enc1_count = self._unpack_i32(response[:4])
+        enc2_count = self._unpack_i32(response[4:8])
 
         return enc1_count, enc2_count
 
@@ -1812,8 +1802,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(79, 10)
-        speed1 = struct.unpack(">i", response[:4])[0]
-        speed2 = struct.unpack(">i", response[4:8])[0]
+        speed1 = self._unpack_i32(response[:4])
+        speed2 = self._unpack_i32(response[4:8])
 
         return speed1, speed2
 
@@ -1849,8 +1839,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(81, 10)
-        m1_accel = struct.unpack(">i", response[:4])[0]
-        m2_accel = struct.unpack(">i", response[4:8])[0]
+        m1_accel = self._unpack_i32(response[:4])
+        m2_accel = self._unpack_i32(response[4:8])
 
         return m1_accel, m2_accel
 
@@ -1990,7 +1980,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(99, 4)
-        return struct.unpack(">H", response)[0]
+        return self._unpack_u16(response)
 
     def set_ctrl_modes(self, ctrl1_mode: int, ctrl2_mode: int):
         """Set CTRL pin modes.
@@ -2086,8 +2076,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(104, 6)
-        ctrl1_value = struct.unpack(">H", response[:2])[0]
-        ctrl2_value = struct.unpack(">H", response[2:4])[0]
+        ctrl1_value = self._unpack_u16(response[:2])
+        ctrl2_value = self._unpack_u16(response[2:4])
 
         return ctrl1_value, ctrl2_value
 
@@ -2147,8 +2137,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(107, 8)
-        percentage = struct.unpack(">H", response[:2])[0]
-        timeout = struct.unpack(">i", response[2:6])[0]
+        percentage = self._unpack_u16(response[:2])
+        timeout = self._unpack_i32(response[2:6])
 
         return percentage, timeout
 
@@ -2170,8 +2160,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(108, 10)
-        speed1 = struct.unpack(">i", response[:4])[0]
-        speed2 = struct.unpack(">i", response[4:8])[0]
+        speed1 = self._unpack_i32(response[:4])
+        speed2 = self._unpack_i32(response[4:8])
 
         return speed1, speed2
 
@@ -2212,8 +2202,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(110, 10)
-        m1_limit = struct.unpack(">i", response[:4])[0]
-        m2_limit = struct.unpack(">i", response[4:8])[0]
+        m1_limit = self._unpack_i32(response[:4])
+        m2_limit = self._unpack_i32(response[4:8])
 
         return m1_limit, m2_limit
 
@@ -2235,8 +2225,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(111, 10)
-        m1_error = struct.unpack(">i", response[:4])[0]
-        m2_error = struct.unpack(">i", response[4:8])[0]
+        m1_error = self._unpack_i32(response[:4])
+        m2_error = self._unpack_i32(response[4:8])
 
         return m1_error, m2_error
 
@@ -2277,8 +2267,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(113, 10)
-        m1_limit = struct.unpack(">i", response[:4])[0]
-        m2_limit = struct.unpack(">i", response[4:8])[0]
+        m1_limit = self._unpack_i32(response[:4])
+        m2_limit = self._unpack_i32(response[4:8])
 
         return m1_limit, m2_limit
 
@@ -2300,8 +2290,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(114, 10)
-        m1_error = struct.unpack(">i", response[:4])[0]
-        m2_error = struct.unpack(">i", response[4:8])[0]
+        m1_error = self._unpack_i32(response[:4])
+        m2_error = self._unpack_i32(response[4:8])
 
         return m1_error, m2_error
 
@@ -2384,8 +2374,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(118, 6)
-        m1_blanking = struct.unpack(">H", response[:2])[0]
-        m2_blanking = struct.unpack(">H", response[2:4])[0]
+        m1_blanking = self._unpack_u16(response[:2])
+        m2_blanking = self._unpack_u16(response[2:4])
 
         return m1_blanking, m2_blanking
 
@@ -2571,8 +2561,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(135, 10)
-        max_current = struct.unpack(">i", response[:4])[0]
-        min_current = struct.unpack(">i", response[4:8])[0]
+        max_current = self._unpack_i32(response[:4])
+        min_current = self._unpack_i32(response[4:8])
 
         return max_current, min_current
 
@@ -2594,8 +2584,8 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(136, 10)
-        max_current = struct.unpack(">i", response[:4])[0]
-        min_current = struct.unpack(">i", response[4:8])[0]
+        max_current = self._unpack_i32(response[:4])
+        min_current = self._unpack_i32(response[4:8])
 
         return max_current, min_current
 
@@ -2672,7 +2662,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(253, 4, struct.pack(">B", address))
-        return struct.unpack(">H", response)[0]
+        return self._unpack_u16(response)
 
     def read_firmware_version(self) -> str:
         """Read firmware version.
@@ -2689,7 +2679,7 @@ class RoboClaw:
             Firmware version string.
         """
 
-        response = self._send_command_crc(21, 48)
+        response = self._send_command_crc(21, 29)
         version = ""
         for byte in response:
             if byte == 10:
@@ -2714,7 +2704,7 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(82, 4)
-        temp_raw = struct.unpack(">H", response)[0]
+        temp_raw = self._unpack_u16(response)
         return temp_raw / 10.0
 
     def read_temperature_2(self) -> float:
@@ -2734,5 +2724,116 @@ class RoboClaw:
         """
 
         response = self._send_command_crc(83, 4)
-        temp_raw = struct.unpack(">H", response)[0]
+        temp_raw = self._unpack_u16(response)
         return temp_raw / 10.0
+
+
+class RoboClaw:
+    MAX_DUTY_CYCLE = 32767
+    """Maximum duty cycle value for the motor, representing 100% speed."""
+
+    MIN_DUTY_CYCLE = -32768
+    """Minimum duty cycle value for the motor, representing -100% speed."""
+
+    def __enter__(self):
+        """Context manager entry."""
+        self._driver.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        self._driver.close()
+
+    def __init__(self, port: str, baudrate: int, address: int):
+        self._driver = RoboClawDriver(
+            port=port,
+            baudrate=baudrate,
+            address=address,
+        )
+
+    def get_metrics(self) -> List[Dict[str, Any]]:
+        """Get all available metrics."""
+
+        temperature = self._driver.read_temperature()
+        encoder_m1 = self._driver.read_encoder_m1()
+        encoder_m2 = self._driver.read_encoder_m2()
+        main_battery_voltage = self._driver.read_main_battery_voltage()
+        raw_speed_m1 = self._driver.read_raw_speed_m1()
+        raw_speed_m2 = self._driver.read_raw_speed_m2()
+        motor_pwms = self._driver.read_motor_pwms()
+        motor_currents = self._driver.read_motor_currents()
+        instantaneous_speeds = self._driver.read_instantaneous_speeds()
+        encoder_counters = self._driver.read_encoder_counters()
+        average_speeds = self._driver.read_average_speeds()
+
+        metrics: List[Dict[str, Any]] = []
+        timestamp = int(time.time() * 1000)
+
+        def add_metric(measurement: str, value: float | int):
+            metrics.append(
+                {
+                    "measurement": measurement,
+                    "tags": {
+                        "node": "roboclaw",
+                    },
+                    "fields": {
+                        "value": value,
+                    },
+                    "timestamp": timestamp,
+                }
+            )
+
+        add_metric("temperature", temperature)
+        add_metric("encoder_m1", encoder_m1[0])
+        add_metric("encoder_m2", encoder_m2[0])
+        add_metric("main_battery_voltage", main_battery_voltage)
+        add_metric("raw_speed_m1", raw_speed_m1[0])
+        add_metric("raw_speed_m2", raw_speed_m2[0])
+        add_metric("motor_pwm_m1", motor_pwms[0])
+        add_metric("motor_pwm_m2", motor_pwms[1])
+        add_metric("motor_current_m1", motor_currents[0])
+        add_metric("motor_current_m2", motor_currents[1])
+        add_metric("instantaneous_speed_m1", instantaneous_speeds[0])
+        add_metric("instantaneous_speed_m2", instantaneous_speeds[1])
+        add_metric("encoder_counter_m1", encoder_counters[0])
+        add_metric("encoder_counter_m2", encoder_counters[1])
+        add_metric("average_speed_m1", average_speeds[0])
+        add_metric("average_speed_m2", average_speeds[1])
+
+        return metrics
+
+    def _get_duty_cycle(self, percentage: float) -> int:
+        """Convert percentage to signed duty cycle value.
+
+        The duty cycle is used to control the speed of the motor without a quadrature encoder.
+        The range is -32768 to +32767, where 0 is stop, -32768 is full reverse,
+        and +32767 is full forward.
+
+        Args:
+            percentage: Speed percentage (-1 to 1).
+
+        Returns:
+            Duty cycle value in range -32768 to +32767.
+        """
+        return int(
+            max(
+                self.MIN_DUTY_CYCLE,
+                min(self.MAX_DUTY_CYCLE, percentage * (self.MAX_DUTY_CYCLE / 1.0)),
+            )
+        )
+
+    def move(self, m1_percent: float, m2_percent: float):
+        """Move both motors with specified duty cycle percentages.
+        Args:
+            m1_percent: Motor 1 speed percentage (-1 to 1).
+            m2_percent: Motor 2 speed percentage (-1 to 1).
+        """
+
+        m1_speed = self._get_duty_cycle(m1_percent)
+        m2_speed = self._get_duty_cycle(m2_percent)
+
+        self._driver.drive_m1_m2_with_signed_duty_cycle(m1_speed, m2_speed)
+
+    def stop(self):
+        """Stop both motors by setting duty cycle to 0."""
+        self._driver.drive_m1_m2_with_signed_duty_cycle(0, 0)
