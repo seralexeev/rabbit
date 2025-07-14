@@ -103,6 +103,17 @@ class RoboClawDriver:
 
         return self._crc16(validation_packet)
 
+    def _send_command_unsafe(self, command: int, args: bytes = b""):
+        if not self._serial or not self._serial.is_open:
+            raise RuntimeError("Serial port not open")
+
+        packet = bytearray([self.address, command])
+        packet.extend(args)
+        packet.extend(struct.pack(">H", self._crc16(packet)))
+
+        self._serial.reset_input_buffer()
+        self._serial.write(packet)
+
     def _send_command(self, command: int, read_bytes: int, args: bytes = b"") -> bytes:
         """Send command to RoboClaw and read response.
 
@@ -119,35 +130,18 @@ class RoboClawDriver:
                          or command fails after retry attempts.
         """
 
+        if not self._serial or not self._serial.is_open:
+            raise RuntimeError("Serial port not open")
+
         with self._lock:
-            if not self._serial or not self._serial.is_open:
-                raise RuntimeError("Serial port not open")
+            self._send_command_unsafe(command, args)
+            response = self._serial.read(read_bytes)
+            if len(response) != read_bytes:
+                raise RuntimeError(
+                    f"Invalid response from command ({command}): expected {read_bytes}, got {len(response)}"
+                )
 
-            packet = bytearray([self.address, command])
-            packet.extend(args)
-            packet.extend(struct.pack(">H", self._crc16(packet)))
-
-            attempt = 0
-            while attempt < self.retry_count:
-                try:
-                    self._serial.reset_input_buffer()
-                    self._serial.write(packet)
-                    response = self._serial.read(read_bytes)
-                    if len(response) != read_bytes:
-                        raise RuntimeError(
-                            f"Invalid response from command ({command}): expected {read_bytes}, got {len(response)}"
-                        )
-
-                    return response
-                except Exception as e:
-                    attempt += 1
-                    if attempt < self.retry_count:
-                        time.sleep(0.1)
-                        continue
-                    raise RuntimeError(f"Failed to send command ({command}): {e}")
-
-            # This should never be reached, but added for type checker
-            raise RuntimeError("Command failed after all retry attempts")
+            return response
 
     def _send_command_ack(self, cmd: int, args: bytes = b""):
         """Send command and wait for 0xFF acknowledgment.
@@ -545,7 +539,7 @@ class RoboClawDriver:
             Receive: [0xFF]
         """
 
-        self._send_command_ack(20)
+        self._send_command(20, 0)
 
     def set_encoder_m1_value(self, value: int):
         """Set M1 encoder count value.
@@ -738,6 +732,40 @@ class RoboClawDriver:
         status = response[4]
 
         return speed, status
+
+    def drive_m1_with_signed_duty_cycle(self, duty: int):
+        """Drive M1 motor using signed duty cycle.
+
+        Command: 32 - Drive M1 With Signed Duty Cycle
+
+        Drive M1 using a duty cycle value. The duty cycle is used to control the speed of the motor without a quadrature encoder.
+
+        Protocol:
+            Send: [Address, 32, Duty(2 bytes), CRC(2 bytes)]
+            Receive: [0xFF]
+
+        Args:
+            duty: M1 duty cycle value in range -32767 to +32767.
+        """
+
+        self._send_command_ack(32, struct.pack(">h", duty))
+
+    def drive_m2_with_signed_duty_cycle(self, duty: int):
+        """Drive M2 motor using signed duty cycle.
+
+        Command: 33 - Drive M2 With Signed Duty Cycle
+
+        Drive M2 using a duty cycle value. The duty cycle is used to control the speed of the motor without a quadrature encoder.
+
+        Protocol:
+            Send: [Address, 33, Duty(2 bytes), CRC(2 bytes)]
+            Receive: [0xFF]
+
+        Args:
+            duty: M2 duty cycle value in range -32767 to +32767.
+        """
+
+        self._send_command_ack(33, struct.pack(">h", duty))
 
     def drive_m1_m2_with_signed_duty_cycle(self, duty_m1: int, duty_m2: int):
         """Drive M1 and M2 motors using signed duty cycle.
@@ -1073,7 +1101,7 @@ class RoboClawDriver:
 
         Command: 49 - Read Motor Currents
 
-        Read current values for both motors.
+        Read the current draw from each motor in 10ma increments. The amps value is calculated by dividing the value by 100.
 
         Protocol:
             Send: [Address, 49]
@@ -1598,7 +1626,7 @@ class RoboClawDriver:
             accel: Acceleration value.
         """
 
-        self._send_command_ack(68, struct.pack(">i", accel))
+        self._send_command_unsafe(68, struct.pack(">i", accel))
 
     def set_m2_default_duty_acceleration(self, accel: int):
         """Set M2 default duty acceleration.
@@ -1615,7 +1643,7 @@ class RoboClawDriver:
             accel: Acceleration value.
         """
 
-        self._send_command_ack(69, struct.pack(">i", accel))
+        self._send_command_unsafe(69, struct.pack(">i", accel))
 
     def set_m1_default_speed(self, speed: int):
         """Set M1 default speed.
@@ -2735,14 +2763,19 @@ class RoboClaw:
     MIN_DUTY_CYCLE = -32768
     """Minimum duty cycle value for the motor, representing -100% speed."""
 
-    def __enter__(self):
-        """Context manager entry."""
+    def open(self):
         self._driver.open()
+        # self._driver.reset_encoders()
+
+    def close(self):
+        self._driver.close()
+
+    def __enter__(self):
+        self.open()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        self._driver.close()
+        self.close()
 
     def __init__(self, port: str, baudrate: int, address: int):
         self._driver = RoboClawDriver(
@@ -2831,7 +2864,6 @@ class RoboClaw:
 
         m1_speed = self._get_duty_cycle(m1_percent)
         m2_speed = self._get_duty_cycle(m2_percent)
-
         self._driver.drive_m1_m2_with_signed_duty_cycle(m1_speed, m2_speed)
 
     def stop(self):

@@ -1,7 +1,7 @@
 import { css } from '@emotion/css';
 import React from 'react';
 
-import { useNats } from '../realtime/NatsProvider.tsx';
+import { useNats } from '../app/NatsProvider.tsx';
 import { type DualSenseState, type StickState, useGamepad } from './GamepadProvider.tsx';
 
 export const GamepadController: React.FC = () => {
@@ -13,6 +13,7 @@ export const GamepadController: React.FC = () => {
         return subscribe((state) => {
             setState(state);
             nc.publish('rabbit.cmd.joy', JSON.stringify(state));
+            nc.flush();
         });
     }, [gamepad, nc]);
 

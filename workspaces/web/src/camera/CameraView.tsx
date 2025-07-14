@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useNats } from '../realtime/NatsProvider.tsx';
+import { useNats } from '../app/NatsProvider.tsx';
 
 export const CameraView: React.FC = () => {
     const nc = useNats();

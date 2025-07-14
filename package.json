@@ -2,7 +2,8 @@
   "name": "@rabbit/root",
   "workspaces": [
     "workspaces/web",
-    "workspaces/server"
+    "workspaces/server",
+    "workspaces/toolbox"
   ],
   "engines": {
     "node": "23.6.0"
@@ -12,7 +13,7 @@
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "5.2.2",
-    "@types/node": "22.16.0",
+    "@types/node": "24.0.13",
     "depcheck": "1.4.7",
     "prettier": "3.6.2",
     "typescript": "5.8.3"

@@ -1,0 +1,29 @@
+{
+  "name": "@untype/toolbox",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    },
+    "./geo": {
+      "import": "./src/geo.ts"
+    },
+    "./node": {
+      "import": "./src/node.ts"
+    }
+  },
+  "dependencies": {
+    "@turf/turf": "7.2.0",
+    "clean-stack": "5.2.0",
+    "colorette": "2.0.20",
+    "date-fns": "4.1.0",
+    "js-yaml": "4.1.0",
+    "uuid": "11.1.0",
+    "zod": "4.0.5"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "4.0.9",
+    "@types/uuid": "10.0.0",
+    "type-fest": "4.41.0"
+  }
+}

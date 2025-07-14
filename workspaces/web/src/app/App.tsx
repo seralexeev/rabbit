@@ -1,33 +1,35 @@
 import { css } from '@emotion/css';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-import { CameraView } from './camera/CameraView.tsx';
-import { GamepadController } from './controller/GamepadController.tsx';
-import { GamepadProvider } from './controller/GamepadProvider.tsx';
-import { NatsProvider } from './realtime/NatsProvider.tsx';
+import { CameraView } from '../camera/CameraView.tsx';
+import { GamepadController } from '../controller/GamepadController.tsx';
+import { GamepadProvider } from '../controller/GamepadProvider.tsx';
+import { TelemetryBar } from '../telemetry/TelemetryBar.tsx';
+import { LogProvider } from './LogProvider.tsx';
+import { NatsProvider } from './NatsProvider.tsx';
+import { QueryProvider } from './QueryProvider.tsx';
 
-const queryClient = new QueryClient();
-
-export const App: React.FC = () => {
+export const App: React.FC = React.memo(() => {
     return (
         <React.StrictMode>
-            <QueryClientProvider client={queryClient}>
-                <div
-                    className={css`
-                        width: 100%;
-                        height: 100%;
-                        display: flex;
-                        flex-direction: column;
-                    `}>
+            <LogProvider>
+                <QueryProvider>
                     <NatsProvider>
-                        <GamepadProvider>
-                            <GamepadController />
-                            <CameraView />
-                        </GamepadProvider>
+                        <div
+                            className={css`
+                                padding: 8px;
+                                width: 100%;
+                                height: 100%;
+                            `}>
+                            <TelemetryBar />
+                            <GamepadProvider>
+                                {/* <GamepadController /> */}
+                                {/* <CameraView /> */}
+                            </GamepadProvider>
+                        </div>
                     </NatsProvider>
-                </div>
-            </QueryClientProvider>
+                </QueryProvider>
+            </LogProvider>
         </React.StrictMode>
     );
-};
+});

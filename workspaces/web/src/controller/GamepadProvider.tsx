@@ -12,11 +12,13 @@ type GamepadContext = {
 
 const GamepadContext = React.createContext<GamepadContext | null>(null);
 
-export const GamepadProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const GamepadProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+    const cycleRef = React.useRef(0);
+    const now = React.useRef(Date.now());
+    const intervalRef = React.useRef<number | null>(null);
     const [gamepads, setGamepads] = React.useState<Gamepad[]>([]);
     const [current, setCurrent] = React.useState<string | null>(null);
     const [emitter] = React.useState(() => createNanoEvents<{ onUpdate: (state: DualSenseState) => void }>());
-    const last = React.useRef<string | null>(null);
     const gamepad = gamepads.find((x) => x.id === current) ?? null;
 
     const updateGamepads = useEvent(() => {
@@ -39,29 +41,41 @@ export const GamepadProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, []);
 
     const updateLoop = useEvent(() => {
+        cycleRef.current += 1;
+
         const gamepad = navigator.getGamepads().find((x) => x?.id === current);
         if (!gamepad) {
             return;
         }
 
         const state = mapDualSenseState(gamepad);
-        const stateString = JSON.stringify(state);
-        if (last.current !== stateString) {
-            last.current = stateString;
-            try {
-                emitter.emit('onUpdate', state);
-            } catch (e) {
-                console.error('🔴 Error emitting gamepad update:', e);
-            }
+        try {
+            emitter.emit('onUpdate', state);
+        } catch (e) {
+            console.error('🔴 Error emitting gamepad update:', e);
         }
 
-        requestAnimationFrame(updateLoop);
+        if (cycleRef.current % 30 === 0) {
+            const total_diff = Date.now() - now.current;
+            const fps = Math.round((cycleRef.current / total_diff) * 1000);
+
+            console.log(`FPS: ${fps} `);
+        }
     });
 
     React.useEffect(() => {
-        if (current) {
-            requestAnimationFrame(updateLoop);
+        if (intervalRef.current !== null) {
+            clearInterval(intervalRef.current);
         }
+
+        intervalRef.current = window.setInterval(updateLoop, 1000 / 30);
+
+        return () => {
+            if (intervalRef.current != null) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
     }, [current]);
 
     return (

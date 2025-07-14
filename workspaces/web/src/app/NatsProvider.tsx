@@ -2,6 +2,9 @@ import { type NatsConnection, wsconnect } from '@nats-io/nats-core';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 
+import { ui } from '../ui/index.ts';
+import { L } from './LogProvider.tsx';
+
 const NatsContext = React.createContext<NatsConnection | null>(null);
 
 export const useNats = () => {
@@ -13,12 +16,19 @@ export const useNats = () => {
     return context;
 };
 
+const NATS_SERVERS = {
+    JETSON: 'ws://192.168.1.53:9222',
+    LOCAL: 'ws://127.0.0.1:9222',
+};
+
 export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const query = useQuery({
         queryKey: ['nats'],
         queryFn: () => {
+            L.info('Connecting to NATS server...');
+
             return wsconnect({
-                servers: ['ws://localhost:9222'],
+                servers: [NATS_SERVERS.LOCAL],
                 reconnect: true,
                 maxReconnectAttempts: -1,
                 waitOnFirstConnect: true,
@@ -27,8 +37,16 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
     });
 
+    React.useEffect(() => {
+        if (query.isError) {
+            L.error('Failed to connect to NATS server', query.error);
+        } else if (query.isSuccess) {
+            L.info('Connected to NATS server');
+        }
+    }, [query]);
+
     if (query.data == null) {
-        return <div>Connecting to NATS...</div>;
+        return <ui.SplashSpinner children='Connecting to NATS server...' />;
     }
 
     return <NatsContext.Provider value={query.data}>{children}</NatsContext.Provider>;

@@ -22,6 +22,7 @@
         "libgpiod",
         "libusb",
         "nanoevents",
+        "noexept",
         "promtail",
         "pwms",
         "pyproject",
@@ -32,6 +33,8 @@
         "rosidl",
         "sergey",
         "tobytes",
+        "trycatch",
+        "untype",
         "webrtc",
         "wsconnect"
     ]
