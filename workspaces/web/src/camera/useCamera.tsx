@@ -2,7 +2,6 @@ import React from 'react';
 import z from 'zod';
 
 import { useNats } from '../app/NatsProvider.tsx';
-import { L } from '../terminal/LogProvider.tsx';
 import { util } from '../utils/index.ts';
 
 type Stats = {
@@ -90,13 +89,9 @@ export const useCameraStream = (subject: string) => {
             },
         });
 
-        L.info('Subscribed to camera stream', { subject });
-
         return () => {
             subscription.unsubscribe();
             clearInterval(intervalId);
-
-            L.info('Unsubscribed from camera stream', { subject });
         };
     }, [nc]);
 

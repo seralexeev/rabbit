@@ -1,7 +1,8 @@
-import { type NatsConnection, wsconnect } from '@nats-io/nats-core';
+import { type Msg, type NatsConnection, type SubscriptionOptions, wsconnect } from '@nats-io/nats-core';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 
+import { useEvent } from '../hooks.ts';
 import { L } from '../terminal/LogProvider.tsx';
 import { ui } from '../ui/index.ts';
 
@@ -50,4 +51,40 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     return <NatsContext.Provider value={query.data}>{children}</NatsContext.Provider>;
+};
+
+export const useSubscribe = (
+    subject: string,
+    options: Omit<SubscriptionOptions, 'callback'> & { callback: (msg: Msg) => unknown },
+) => {
+    const nc = useNats();
+
+    const callback = useEvent(options.callback);
+
+    React.useEffect(() => {
+        const sub = nc.subscribe(subject, {
+            ...options,
+            callback: (err, msg) => {
+                if (err) {
+                    L.error(`Error in subscription to subject ${subject}`, err);
+                    return;
+                }
+
+                (async () => {
+                    try {
+                        await callback(msg);
+                    } catch (e) {
+                        L.error(`Failed to parse message from subject ${subject}`, e);
+                    }
+                })();
+            },
+        });
+
+        L.info('Subscribed to subject', { subject });
+
+        return () => {
+            sub.unsubscribe();
+            L.info('Unsubscribed from subject', { subject });
+        };
+    }, [nc, subject]);
 };

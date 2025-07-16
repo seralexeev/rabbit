@@ -6,8 +6,8 @@ export const useLiveRef = <T>(value: T) => {
     return ref;
 };
 
-export const useEvent = <T extends (...args: any[]) => any>(fn: T) => {
+export const useEvent = <T extends (...args: any[]) => any>(fn?: T) => {
     const ref = useLiveRef(fn);
 
-    return React.useRef((...args: any[]) => ref.current(...args)).current as T;
+    return React.useRef((...args: any[]) => ref.current?.(...args)).current as T;
 };
