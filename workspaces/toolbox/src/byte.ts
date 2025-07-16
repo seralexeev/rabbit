@@ -33,6 +33,7 @@ export const prettify = (
         signed?: boolean;
         minimumFractionDigits?: number;
         maximumFractionDigits?: number;
+        whitespace?: boolean;
     },
 ) => {
     if (!Number.isFinite(number)) {
@@ -88,5 +89,5 @@ export const prettify = (
 
     const unit = UNITS[exponent];
 
-    return prefix + numberString + ' ' + unit;
+    return prefix + numberString + (options.whitespace ? ' ' : '') + unit;
 };

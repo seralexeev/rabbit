@@ -2,4 +2,4 @@
 name = "rabbit-camera"
 version = "0.0.1"
 requires-python = ">=3.12,<3.13"
-dependencies = ["nats-py", "numpy", "opencv-python"]
+dependencies = ["nats-py", "cython", "numpy", "opencv-python", "pyopengl"]

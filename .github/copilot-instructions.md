@@ -48,3 +48,9 @@ Robot control system using WebRTC and gamepad input.
 ### React
 
 - Use children={children} when children is a variable and not a JSX literal
+
+### CSS
+
+- Use CSS emotion className={css`display: flex;`} tagged template literals for styles in className
+- Use `css` from `@emotion/css` for CSS-in-JS styles
+- Use css variables whenever possible

@@ -8,13 +8,9 @@ export const TelemetryBar: React.FC<TelemetryBarProps> = ({}) => {
         <div
             className={css`
                 width: 100%;
-                height: 32px;
-                border: 1px solid var(--color-primary);
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                padding: 0 8px;
-                overflow-x: auto;
             `}>
             TELEMETRY
             <div

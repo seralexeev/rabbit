@@ -2,8 +2,8 @@ import { type NatsConnection, wsconnect } from '@nats-io/nats-core';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 
+import { L } from '../terminal/LogProvider.tsx';
 import { ui } from '../ui/index.ts';
-import { L } from './LogProvider.tsx';
 
 const NatsContext = React.createContext<NatsConnection | null>(null);
 
@@ -28,7 +28,7 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children
             L.info('Connecting to NATS server...');
 
             return wsconnect({
-                servers: [NATS_SERVERS.LOCAL],
+                servers: [NATS_SERVERS.JETSON],
                 reconnect: true,
                 maxReconnectAttempts: -1,
                 waitOnFirstConnect: true,

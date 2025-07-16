@@ -1,11 +1,8 @@
-import { css } from '@emotion/css';
 import React from 'react';
 
-import { CameraView } from '../camera/CameraView.tsx';
-import { GamepadController } from '../controller/GamepadController.tsx';
 import { GamepadProvider } from '../controller/GamepadProvider.tsx';
-import { TelemetryBar } from '../telemetry/TelemetryBar.tsx';
-import { LogProvider } from './LogProvider.tsx';
+import { MainLayout } from '../layout/MainLayout.tsx';
+import { LogProvider } from '../terminal/LogProvider.tsx';
 import { NatsProvider } from './NatsProvider.tsx';
 import { QueryProvider } from './QueryProvider.tsx';
 
@@ -15,18 +12,9 @@ export const App: React.FC = React.memo(() => {
             <LogProvider>
                 <QueryProvider>
                     <NatsProvider>
-                        <div
-                            className={css`
-                                padding: 8px;
-                                width: 100%;
-                                height: 100%;
-                            `}>
-                            <TelemetryBar />
-                            <GamepadProvider>
-                                {/* <GamepadController /> */}
-                                {/* <CameraView /> */}
-                            </GamepadProvider>
-                        </div>
+                        <GamepadProvider>
+                            <MainLayout />
+                        </GamepadProvider>
                     </NatsProvider>
                 </QueryProvider>
             </LogProvider>
