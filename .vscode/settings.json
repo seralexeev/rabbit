@@ -22,6 +22,7 @@
         "libevdev",
         "libgpiod",
         "libusb",
+        "localuser",
         "nanoevents",
         "noexept",
         "promtail",
@@ -38,6 +39,7 @@
         "trycatch",
         "untype",
         "webrtc",
-        "wsconnect"
+        "wsconnect",
+        "xhost"
     ]
 }

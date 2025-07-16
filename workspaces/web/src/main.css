@@ -2,6 +2,7 @@
     --color-primary: #00ff41;
     --color-danger: #ff0000;
     --color-black: #000;
+    --color-white: #fff;
 }
 
 *,
@@ -49,7 +50,7 @@ body {
     min-height: 100vh;
     font-weight: 400;
     font-size: 12px;
-    line-height: 1.2;
+    line-height: 1.29;
     font-optical-sizing: auto;
     font-style: normal;
     font-family: 'JetBrains Mono', monospace;

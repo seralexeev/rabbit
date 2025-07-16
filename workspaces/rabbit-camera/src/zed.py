@@ -1,10 +1,3 @@
-import asyncio
-import json
-import math
-import time
-
-import cv2
-import nats
 import numpy as np
 import pyzed.sl as sl
 
@@ -13,19 +6,19 @@ class ZedCamera:
     image = sl.Mat()
     runtime_params = sl.RuntimeParameters()
     sensors_data = sl.SensorsData()
+    init_params = sl.InitParameters()
 
-    def __init__(self, camera_id=0):
+    def __init__(self, camera_fps=30):
         self.zed = sl.Camera()
 
-    def open(self):
-        init_params = sl.InitParameters()
-        init_params.camera_resolution = sl.RESOLUTION.HD720
-        init_params.camera_fps = 30
-        init_params.depth_mode = sl.DEPTH_MODE.NONE
-        init_params.coordinate_units = sl.UNIT.MILLIMETER
-        init_params.sdk_verbose = 1
+        self.init_params.camera_resolution = sl.RESOLUTION.HD720
+        self.init_params.camera_fps = camera_fps
+        self.init_params.depth_mode = sl.DEPTH_MODE.NONE
+        self.init_params.coordinate_units = sl.UNIT.MILLIMETER
+        self.init_params.sdk_verbose = 1
 
-        status = self.zed.open(init_params)
+    def open(self):
+        status = self.zed.open(self.init_params)
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"ZED camera initialization failed: {status}")
 

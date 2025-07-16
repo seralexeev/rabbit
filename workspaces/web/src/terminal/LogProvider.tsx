@@ -92,6 +92,11 @@ export const LogProvider: React.FC<LogProviderProps> = React.memo(({ children })
                             & > .wrn {
                                 color: var(--color-warning);
                             }
+
+                            & > .meta {
+                                color: var(--color-white);
+                                opacity: 0.5;
+                            }
                         `}
                     />
                 </div>
@@ -158,6 +163,7 @@ const raw = (line: string, className?: string) => {
     if (className != null) {
         entry.className = className;
     }
+
     target.appendChild(entry);
 };
 
@@ -166,7 +172,7 @@ const printYaml = (obj: unknown) => {
 
     const lines = message.split('\n').map((x, i, ar) => `${getFrameSymbol(i, ar.length)} ` + x);
     for (const line of lines) {
-        raw(line, 'obj');
+        raw(' '.repeat(13) + line, 'meta');
     }
 };
 

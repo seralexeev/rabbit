@@ -17,8 +17,9 @@ async def main():
         reconnect_time_wait=2,
     )
 
-    zed = ZedCamera()
+    zed = ZedCamera(camera_fps=30)
     zed.open()
+    frame = 0
 
     while True:
         try:
@@ -50,15 +51,18 @@ async def main():
                 },
             )
 
-            await nc.publish(
-                "rabbit.camera.sensor",
-                json.dumps(other).encode("utf-8"),
-                headers={
-                    "type": "application/json",
-                },
-            )
+            if frame % 30 == 0:
+                await nc.publish(
+                    "rabbit.camera.sensor",
+                    json.dumps(other).encode("utf-8"),
+                    headers={
+                        "type": "application/json",
+                    },
+                )
 
+            frame += 1
             await nc.flush()
+            await asyncio.sleep(0.1)
 
         except KeyboardInterrupt:
             print("Exiting...")

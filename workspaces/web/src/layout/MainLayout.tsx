@@ -1,21 +1,10 @@
 import { css } from '@emotion/css';
 import React from 'react';
 
-import { useSubscribe } from '../app/NatsProvider.tsx';
 import { CameraView } from '../camera/CameraView.tsx';
-import { L } from '../terminal/LogProvider.tsx';
 import { ui } from '../ui/index.ts';
 
 export const MainLayout: React.FC = () => {
-    useSubscribe('rabbit.camera.sensor', {
-        callback: (msg) => {
-            L.info('IMU data received', {
-                subject: msg.subject,
-                data: msg.json(),
-            });
-        },
-    });
-
     return (
         <div
             className={css`
