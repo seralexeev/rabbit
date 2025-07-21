@@ -29,7 +29,6 @@ export const GamepadController: React.FC = () => {
             <div>Gamepad Controller</div>
             <p>Selected Gamepad: {gamepad ? gamepad.id : 'None'}</p>
             <p>
-                WebRTC Status:
                 {/* <span
                     style={{
                         color: connected ? 'green' : 'red',
@@ -48,6 +47,8 @@ export const GamepadController: React.FC = () => {
                         className={css`
                             display: flex;
                             gap: 16px;
+                            width: 100%;
+                            justify-content: center;
                         `}>
                         <Stick stick={state.sticks.left} />
                         <Stick stick={state.sticks.right} />

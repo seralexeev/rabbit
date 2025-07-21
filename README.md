@@ -11,5 +11,10 @@ python3 -m venv ~/rabbit-venv
 wg-quick down wg0
 wg-quick up wg0
 
+mutagen sync terminate rabbit-workspace
 mutagen project start
 ```
+
+
+Blue - RX - S1
+Green - TX - S2

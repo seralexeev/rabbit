@@ -21,11 +21,11 @@ services:
       - ./rabbit-camera/src/SN31819002.conf:/usr/local/zed/settings/SN31819002.conf:ro
     restart: unless-stopped
 
-  # rabbit-roboclaw:
-  #   build: ./rabbit-roboclaw
-  #   container_name: rabbit-roboclaw
-  #   privileged: true
-  #   restart: unless-stopped
+  rabbit-roboclaw:
+    build: ./rabbit-roboclaw
+    container_name: rabbit-roboclaw
+    privileged: true
+    restart: unless-stopped
 
   # nats-dashboard:
   #   image: mdawar/nats-dashboard
