@@ -5,6 +5,7 @@ services:
     command: -c /etc/nats/nats-server.conf
     volumes:
       - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+      - ../cert:/etc/cert:ro
     restart: unless-stopped
     ports:
       - '4222:4222'
@@ -20,8 +21,11 @@ services:
     tty: true
     volumes:
       - /tmp/argus_socket:/tmp/argus_socket
-      # - ./rabbit-camera/zed/settings:/usr/local/zed/settings
-      - /usr/local/zed/resources:/usr/local/zed/resources
+      - ./rabbit-camera/zed/settings:/usr/local/zed/settings
+      - ./rabbit-camera/zed/resources:/usr/local/zed/resources
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
     restart: unless-stopped
 
   rabbit-roboclaw:

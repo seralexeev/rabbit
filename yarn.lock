@@ -739,6 +739,7 @@ __metadata:
     "@emotion/css": "npm:11.13.5"
     "@nats-io/nats-core": "npm:3.1.0"
     "@tanstack/react-query": "npm:5.83.0"
+    "@types/pako": "npm:2.0.3"
     "@types/react": "npm:19.1.8"
     "@types/react-dom": "npm:19.1.6"
     "@types/three": "npm:0.178.1"
@@ -747,6 +748,7 @@ __metadata:
     autoprefixer: "npm:10.4.21"
     clean-stack: "npm:5.2.0"
     nanoevents: "npm:9.1.0"
+    pako: "npm:2.1.0"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
     three: "npm:0.178.0"
@@ -2867,6 +2869,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/pako@npm:2.0.3":
+  version: 2.0.3
+  resolution: "@types/pako@npm:2.0.3"
+  checksum: 10c0/45119ac3c4e8a77317c35493327039b74e333562f06ce038048228918d8ddfaa7958125aab960d1565b3861046022754c414dba1eecb210c44a32c415956bee2
+  languageName: node
+  linkType: hard
+
 "@types/parse-json@npm:^4.0.0":
   version: 4.0.2
   resolution: "@types/parse-json@npm:4.0.2"
@@ -4445,6 +4454,13 @@ __metadata:
   version: 1.0.1
   resolution: "package-json-from-dist@npm:1.0.1"
   checksum: 10c0/62ba2785eb655fec084a257af34dbe24292ab74516d6aecef97ef72d4897310bc6898f6c85b5cd22770eaa1ce60d55a0230e150fb6a966e3ecd6c511e23d164b
+  languageName: node
+  linkType: hard
+
+"pako@npm:2.1.0":
+  version: 2.1.0
+  resolution: "pako@npm:2.1.0"
+  checksum: 10c0/8e8646581410654b50eb22a5dfd71159cae98145bd5086c9a7a816ec0370b5f72b4648d08674624b3870a521e6a3daffd6c2f7bc00fdefc7063c9d8232ff5116
   languageName: node
   linkType: hard
 

@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import pyzed.sl as sl
 
@@ -6,18 +7,25 @@ class ZedCamera:
     image = sl.Mat()
     runtime_params = sl.RuntimeParameters()
     sensors_data = sl.SensorsData()
+    res = sl.Resolution(
+        width=320,
+        height=240,
+    )
+
     init_params = sl.InitParameters(
         camera_resolution=sl.RESOLUTION.HD720,
+        camera_fps=30,
         depth_mode=sl.DEPTH_MODE.NEURAL,
         coordinate_units=sl.UNIT.METER,
         coordinate_system=sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP,
         sdk_verbose=1,
     )
 
-    def __init__(self, camera_fps=30):
+    def __init__(self):
         self.zed = sl.Camera()
-
-        self.init_params.camera_fps = camera_fps
+        self.point_cloud = sl.Mat(
+            self.res.width, self.res.height, sl.MAT_TYPE.F32_C4, sl.MEM.CPU
+        )
 
     def open(self):
         status = self.zed.open(self.init_params)
@@ -39,6 +47,13 @@ class ZedCamera:
         frame_rgb = frame[:, :, :3]
 
         return frame_rgb
+
+    def retrieve_measure(self):
+        self.zed.retrieve_measure(
+            self.point_cloud, sl.MEASURE.XYZ, sl.MEM.CPU, self.res
+        )
+
+        return self.point_cloud
 
     def get_sensors_data(self):
         self.zed.get_sensors_data(self.sensors_data, sl.TIME_REFERENCE.IMAGE)

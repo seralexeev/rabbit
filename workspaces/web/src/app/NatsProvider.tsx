@@ -17,11 +17,6 @@ export const useNats = () => {
     return context;
 };
 
-const NATS_SERVERS = {
-    JETSON: 'ws://192.168.1.53:9222',
-    LOCAL: 'ws://127.0.0.1:9222',
-};
-
 export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const query = useQuery({
         queryKey: ['nats'],
@@ -29,7 +24,7 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children
             L.info('Connecting to NATS server...');
 
             return wsconnect({
-                servers: [NATS_SERVERS.JETSON],
+                servers: ['wss://jetson.rabbit:9222'],
                 reconnect: true,
                 maxReconnectAttempts: -1,
                 waitOnFirstConnect: true,

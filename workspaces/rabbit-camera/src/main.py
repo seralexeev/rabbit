@@ -1,3 +1,4 @@
+import zlib
 import asyncio
 import json
 
@@ -17,7 +18,7 @@ async def main():
         reconnect_time_wait=2,
     )
 
-    zed = ZedCamera(camera_fps=30)
+    zed = ZedCamera()
     zed.open()
     frame = 0
 
@@ -45,16 +46,28 @@ async def main():
 
             await nc.publish(
                 "rabbit.camera.imu",
-                json.dumps(imu).encode("utf-8"),
+                json.dumps(imu).encode(),
                 headers={
                     "type": "application/json",
+                },
+            )
+
+            arr = zed.retrieve_measure().get_data()
+            compressed = zlib.compress(arr.tobytes(), level=6)
+
+            await nc.publish(
+                "rabbit.camera.point_cloud",
+                compressed,
+                headers={
+                    "type": "application/json",
+                    "shape": json.dumps(arr.shape),
                 },
             )
 
             if frame % 30 == 0:
                 await nc.publish(
                     "rabbit.camera.sensor",
-                    json.dumps(other).encode("utf-8"),
+                    json.dumps(other).encode(),
                     headers={
                         "type": "application/json",
                     },
