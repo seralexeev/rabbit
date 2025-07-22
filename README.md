@@ -18,3 +18,5 @@ mutagen project start
 
 Blue - RX - S1
 Green - TX - S2
+
+docker compose -f compose.jetson.dev.yaml up --build rabbit-roboclaw

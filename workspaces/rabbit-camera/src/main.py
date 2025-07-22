@@ -62,7 +62,6 @@ async def main():
 
             frame += 1
             await nc.flush()
-            await asyncio.sleep(0.1)
 
         except KeyboardInterrupt:
             print("Exiting...")

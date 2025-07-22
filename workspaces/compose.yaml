@@ -16,14 +16,23 @@ services:
     container_name: rabbit-camera
     privileged: true
     runtime: nvidia
+    stdin_open: true
+    tty: true
     volumes:
       - /tmp/argus_socket:/tmp/argus_socket
-      - ./rabbit-camera/src/SN31819002.conf:/usr/local/zed/settings/SN31819002.conf:ro
+      # - ./rabbit-camera/zed/settings:/usr/local/zed/settings
+      - /usr/local/zed/resources:/usr/local/zed/resources
     restart: unless-stopped
 
   rabbit-roboclaw:
     build: ./rabbit-roboclaw
     container_name: rabbit-roboclaw
+    privileged: true
+    restart: unless-stopped
+
+  rabbit-steering:
+    build: ./rabbit-steering
+    container_name: rabbit-steering
     privileged: true
     restart: unless-stopped
 

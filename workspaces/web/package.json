@@ -2,7 +2,7 @@
   "name": "@rabbit/web",
   "type": "module",
   "scripts": {
-    "dev": "vite dev --force",
+    "dev": "vite dev --host --force",
     "tsc": "../../node_modules/.bin/tsc --build"
   },
   "devDependencies": {
@@ -11,14 +11,16 @@
     "@tanstack/react-query": "5.83.0",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
+    "@types/three": "0.178.1",
     "@untype/toolbox": "workspace:*",
-    "@vitejs/plugin-react": "4.6.0",
+    "@vitejs/plugin-react": "4.7.0",
     "autoprefixer": "10.4.21",
     "clean-stack": "5.2.0",
     "nanoevents": "9.1.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "vite": "7.0.4",
+    "three": "0.178.0",
+    "vite": "7.0.5",
     "vite-plugin-svgr": "4.3.0",
     "zod": "4.0.5"
   }

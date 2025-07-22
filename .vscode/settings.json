@@ -23,6 +23,7 @@
         "libgpiod",
         "libusb",
         "localuser",
+        "mkcert",
         "nanoevents",
         "noexept",
         "promtail",

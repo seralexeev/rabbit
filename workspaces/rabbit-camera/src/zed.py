@@ -6,16 +6,18 @@ class ZedCamera:
     image = sl.Mat()
     runtime_params = sl.RuntimeParameters()
     sensors_data = sl.SensorsData()
-    init_params = sl.InitParameters()
+    init_params = sl.InitParameters(
+        camera_resolution=sl.RESOLUTION.HD720,
+        depth_mode=sl.DEPTH_MODE.NEURAL,
+        coordinate_units=sl.UNIT.METER,
+        coordinate_system=sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP,
+        sdk_verbose=1,
+    )
 
     def __init__(self, camera_fps=30):
         self.zed = sl.Camera()
 
-        self.init_params.camera_resolution = sl.RESOLUTION.HD720
         self.init_params.camera_fps = camera_fps
-        self.init_params.depth_mode = sl.DEPTH_MODE.NONE
-        self.init_params.coordinate_units = sl.UNIT.MILLIMETER
-        self.init_params.sdk_verbose = 1
 
     def open(self):
         status = self.zed.open(self.init_params)

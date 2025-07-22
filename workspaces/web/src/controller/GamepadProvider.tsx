@@ -94,7 +94,7 @@ export const useGamepad = () => {
     return context;
 };
 
-const round = (num: number) => Math.round(num * 100) / 100;
+const round = (num: number) => num;
 
 const mapDualSenseState = (gamepad: Gamepad): DualSenseState => {
     const b = gamepad.buttons;
