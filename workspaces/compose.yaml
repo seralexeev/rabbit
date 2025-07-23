@@ -1,42 +1,48 @@
 services:
-  nats:
-    image: nats:latest
-    container_name: nats
-    command: -c /etc/nats/nats-server.conf
-    volumes:
-      - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
-      - ../cert:/etc/cert:ro
-    restart: unless-stopped
-    ports:
-      - '4222:4222'
-      - '9222:9222'
-      - '8222:8222'
+  # nats:
+  #   image: nats:latest
+  #   container_name: nats
+  #   command: -c /etc/nats/nats-server.conf
+  #   volumes:
+  #     - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+  #     - ../cert:/etc/cert:ro
+  #   restart: unless-stopped
+  #   ports:
+  #     - '4222:4222'
+  #     - '9222:9222'
+  #     - '8222:8222'
 
-  rabbit-camera:
-    build: ./rabbit-camera
-    container_name: rabbit-camera
-    privileged: true
-    runtime: nvidia
-    stdin_open: true
-    tty: true
-    volumes:
-      - /tmp/argus_socket:/tmp/argus_socket
-      - ./rabbit-camera/zed/settings:/usr/local/zed/settings
-      - ./rabbit-camera/zed/resources:/usr/local/zed/resources
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-    restart: unless-stopped
+  # rabbit-camera:
+  #   build: ./rabbit-camera
+  #   container_name: rabbit-camera
+  #   privileged: true
+  #   runtime: nvidia
+  #   stdin_open: true
+  #   tty: true
+  #   volumes:
+  #     - /tmp/argus_socket:/tmp/argus_socket
+  #     - ./rabbit-camera/zed/settings:/usr/local/zed/settings
+  #     - ./rabbit-camera/zed/resources:/usr/local/zed/resources
+  #   environment:
+  #     - NVIDIA_VISIBLE_DEVICES=all
+  #     - NVIDIA_DRIVER_CAPABILITIES=all
+  #   restart: unless-stopped
 
-  rabbit-roboclaw:
-    build: ./rabbit-roboclaw
-    container_name: rabbit-roboclaw
-    privileged: true
-    restart: unless-stopped
+  # rabbit-roboclaw:
+  #   build: ./rabbit-roboclaw
+  #   container_name: rabbit-roboclaw
+  #   privileged: true
+  #   restart: unless-stopped
 
-  rabbit-steering:
-    build: ./rabbit-steering
-    container_name: rabbit-steering
+  # rabbit-steering:
+  #   build: ./rabbit-steering
+  #   container_name: rabbit-steering
+  #   privileged: true
+  #   restart: unless-stopped
+
+  rabbit-ina:
+    build: ./rabbit-ina
+    container_name: rabbit-ina
     privileged: true
     restart: unless-stopped
 
