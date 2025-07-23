@@ -1,1 +1,0 @@
--   [x] When `Cannot find terminfo entry for 'xterm-ghostty'` do `export TERM=xterm-256color`

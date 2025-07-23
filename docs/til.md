@@ -1,4 +1,0 @@
--   **Aluminum Gantry Plate** - A plate made of aluminum that serves as a structural component in the assembly of a machine or device.
--   **PCB** - Printed Circuit Board
--   **Third hand** - A tool used to hold objects in place while soldering or assembling components.
--   **PCB vertical/horizontal mount**

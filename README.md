@@ -1,9 +1,11 @@
 # rabbit
 
-- 🌍 [VPN + SSH](./docs/vpn_ssh.md)
-- 🌚 [TIL](./docs/til.md)
-- 💡 [Ideas](./docs/ideas.md)
-- 📚 [ROS2](./docs/ros.md)
+- **Aluminum Gantry Plate** - A plate made of aluminum that serves as a structural component in the assembly of a machine or device.
+- **PCB** - Printed Circuit Board
+- **Third hand** - A tool used to hold objects in place while soldering or assembling components.
+- **PCB vertical/horizontal mount** - A mounting solution for PCBs that allows them to be oriented either vertically or horizontally.
+
+When `Cannot find terminfo entry for 'xterm-ghostty'` do `export TERM=xterm-256color`
 
 ```
 python3 -m venv ~/rabbit-venv
