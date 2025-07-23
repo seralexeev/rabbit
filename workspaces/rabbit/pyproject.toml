@@ -1,0 +1,12 @@
+[project]
+name = "rabbit"
+version = "0.0.1"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "nats-py",
+    "smbus2",
+    "pyserial",
+    "adafruit-circuitpython-servokit",
+    "adafruit-blinka",
+    "Jetson.GPIO",
+]

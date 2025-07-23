@@ -6,6 +6,7 @@
         "Antiphase",
         "baudrate",
         "buildtool",
+        "busio",
         "calcsize",
         "colcon",
         "connectionstatechange",

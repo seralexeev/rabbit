@@ -2767,7 +2767,6 @@ class RoboClaw:
         self._driver.open()
         version = self._driver.read_firmware_version()
         print(f"RoboClaw firmware version: {version}")
-        # self._driver.reset_encoders()
 
     def close(self):
         self._driver.close()
