@@ -12,7 +12,7 @@ from zed import ZedCamera
 async def main():
     nc = await nats.connect(
         "nats://nats:4222",
-        name="rabbit-camera",
+        name="rabbit-zed",
         ping_interval=5,
         max_reconnect_attempts=-1,
         reconnect_time_wait=2,

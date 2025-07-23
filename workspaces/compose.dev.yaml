@@ -1,15 +1,4 @@
 services:
-  # Rabbit Camera Service
-  # Not available on MacOS due to hardware access limitations
-  # rabbit-camera:
-  #   build: ./rabbit-camera
-  #   container_name: rabbit-camera
-  #   devices:
-  #     - /dev/video0:/dev/video0
-  #   network_mode: host
-  #   privileged: true
-  #   restart: unless-stopped
-
   nats:
     image: nats:latest
     container_name: nats
