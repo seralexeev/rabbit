@@ -21,8 +21,8 @@ services:
     tty: true
     volumes:
       - /tmp/argus_socket:/tmp/argus_socket
-      - ./rabbit-zed/zed/settings:/usr/local/zed/settings
-      - ./rabbit-zed/zed/resources:/usr/local/zed/resources
+      - ../../zed/settings:/usr/local/zed/settings
+      - ../../zed/zed/resources:/usr/local/zed/resources
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
