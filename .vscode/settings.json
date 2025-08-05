@@ -26,6 +26,7 @@
         "imencode",
         "IMWRITE",
         "JETSON",
+        "jetstream",
         "libevdev",
         "libgpiod",
         "libusb",
@@ -37,6 +38,7 @@
         "opencv",
         "promtail",
         "pwms",
+        "pydantic",
         "pyproject",
         "pyserial",
         "PYTHONUNBUFFERED",
@@ -53,6 +55,7 @@
         "trycatch",
         "untype",
         "webrtc",
+        "WHITEBALANCE",
         "wsconnect",
         "xhost"
     ]

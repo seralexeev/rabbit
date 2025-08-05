@@ -1,6 +1,7 @@
 import { css } from '@emotion/css';
 import React from 'react';
 
+import { CameraSettings } from '../camera/CameraSettings.tsx';
 import { CameraView } from '../camera/CameraView.tsx';
 import { GamepadController } from '../controller/GamepadController.tsx';
 import { PointCloud } from '../perception/PointCloud.tsx';
@@ -20,9 +21,17 @@ export const MainLayout: React.FC = () => {
             <div
                 className={css`
                     width: 400px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    height: 100%;
                 `}>
                 <ui.Card header='CONTROLLER'>
-                    <GamepadController />
+                    <CameraSettings />
+                    {/* <GamepadController /> */}
+                </ui.Card>
+                <ui.Card header='CAMERA SETTINGS'>
+                    <CameraSettings />
                 </ui.Card>
             </div>
             <div

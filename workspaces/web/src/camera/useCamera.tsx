@@ -17,7 +17,7 @@ type Stats = {
 };
 
 export const useCameraStream = (subject: string) => {
-    const nc = useNats();
+    const { nc } = useNats();
     const canvas = React.useRef<HTMLCanvasElement>(null);
     const [stats, setStats] = React.useState<Stats | null>(null);
 

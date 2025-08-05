@@ -3,6 +3,7 @@ import { byte } from '@untype/toolbox';
 import React from 'react';
 
 import { ui } from '../ui/index.ts';
+import { CameraSettings } from './CameraSettings.tsx';
 import { useCameraStream } from './useCamera.tsx';
 
 const subject = 'rabbit.camera.frame';

@@ -5,7 +5,7 @@ import { useNats } from '../app/NatsProvider.tsx';
 import { type DualSenseState, type StickState, useGamepad } from './GamepadProvider.tsx';
 
 export const GamepadController: React.FC = () => {
-    const nc = useNats();
+    const { nc } = useNats();
     const { gamepad, subscribe } = useGamepad();
     const [state, setState] = React.useState<DualSenseState | null>(null);
 

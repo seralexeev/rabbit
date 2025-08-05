@@ -1,3 +1,4 @@
+import { type KV, Kvm } from '@nats-io/kv';
 import { type Msg, type NatsConnection, type SubscriptionOptions, wsconnect } from '@nats-io/nats-core';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
@@ -6,7 +7,10 @@ import { useEvent } from '../hooks.ts';
 import { L } from '../terminal/LogProvider.tsx';
 import { ui } from '../ui/index.ts';
 
-const NatsContext = React.createContext<NatsConnection | null>(null);
+const NatsContext = React.createContext<{
+    nc: NatsConnection;
+    kv: KV;
+} | null>(null);
 
 export const useNats = () => {
     const context = React.useContext(NatsContext);
@@ -20,16 +24,21 @@ export const useNats = () => {
 export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const query = useQuery({
         queryKey: ['nats'],
-        queryFn: () => {
+        queryFn: async () => {
             L.info('Connecting to NATS server...');
 
-            return wsconnect({
+            const nc = await wsconnect({
                 servers: ['wss://jetson.rabbit:9222'],
                 reconnect: true,
                 maxReconnectAttempts: -1,
                 waitOnFirstConnect: true,
                 name: 'rabbit-web',
             });
+
+            const kvm = new Kvm(nc);
+            const kv = await kvm.open('rabbit');
+
+            return { nc, kv };
         },
     });
 
@@ -52,7 +61,7 @@ export const useSubscribe = (
     subject: string,
     options: Omit<SubscriptionOptions, 'callback'> & { callback: (msg: Msg) => unknown },
 ) => {
-    const nc = useNats();
+    const { nc } = useNats();
 
     const callback = useEvent(options.callback);
 

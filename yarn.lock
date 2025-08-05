@@ -665,6 +665,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@nats-io/jetstream@npm:3.1.0":
+  version: 3.1.0
+  resolution: "@nats-io/jetstream@npm:3.1.0"
+  dependencies:
+    "@nats-io/nats-core": "npm:3.1.0"
+  checksum: 10c0/a435f08504ca37389eb01d554182f3ae2c38eb6d9821e07f28aa9296122d79515dd92397aed8eb7a84178f6ae4683ed0ef8c0cf8ba65e4dc8ac7af0755a86134
+  languageName: node
+  linkType: hard
+
+"@nats-io/kv@npm:3.1.0":
+  version: 3.1.0
+  resolution: "@nats-io/kv@npm:3.1.0"
+  dependencies:
+    "@nats-io/jetstream": "npm:3.1.0"
+    "@nats-io/nats-core": "npm:3.1.0"
+  checksum: 10c0/133c3999f659fc3d345646bb95755818258c6d63001c4e477f1afdddb479ccd3f2134f61e8665b2a9498273ce4a88214abbb0e0cdca51c04157ce0e1304bb5c3
+  languageName: node
+  linkType: hard
+
 "@nats-io/nats-core@npm:3.1.0":
   version: 3.1.0
   resolution: "@nats-io/nats-core@npm:3.1.0"
@@ -737,6 +756,8 @@ __metadata:
   resolution: "@rabbit/web@workspace:workspaces/web"
   dependencies:
     "@emotion/css": "npm:11.13.5"
+    "@nats-io/jetstream": "npm:3.1.0"
+    "@nats-io/kv": "npm:3.1.0"
     "@nats-io/nats-core": "npm:3.1.0"
     "@tanstack/react-query": "npm:5.83.0"
     "@types/pako": "npm:2.0.3"
