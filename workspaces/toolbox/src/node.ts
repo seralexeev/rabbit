@@ -1,3 +1,3 @@
 // for node utils
 
-export * as esm from './esm.ts';
+export * as file from './file.ts';

@@ -36,11 +36,17 @@ docker run --rm -it \
   --privileged \
   --runtime nvidia \
   -v /tmp/argus_socket:/tmp/argus_socket \
-  -v ./rabbit-zed/zed/resources:/usr/local/zed/resources \
-  -v ./rabbit-zed/zed/config:/usr/local/zed/config \
+  -v ./zed/resources:/usr/local/zed/resources \
+  -v ./zed/config:/usr/local/zed/config \
   -e NVIDIA_VISIBLE_DEVICES=all \
   -e NVIDIA_DRIVER_CAPABILITIES=all \
-  stereolabs/zed:4.2-tools-devel-jetson-jp6.0.0 bash
+  stereolabs/zed:5.0-tools-devel-jetson-jp6.0.0 bash
+```
+
+### ZED SDK stubs
+
+```
+curl -sL https://download.stereolabs.com/zedsdk/5.0/whl/linux_aarch64/pyzed-5.0-cp310-cp310-linux_aarch64.whl | bsdtar -xOf - pyzed/sl.pyi > workspaces/rabbit/src/pyzed/sl.pyi
 ```
 
 # INA

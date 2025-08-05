@@ -5,6 +5,7 @@ services:
     command: -c /etc/nats/nats-server.conf
     volumes:
       - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+      - ./nats/data:/data/nats
       - ../cert:/etc/cert:ro
     restart: unless-stopped
     ports:
@@ -13,38 +14,39 @@ services:
       - '8222:8222'
 
   rabbit-zed:
-    build: ./rabbit-zed
+    build: ./rabbit
     container_name: rabbit-zed
     privileged: true
+    working_dir: /rabbit
     runtime: nvidia
-    stdin_open: true
-    tty: true
     volumes:
+      - ./rabbit:/rabbit
       - /tmp/argus_socket:/tmp/argus_socket
       - ../../zed/settings:/usr/local/zed/settings
-      - ../../zed/zed/resources:/usr/local/zed/resources
+      - ../../zed/resources:/usr/local/zed/resources
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
     restart: unless-stopped
+    command: uv run src/node/zed.py
 
-  rabbit-roboclaw:
-    build: ./rabbit-roboclaw
-    container_name: rabbit-roboclaw
-    privileged: true
-    restart: unless-stopped
+  # rabbit-roboclaw:
+  #   build: ./rabbit-roboclaw
+  #   container_name: rabbit-roboclaw
+  #   privileged: true
+  #   restart: unless-stopped
 
-  rabbit-steering:
-    build: ./rabbit-steering
-    container_name: rabbit-steering
-    privileged: true
-    restart: unless-stopped
+  # rabbit-steering:
+  #   build: ./rabbit-steering
+  #   container_name: rabbit-steering
+  #   privileged: true
+  #   restart: unless-stopped
 
-  rabbit-ina:
-    build: ./rabbit-ina
-    container_name: rabbit-ina
-    privileged: true
-    restart: unless-stopped
+  # rabbit-ina:
+  #   build: ./rabbit-ina
+  #   container_name: rabbit-ina
+  #   privileged: true
+  #   restart: unless-stopped
 
   # nats-dashboard:
   #   image: mdawar/nats-dashboard

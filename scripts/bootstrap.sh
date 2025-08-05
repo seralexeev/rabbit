@@ -33,6 +33,7 @@ hostnamectl set-hostname rabbit
 pip install jetson-stats
 systemctl restart jtop.service
 
+
 # downgrading Docker to version 5:27.5
 # https://forums.developer.nvidia.com/t/iptables-error-message/333007
 apt-get install -y docker-ce=5:27.5* docker-ce-cli=5:27.5* --allow-downgrades
@@ -52,3 +53,81 @@ xhost +si:localuser:root
 
 # pull ZED Docker images
 docker pull stereolabs/zed:4.2-devel-jetson-jp6.0.0
+
+
+# Install VNC
+mkdir -p /lib/firmware/edid
+curl -s https://raw.githubusercontent.com/linuxhw/EDID/refs/heads/master/Digital/AOC/AOC2401/405E4A30B5B3 \
+  | grep -E '^([a-fA-F0-9]{32}|[a-fA-F0-9 ]{47})$' \
+  | tr -d '[:space:]' \
+  | xxd -r -p \
+  > /lib/firmware/edid/EDID.bin
+
+cat >/etc/X11/xorg.conf <<EOF
+Section "Module"
+    Disable     "dri"
+    SubSection  "extmod"
+        Option  "omit xfree86-dga"
+    EndSubSection
+EndSection
+
+Section "Device"
+    Identifier  "Tegra0"
+    Driver      "nvidia"
+    Option      "PrimaryGPU" "Yes"
+    Option      "AllowEmptyInitialConfiguration" "true"
+    Option      "ConnectedMonitor" "DFP-0"
+    Option      "CustomEDID" "DFP-0:/lib/firmware/edid/EDID.bin"
+    Option      "UseDisplayDevice" "DFP-0"
+    Option      "IgnoreEDIDChecksum" "DFP-0"
+    Option      "AllowNonEdidModes" "true"
+EndSection
+
+Section "Monitor"
+    Identifier "Monitor0"
+    VendorName "FakeVendor"
+    ModelName  "1440x900"
+EndSection
+
+Section "Screen"
+    Identifier "Screen0"
+    Device     "Tegra0"
+    Monitor    "Monitor0"
+    DefaultDepth 24
+    SubSection "Display"
+        Depth 24
+        Modes "1440x900"
+    EndSubSection
+EndSection
+EOF
+
+systemctl set-default graphical.target
+sed -i '/^\[daemon\]/a AutomaticLoginEnable=true\nAutomaticLogin=rabbit' /etc/gdm3/custom.conf
+
+apt-get install -y x11vnc
+sudo -u rabbit mkdir -p /home/rabbit/.vnc
+sudo -u rabbit x11vnc -storepasswd "Maza1Maza" /home/rabbit/.vnc/passwd
+chown rabbit:rabbit /home/rabbit/.vnc/passwd
+chmod 600 /home/rabbit/.vnc/passwd
+
+cat >/etc/systemd/system/x11vnc.service <<EOF
+[Unit]
+Description=Start x11vnc at startup
+After=graphical.target
+Requires=graphical.target
+
+[Service]
+Type=simple
+User=rabbit
+ExecStart=/usr/bin/x11vnc -usepw -display :0 -forever -auth guess -ncache 10 -ncache_cr -noxdamage
+Restart=on-failure
+
+[Install]
+WantedBy=graphical.target
+EOF
+
+systemctl daemon-reexec
+systemctl daemon-reload
+systemctl enable x11vnc.service
+
+echo "Setup complete. Reboot to activate everything."
