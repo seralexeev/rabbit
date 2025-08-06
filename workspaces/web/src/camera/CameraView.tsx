@@ -6,13 +6,12 @@ import { ui } from '../ui/index.ts';
 import { CameraSettings } from './CameraSettings.tsx';
 import { useCameraStream } from './useCamera.tsx';
 
-const subject = 'rabbit.camera.frame';
 export const CameraView: React.FC = () => {
-    const { canvas, stats } = useCameraStream(subject);
+    const { canvas, stats } = useCameraStream();
 
     const getHeader = () => {
         if (stats == null) {
-            return `VIDEO STREAM (${subject})`;
+            return `VIDEO STREAM`;
         }
 
         return (
@@ -24,7 +23,7 @@ export const CameraView: React.FC = () => {
                     justify-content: space-between;
                     overflow-x: auto;
                 `}>
-                VIDEO STREAM ({subject})
+                VIDEO STREAM
                 <div
                     className={css`
                         display: flex;

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import signal
 from typing import Any, Awaitable, Callable, Coroutine, Dict, Optional
 
@@ -6,9 +7,14 @@ import nats
 from nats.aio.client import Client
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
-from nats.js.api import KeyValueConfig
-from nats.js.errors import BucketNotFoundError
 from nats.js.kv import KeyValue
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="🐰 [{asctime}] [{levelname}] {name}: {message}",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    style="{",
+)
 
 
 class RabbitNode:
@@ -18,23 +24,46 @@ class RabbitNode:
         self.__js: Optional[JetStreamContext] = None
         self.__kv: Optional[KeyValue] = None
         self.tasks: list[asyncio.Task] = []
+        self.kv_watchers: list[KeyValue.KeyWatcher] = []
+        self.logger = logging.getLogger(name)
 
-    async def task(self, task: Callable[[], Coroutine[Any, Any, None]]):
-        async def wrapper():
+    async def watch_kv(
+        self, key: str, fn: Callable[[KeyValue.Entry], Awaitable[None]]
+    ) -> None:
+        self.logger.info(f"Starting watcher for key: {key} ({fn.__name__})")
+        watcher = await self.kv.watch(key)
+        self.kv_watchers.append(watcher)
+
+        async def task():
+            async for entry in watcher:
+                try:
+                    await fn(entry)
+                except:
+                    self.logger.exception(f"Error in watcher for key {key}")
+
+        task.__name__ = fn.__name__
+        await self.async_task(task)
+
+    async def async_task(self, fn: Callable[[], Coroutine[Any, Any, None]]):
+        self.logger.info(f"Starting async task: {fn.__name__}")
+
+        async def task():
             while True:
                 try:
-                    await task()
-                except Exception as e:
-                    print(f"Error in task {task.__name__}: {e}")
+                    await fn()
+                    await asyncio.sleep(0)
+                except:
+                    self.logger.exception(f"Error in task {fn.__name__}")
+                    await asyncio.sleep(1)
 
-        self.tasks.append(asyncio.create_task(wrapper()))
+        self.tasks.append(asyncio.create_task(task()))
 
     async def subscribe(self, subject: str, cb: Callable[[Msg], Awaitable[None]]):
         async def safe_cb(msg: Msg):
             try:
                 await cb(msg)
-            except Exception as e:
-                print(f"Error in callback for subject {subject}: {e}")
+            except:
+                self.logger.exception(f"Error in subscriber for subject {subject}")
 
         await self.nc.subscribe(subject, cb=safe_cb)
 
@@ -56,9 +85,43 @@ class RabbitNode:
             raise RuntimeError("KeyValue store is not initialized")
         return self.__kv
 
+    def set_timeout(
+        self, callback: Callable[[], Any], delay: float
+    ) -> asyncio.Task[None]:
+        async def worker():
+            await asyncio.sleep(delay)
+            if asyncio.iscoroutinefunction(callback):
+                await callback()
+            else:
+                callback()
+
+        return asyncio.create_task(worker())
+
+    def set_interval(
+        self, callback: Callable[[], Any], interval: float
+    ) -> asyncio.Task[None]:
+        async def worker():
+            while True:
+                if asyncio.iscoroutinefunction(callback):
+                    await callback()
+                else:
+                    callback()
+                await asyncio.sleep(interval)
+
+        return asyncio.create_task(worker())
+
     async def close(self):
+        pass
+
+    async def __close(self):
+        await self.close()
+
         if self.__nc:
             await self.__nc.close()
+
+        for watcher in self.kv_watchers:
+            await watcher.stop()
+
         for worker in self.tasks:
             if not worker.done():
                 worker.cancel()
@@ -76,27 +139,11 @@ class RabbitNode:
             reconnect_time_wait=2,
         )
 
-        await self.ensure_js()
-        await self.ensure_kv()
-
-        print("Connected to NATS server")
-        await self.init()
-
-    async def ensure_js(self):
         self.__js = self.nc.jetstream()
+        self.__kv = await self.js.key_value("rabbit")
 
-    async def ensure_kv(self):
-        try:
-            self.__kv = await self.js.key_value("rabbit")
-        except BucketNotFoundError as e:
-            await self.js.create_key_value(
-                KeyValueConfig(
-                    bucket="rabbit",
-                )
-            )
-            self.__kv = await self.js.key_value("rabbit")
-        except Exception as e:
-            raise
+        self.logger.info(f"Node {self.name} initialized with NATS and JetStream")
+        await self.init()
 
     def run_node(self):
         async def main():
@@ -114,9 +161,9 @@ class RabbitNode:
                 await self.__run()
                 await stop.wait()
             finally:
-                print("Gracefully shutting down node")
-                await self.close()
-                print("Node closed successfully")
+                self.logger.info("Shutting down node...")
+                await self.__close()
+                self.logger.info("Node closed successfully")
 
         asyncio.run(main())
 

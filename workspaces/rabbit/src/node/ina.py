@@ -32,7 +32,7 @@ class Node(RabbitNode):
 
     async def init(self):
         self._write_calibration()
-        await self.task(self.publish_metrics)
+        await self.async_task(self.publish_metrics)
 
     def _write_calibration(self):
         shunt_cal = int(0.00512 / (CURRENT_LSB * R_SHUNT))

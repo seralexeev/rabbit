@@ -14,7 +14,7 @@ class Node(RabbitNode):
 
     async def init(self):
         await self.subscribe("rabbit.cmd.joy", self.joy_handler)
-        await self.task(self.publish_metrics)
+        await self.async_task(self.publish_metrics)
 
     async def publish_metrics(self):
         await asyncio.sleep(1)

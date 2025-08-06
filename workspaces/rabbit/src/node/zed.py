@@ -1,8 +1,11 @@
-import json
+from asyncio import Task
+from typing import Optional
 
 import cv2
 from lib.node import RabbitNode
+from nats.aio.msg import Msg
 from nats.js.errors import KeyNotFoundError
+from nats.js.kv import KeyValue
 from pydantic import BaseModel
 from pyzed import sl
 
@@ -29,67 +32,89 @@ class Node(RabbitNode):
         sl.VIDEO_SETTINGS.HUE: (0, 11),
         sl.VIDEO_SETTINGS.SATURATION: (0, 8),
         sl.VIDEO_SETTINGS.SHARPNESS: (0, 8),
-        sl.VIDEO_SETTINGS.GAMMA: (0, 8),
+        sl.VIDEO_SETTINGS.GAMMA: (1, 8),
         sl.VIDEO_SETTINGS.GAIN: (0, 100),
         sl.VIDEO_SETTINGS.EXPOSURE: (0, 100),
         sl.VIDEO_SETTINGS.WHITEBALANCE_TEMPERATURE: (2800, 6500),
         sl.VIDEO_SETTINGS.WHITEBALANCE_AUTO: (0, 1),
     }
 
-    zed = sl.Camera()
-    init_params = sl.InitParameters(
-        camera_resolution=sl.RESOLUTION.HD720,
-        camera_fps=30,
-        depth_mode=sl.DEPTH_MODE.NEURAL_LIGHT,
-        coordinate_units=sl.UNIT.METER,
-        coordinate_system=sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP,
-        sdk_verbose=1,
-    )
-
-    runtime_params = sl.RuntimeParameters()
-    camera_parameters = sl.CameraParameters()
-    frame = sl.Mat()
-
     def __init__(self):
-        super().__init__("zed")
+        super().__init__("rabbit-zed")
+
+        self.operator_timeout: Optional[Task] = None
+        self.frame = sl.Mat()
+        self.zed = sl.Camera()
+        self.runtime_params = sl.RuntimeParameters()
+        self.camera_parameters = sl.CameraParameters()
+        self.init_params = sl.InitParameters(
+            camera_resolution=sl.RESOLUTION.HD720,
+            camera_fps=30,
+            depth_mode=sl.DEPTH_MODE.NEURAL_LIGHT,
+            coordinate_units=sl.UNIT.METER,
+            coordinate_system=sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP,
+            sdk_verbose=1,
+        )
 
     async def init(self):
         status = self.zed.open(self.init_params)
         if status != sl.ERROR_CODE.SUCCESS:
-            raise RuntimeError(f"ZED camera initialization failed: {status}")
+            raise RuntimeError(f"Camera initialization failed: {status}")
 
-        await self.init_camera_settings()
-        self.video_settings_watcher = await self.kv.watch(self.VIDEO_SETTINGS_KEY)
+        await self.init_video_settings()
+        await self.watch_kv(self.VIDEO_SETTINGS_KEY, self.on_video_settings_update)
+        await self.nc.subscribe("rabbit.zed.viewer", cb=self.on_operator_update)
+        await self.async_task(self.capture_frame)
 
-        await self.task(self.camera_settings_watcher)
-        await self.task(self.capture_frame)
+    async def close(self):
+        self.zed.close()
 
-    async def init_camera_settings(self):
+    async def on_operator_update(self, _: Msg):
+        self.logger.info(f"Ping from operator")
+
+        def clear_operator():
+            if self.operator_timeout is not None:
+                self.operator_timeout.cancel()
+                self.operator_timeout = None
+                self.logger.info("Operator disconnected")
+
+        if self.operator_timeout is not None:
+            self.operator_timeout.cancel()
+        self.operator_timeout = self.set_timeout(clear_operator, 5)
+
+    async def init_video_settings(self):
         try:
             await self.kv.get(self.VIDEO_SETTINGS_KEY)
-            print("Camera settings found in KeyValue store")
+            self.logger.info("Camera settings loaded from KeyValue store")
         except KeyNotFoundError:
-            print("Camera settings not found in KeyValue store, initializing defaults")
+            self.logger.info("Camera settings not found, initializing default settings")
             setting = self.get_camera_settings()
             await self.kv.put(
                 self.VIDEO_SETTINGS_KEY, setting.model_dump_json().encode()
             )
-            print("Camera settings initialized and saved to KeyValue store")
+            self.logger.info("Camera settings initialized and saved to KeyValue store")
 
-    async def camera_settings_watcher(self):
-        print("Watching camera settings in KeyValue store")
-        async for entry in self.video_settings_watcher:
-            if entry.value is not None:
-                settings = VideoSettings.model_validate_json(entry.value.decode())
-                self.set_camera_settings(settings)
-
-        print("Stopped watching camera settings in KeyValue store")
+    async def on_video_settings_update(self, entry: KeyValue.Entry):
+        self.logger.info(f"Video settings updated: {entry.key}")
+        if entry.value is not None:
+            settings = VideoSettings.model_validate_json(entry.value.decode())
+            self.set_camera_settings(settings)
 
     async def capture_frame(self):
-        if self.zed.grab(self.runtime_params) != sl.ERROR_CODE.SUCCESS:
-            raise RuntimeError("Failed to grab image from ZED camera")
+        status = self.zed.grab(self.runtime_params)
+        if status != sl.ERROR_CODE.SUCCESS:
+            raise RuntimeError(f"Failed to grab image from ZED camera: {status}")
 
-        self.zed.retrieve_image(self.frame, sl.VIEW.RIGHT)
+        status = self.zed.retrieve_image(self.frame, sl.VIEW.RIGHT)
+        if status != sl.ERROR_CODE.SUCCESS:
+            raise RuntimeError(f"Failed to retrieve image: {status}")
+
+        await self.publish_frame()
+
+    async def publish_frame(self):
+        if not self.operator_timeout:
+            return
+
         frame_data = self.frame.get_data()
         frame_rgb = frame_data[:, :, :3]
 
@@ -101,7 +126,7 @@ class Node(RabbitNode):
             raise RuntimeError("Failed to encode image")
 
         await self.nc.publish(
-            "rabbit.camera.frame",
+            "rabbit.zed.frame",
             buffer.tobytes(),
             headers={
                 "type": "image/jpg",
@@ -131,12 +156,12 @@ class Node(RabbitNode):
             video_setting = sl.VIDEO_SETTINGS[key]
             range = self.VIDEO_SETTINGS_RANGE.get(video_setting)
             if range is None:
-                print(f"Invalid camera setting: {key}")
+                self.logger.warning(f"Unknown video setting: {key}")
                 continue
             value = max(min(value, range[1]), range[0])
             err = self.zed.set_camera_settings(video_setting, value)
             if err != sl.ERROR_CODE.SUCCESS:
-                print(f"Failed to set camera setting {key}: {err}")
+                self.logger.error(f"Failed to set camera setting {key}: {err}")
 
 
 if __name__ == "__main__":

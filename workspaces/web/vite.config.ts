@@ -19,7 +19,7 @@ export default defineConfig({
     },
     server: {
         port: 3005,
-        allowedHosts: ['jetson.rabbit', 'dev.rabbit'],
+        allowedHosts: ['dev.rabbit'],
         https: {
             key: await fs.readFile(path.resolve(__dirname, '../../cert/key.pem')),
             cert: await fs.readFile(path.resolve(__dirname, '../../cert/cert.pem')),

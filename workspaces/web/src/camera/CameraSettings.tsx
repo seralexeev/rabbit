@@ -73,7 +73,7 @@ export const CameraSettings: React.FC<CameraSettingsProps> = ({}) => {
                 max={8}
                 onChange={(value) => updateSetting('SHARPNESS', value)}
             />
-            <Range label='GAMMA' value={settings.GAMMA} min={0} max={8} onChange={(value) => updateSetting('GAMMA', value)} />
+            <Range label='GAMMA' value={settings.GAMMA} min={1} max={8} onChange={(value) => updateSetting('GAMMA', value)} />
             <Range label='GAIN' value={settings.GAIN} min={0} max={100} onChange={(value) => updateSetting('GAIN', value)} />
             <Range
                 label='EXPOSURE'
@@ -140,7 +140,7 @@ const VideoSettings = z.object({
     HUE: z.number().min(0).max(11),
     SATURATION: z.number().min(0).max(8),
     SHARPNESS: z.number().min(0).max(8),
-    GAMMA: z.number().min(0).max(8),
+    GAMMA: z.number().min(1).max(8),
     GAIN: z.number().min(0).max(100),
     EXPOSURE: z.number().min(0).max(100),
     WHITEBALANCE_TEMPERATURE: z.number().min(2800).max(6500),
