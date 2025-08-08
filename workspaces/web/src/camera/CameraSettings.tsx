@@ -2,39 +2,23 @@ import { css } from '@emotion/css';
 import React from 'react';
 import z from 'zod';
 
-import { useNats } from '../app/NatsProvider.tsx';
+import { useWatchNats } from '../app/NatsProvider.tsx';
 
 type CameraSettingsProps = {};
 
 export const CameraSettings: React.FC<CameraSettingsProps> = ({}) => {
-    const { kv } = useNats();
-    const [settings, setSettings] = React.useState<z.infer<typeof VideoSettings>>({
-        BRIGHTNESS: -1,
-        CONTRAST: -1,
-        HUE: -1,
-        SATURATION: -1,
-        SHARPNESS: -1,
-        GAMMA: -1,
-        GAIN: -1,
-        EXPOSURE: -1,
-        WHITEBALANCE_TEMPERATURE: -1,
-        WHITEBALANCE_AUTO: 1,
+    const [settings, setSettings] = useWatchNats({
+        key: 'rabbit.zed.camera_settings',
+        fn: (data) => VideoSettings.parse(data.json()),
     });
 
-    const updateSetting = async (key: keyof z.infer<typeof VideoSettings>, value: number) => {
-        setSettings((prev) => ({ ...prev, [key]: value }));
-        await kv.put('rabbit.zed.video_settings', JSON.stringify({ ...settings, [key]: value }));
+    const updateSetting = async (key: keyof VideoSettings, value: number) => {
+        return setSettings((prev) => (prev ? { ...prev, [key]: value } : null));
     };
 
-    React.useEffect(() => {
-        (async () => {
-            const watcher = await kv.watch({ key: 'rabbit.zed.video_settings' });
-            for await (const entry of watcher) {
-                const data = entry.value ? entry.json() : {};
-                console.log('Received video settings:', data);
-            }
-        })();
-    }, []);
+    if (settings == null) {
+        return <div>Loading camera settings...</div>;
+    }
 
     return (
         <div
@@ -87,6 +71,7 @@ export const CameraSettings: React.FC<CameraSettingsProps> = ({}) => {
                 value={settings.WHITEBALANCE_TEMPERATURE}
                 min={2800}
                 max={6500}
+                step={100}
                 onChange={(value) => updateSetting('WHITEBALANCE_TEMPERATURE', value)}
             />
             <Range
@@ -105,8 +90,9 @@ const Range: React.FC<{
     value: number;
     min: number;
     max: number;
+    step?: number;
     onChange: (value: number) => void;
-}> = ({ label, value, min, max, onChange }) => {
+}> = ({ label, value, min, max, step = 1, onChange }) => {
     return (
         <div
             className={css`
@@ -118,11 +104,32 @@ const Range: React.FC<{
             <input
                 className={css`
                     width: 100%;
+
+                    -webkit-appearance: none;
+                    width: 100%;
+                    height: 17px;
+                    background: transparent;
+                    cursor: pointer;
+
+                    ::-webkit-slider-runnable-track {
+                        height: 1px;
+                        background: var(--color-primary);
+                        border-radius: 0;
+                    }
+
+                    ::-webkit-slider-thumb {
+                        -webkit-appearance: none;
+                        height: 17px;
+                        width: 8px;
+                        background: var(--color-primary);
+                        margin-top: -8px;
+                    }
                 `}
                 type='range'
                 min={min}
                 max={max}
                 value={value}
+                step={step}
                 onChange={(e) => {
                     const parsed = z.coerce.number().min(min).max(max).safeParse(e.target.value);
                     if (parsed.success) {
@@ -134,13 +141,14 @@ const Range: React.FC<{
     );
 };
 
+type VideoSettings = z.infer<typeof VideoSettings>;
 const VideoSettings = z.object({
     BRIGHTNESS: z.number().min(0).max(8),
     CONTRAST: z.number().min(0).max(8),
     HUE: z.number().min(0).max(11),
     SATURATION: z.number().min(0).max(8),
     SHARPNESS: z.number().min(0).max(8),
-    GAMMA: z.number().min(1).max(8),
+    GAMMA: z.number().min(1).max(9),
     GAIN: z.number().min(0).max(100),
     EXPOSURE: z.number().min(0).max(100),
     WHITEBALANCE_TEMPERATURE: z.number().min(2800).max(6500),

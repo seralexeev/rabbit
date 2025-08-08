@@ -1,5 +1,5 @@
 import { type JetStreamClient, jetstream } from '@nats-io/jetstream';
-import { type KV, Kvm } from '@nats-io/kv';
+import { type KV, type KvWatchEntry, Kvm } from '@nats-io/kv';
 import { type Msg, type NatsConnection, type SubscriptionOptions, wsconnect } from '@nats-io/nats-core';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
@@ -32,7 +32,9 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const { kv } = query.data;
 
             heartbeatIntervalRef.current = window.setInterval(() => {
-                void kv.put(ALIVE_KEY, JSON.stringify(true)).catch((error) => L.error('Failed to send heartbeat', error));
+                void kv
+                    .put(ALIVE_KEY, JSON.stringify(true), { ttl: '5s' })
+                    .catch((error) => L.error('Failed to send heartbeat', error));
             }, 1_000);
         }
 
@@ -87,6 +89,41 @@ export const useSubscribe = (
     }, [nc, subject]);
 };
 
+export const useWatchNats = <T,>(options: { key: string; fn: (data: KvWatchEntry) => Promise<T> | T }) => {
+    const { kv } = useNats();
+    const fn = useEvent(options.fn);
+    const [value, setValue] = React.useState<T | null>(null);
+
+    React.useEffect(() => {
+        const watcher = kv.watch(options);
+
+        (async () => {
+            for await (const entry of await watcher) {
+                try {
+                    const result = await fn(entry);
+                    setValue(result);
+                } catch (e) {
+                    L.error('Failed to parse entry from NATS', e);
+                }
+            }
+        })().catch((e) => {
+            L.error('Failed to watch NATS', e);
+        });
+
+        return () => {
+            void watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close camera settings watcher', e));
+        };
+    }, []);
+
+    const updateValue = (fn: (prev: T | null) => T | null) => {
+        const newValue = fn(value);
+        setValue(newValue);
+        return kv.put(options.key, JSON.stringify(newValue));
+    };
+
+    return [value, updateValue] as const;
+};
+
 const connect = async () => {
     L.info('Connecting to NATS server...');
 
@@ -103,8 +140,6 @@ const connect = async () => {
     const kv = await kvm.open('rabbit', {
         markerTTL: 5_000,
     });
-
-    console.log({ kv });
 
     await kv.purge(ALIVE_KEY);
     await kv.create(ALIVE_KEY, JSON.stringify(true), '5s');
