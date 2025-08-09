@@ -139,4 +139,6 @@ yarn-error.log
 
 .sqlc
 
+.venv
+
 workspaces/nats/data

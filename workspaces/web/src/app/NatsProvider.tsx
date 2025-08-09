@@ -1,8 +1,9 @@
 import { type JetStreamClient, jetstream } from '@nats-io/jetstream';
 import { type KV, type KvWatchEntry, Kvm } from '@nats-io/kv';
 import { type Msg, type NatsConnection, type SubscriptionOptions, wsconnect } from '@nats-io/nats-core';
-import { type ObjectResult, type ObjectStore, Objm } from '@nats-io/obj';
+import { type ObjectResult, type ObjectStore, type ObjectWatchInfo, Objm } from '@nats-io/obj';
 import { useQuery } from '@tanstack/react-query';
+import { createNanoEvents } from 'nanoevents';
 import React from 'react';
 
 import { useEvent } from '../hooks.ts';
@@ -123,9 +124,18 @@ export const useWatchKV = <T,>(options: { key: string; fn: (data: KvWatchEntry) 
     return [value, updateValue] as const;
 };
 
-export const useWatchObj = (options: { name: string }) => {
+export const useSubscribeObj = () => {
     const { obj } = useNats();
-    const [value, setValue] = React.useState<ObjectResult | null>(null);
+    const [emitter] = React.useState(() => createNanoEvents<{ onChange: (info: ObjectWatchInfo) => Promise<void> }>());
+
+    const subscribe = useEvent((name: string, fn: (value: ObjectResult | null) => Promise<void> | void) =>
+        emitter.on('onChange', async (info) => {
+            if (info?.name === name) {
+                const result = await obj.get(info.name);
+                fn(result);
+            }
+        }),
+    );
 
     React.useEffect(() => {
         const watcher = obj.watch();
@@ -133,13 +143,8 @@ export const useWatchObj = (options: { name: string }) => {
         (async () => {
             for await (const info of await watcher) {
                 try {
-                    if (info.name !== options.name) {
-                        continue;
-                    }
-
                     L.info('Received update for object', { name: info.name, revision: info.revision });
-                    const result = await obj.get(info.name);
-                    setValue(result);
+                    emitter.emit('onChange', info);
                 } catch (e) {
                     L.error('Failed to parse entry from NATS Object Store', e);
                 }
@@ -153,7 +158,7 @@ export const useWatchObj = (options: { name: string }) => {
         };
     }, []);
 
-    return [value] as const;
+    return subscribe;
 };
 
 const connect = async () => {

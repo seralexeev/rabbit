@@ -1,13 +1,9 @@
-from asyncio import Task
-import time
-from typing import Annotated, Optional
-import tempfile
 import cv2
-from numpy import diff
 from lib.node import RabbitNode
 from nats.aio.msg import Msg
 from nats.js.errors import KeyNotFoundError
 from nats.js.kv import KeyValue
+from numpy import diff
 from pydantic import BaseModel, Field
 from pyzed import sl
 
@@ -111,10 +107,9 @@ class Node(RabbitNode):
             raise RuntimeError(f"Failed to retrieve image: {status}")
         await self.publish_frame()
 
-        if not self.mapping_activated and self.frame_number % 30 == 0:
-            self.activate_spatial_mapping()
-
-        if self.mapping_activated:
+        if not self.mapping_activated:
+            if self.frame_number % 30 == 0:
+                self.activate_spatial_mapping()
             await self.retrieve_spatial_mapping()
 
     async def retrieve_spatial_mapping(self):
@@ -122,7 +117,6 @@ class Node(RabbitNode):
         if mapping_state == sl.SPATIAL_MAPPING_STATE.OK:
             if self.frame_number % 30 == 0:
                 self.zed.request_spatial_map_async()
-
             status = self.zed.get_spatial_map_request_status_async()
             if status == sl.ERROR_CODE.SUCCESS:
                 self.zed.retrieve_spatial_map_async(self.mesh)
@@ -130,12 +124,10 @@ class Node(RabbitNode):
                 self.logger.info(
                     f"Spatial map retrieved successfully: {self.mesh.get_number_of_triangles()} triangles"
                 )
-                tmp = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
-                tmp.close()
-                ok = self.mesh.save(tmp.name, sl.MESH_FILE_FORMAT.OBJ)
-                if not ok:
+                tmp_file_name = "/tmp/spatial_map.obj"
+                if not self.mesh.save(tmp_file_name, sl.MESH_FILE_FORMAT.OBJ):
                     raise RuntimeError("Failed to save spatial map to OBJ file")
-                with open(tmp.name, "rb") as f:
+                with open(tmp_file_name, "rb") as f:
                     data = f.read()
                 await self.object_store.put("rabbit.zed.mesh", data)
 
