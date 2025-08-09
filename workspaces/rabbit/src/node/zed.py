@@ -38,7 +38,7 @@ class Node(RabbitNode):
         self.runtime_params = sl.RuntimeParameters()
         self.camera_parameters = sl.CameraParameters()
         self.tracking_state = sl.POSITIONAL_TRACKING_STATE.OFF
-        
+
         self.init_params = sl.InitParameters(
             camera_resolution=sl.RESOLUTION.HD720,
             camera_fps=30,
@@ -47,10 +47,10 @@ class Node(RabbitNode):
             coordinate_system=sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP,
             sdk_verbose=1,
         )
-        
+
         self.positional_tracking_parameters = sl.PositionalTrackingParameters()
         self.positional_tracking_parameters.set_floor_as_origin = True
-        
+
         self.spatial_mapping_parameters = sl.SpatialMappingParameters(
             resolution=sl.MAPPING_RESOLUTION.LOW,
             mapping_range=sl.MAPPING_RANGE.SHORT,
@@ -65,6 +65,12 @@ class Node(RabbitNode):
         status = self.zed.open(self.init_params)
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"Camera initialization failed: {status}")
+
+        status = self.zed.enable_positional_tracking(
+            self.positional_tracking_parameters
+        )
+        if status != sl.ERROR_CODE.SUCCESS:
+            raise RuntimeError(f"Failed to enable positional tracking: {status}")
 
         status = self.zed.enable_spatial_mapping(self.spatial_mapping_parameters)
         if status != sl.ERROR_CODE.SUCCESS:
