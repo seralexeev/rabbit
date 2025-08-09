@@ -3,8 +3,7 @@ import React from 'react';
 
 import { CameraSettings } from '../camera/CameraSettings.tsx';
 import { CameraView } from '../camera/CameraView.tsx';
-import { GamepadController } from '../controller/GamepadController.tsx';
-import { PointCloud } from '../perception/PointCloud.tsx';
+import { SpatialMapping } from '../perception/SpatialMapping.tsx';
 import { ui } from '../ui/index.ts';
 
 export const MainLayout: React.FC = () => {
@@ -58,7 +57,7 @@ export const MainLayout: React.FC = () => {
                         flex: 1;
                     `}>
                     <ui.Card header='PERCEPTION'>
-                        <PointCloud />
+                        <SpatialMapping />
                     </ui.Card>
                 </div>
             </div>

@@ -139,6 +139,4 @@ yarn-error.log
 
 .sqlc
 
-workspaces/ros2_ws/install/
-workspaces/ros2_ws/build/
-workspaces/ros2_ws/log/
+workspaces/nats/data

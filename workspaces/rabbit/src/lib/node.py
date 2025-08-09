@@ -8,6 +8,7 @@ from nats.aio.client import Client
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from nats.js.kv import KeyValue
+from nats.js.object_store import ObjectStore
 
 logging.basicConfig(
     level=logging.INFO,
@@ -85,6 +86,12 @@ class RabbitNode:
             raise RuntimeError("KeyValue store is not initialized")
         return self.__kv
 
+    @property
+    def object_store(self) -> ObjectStore:
+        if self.__object_store is None:
+            raise RuntimeError("Object store is not initialized")
+        return self.__object_store
+
     def set_timeout(
         self, callback: Callable[[], Any], delay: float
     ) -> asyncio.Task[None]:
@@ -141,6 +148,7 @@ class RabbitNode:
 
         self.__js = self.nc.jetstream()
         self.__kv = await self.js.key_value("rabbit")
+        self.__object_store = await self.js.create_object_store("rabbit")
 
         self.logger.info(f"Node {self.name} initialized with NATS and JetStream")
         await self.init()

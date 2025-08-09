@@ -1,6 +1,7 @@
 import { type JetStreamClient, jetstream } from '@nats-io/jetstream';
 import { type KV, type KvWatchEntry, Kvm } from '@nats-io/kv';
 import { type Msg, type NatsConnection, type SubscriptionOptions, wsconnect } from '@nats-io/nats-core';
+import { type ObjectResult, type ObjectStore, Objm } from '@nats-io/obj';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 
@@ -12,6 +13,7 @@ const NatsContext = React.createContext<{
     nc: NatsConnection;
     js: JetStreamClient;
     kv: KV;
+    obj: ObjectStore;
 } | null>(null);
 
 export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -86,7 +88,7 @@ export const useSubscribe = (
     }, [nc, subject]);
 };
 
-export const useWatchNats = <T,>(options: { key: string; fn: (data: KvWatchEntry) => Promise<T> | T }) => {
+export const useWatchKV = <T,>(options: { key: string; fn: (data: KvWatchEntry) => Promise<T> | T }) => {
     const { kv } = useNats();
     const fn = useEvent(options.fn);
     const [value, setValue] = React.useState<T | null>(null);
@@ -108,7 +110,7 @@ export const useWatchNats = <T,>(options: { key: string; fn: (data: KvWatchEntry
         });
 
         return () => {
-            void watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close camera settings watcher', e));
+            void watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close NATS watcher', e));
         };
     }, []);
 
@@ -119,6 +121,39 @@ export const useWatchNats = <T,>(options: { key: string; fn: (data: KvWatchEntry
     };
 
     return [value, updateValue] as const;
+};
+
+export const useWatchObj = (options: { name: string }) => {
+    const { obj } = useNats();
+    const [value, setValue] = React.useState<ObjectResult | null>(null);
+
+    React.useEffect(() => {
+        const watcher = obj.watch();
+
+        (async () => {
+            for await (const info of await watcher) {
+                try {
+                    if (info.name !== options.name) {
+                        continue;
+                    }
+
+                    L.info('Received update for object', { name: info.name, revision: info.revision });
+                    const result = await obj.get(info.name);
+                    setValue(result);
+                } catch (e) {
+                    L.error('Failed to parse entry from NATS Object Store', e);
+                }
+            }
+        })().catch((e) => {
+            L.error('Failed to watch NATS Object Store', e);
+        });
+
+        return () => {
+            void watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close NATS Object Store watcher', e));
+        };
+    }, []);
+
+    return [value] as const;
 };
 
 const connect = async () => {
@@ -133,10 +168,12 @@ const connect = async () => {
     });
 
     const kvm = new Kvm(nc);
+    const objm = new Objm(nc);
     const js = jetstream(nc);
     const kv = await kvm.open('rabbit');
+    const obj = await objm.open('rabbit');
 
-    return { nc, kv, js };
+    return { nc, kv, js, obj };
 };
 
 export const useNats = () => {

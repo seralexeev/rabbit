@@ -1,7 +1,7 @@
 from asyncio import Task
 import time
 from typing import Annotated, Optional
-
+import tempfile
 import cv2
 from numpy import diff
 from lib.node import RabbitNode
@@ -28,21 +28,20 @@ class CameraSettings(BaseModel):
 class Node(RabbitNode):
     CAMERA_SETTINGS_KEY = "rabbit.zed.camera_settings"
 
-    frame = sl.Mat()
-    zed = sl.Camera()
-    mesh = sl.Mesh()
-
     def __init__(self):
         super().__init__("rabbit-zed")
 
+        self.frame = sl.Mat()
+        self.zed = sl.Camera()
+        self.mesh = sl.Mesh()
+
         self.runtime_params = sl.RuntimeParameters()
         self.camera_parameters = sl.CameraParameters()
-        self.tracking_state = sl.POSITIONAL_TRACKING_STATE.OFF
 
         self.init_params = sl.InitParameters(
             camera_resolution=sl.RESOLUTION.HD720,
             camera_fps=30,
-            depth_mode=sl.DEPTH_MODE.NEURAL_LIGHT,
+            depth_mode=sl.DEPTH_MODE.NEURAL,
             coordinate_units=sl.UNIT.METER,
             coordinate_system=sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP,
             sdk_verbose=1,
@@ -61,6 +60,9 @@ class Node(RabbitNode):
             map_type=sl.SPATIAL_MAP_TYPE.MESH,
         )
 
+        self.mapping_activated = False
+        self.frame_number = -1
+
     async def init(self):
         status = self.zed.open(self.init_params)
         if status != sl.ERROR_CODE.SUCCESS:
@@ -71,10 +73,6 @@ class Node(RabbitNode):
         )
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"Failed to enable positional tracking: {status}")
-
-        status = self.zed.enable_spatial_mapping(self.spatial_mapping_parameters)
-        if status != sl.ERROR_CODE.SUCCESS:
-            raise RuntimeError(f"Failed to enable spatial mapping: {status}")
 
         await self.init_camera_settings()
         await self.watch_kv(self.CAMERA_SETTINGS_KEY, self.on_camera_settings_update)
@@ -106,43 +104,49 @@ class Node(RabbitNode):
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"Failed to grab image from ZED camera: {status}")
 
+        self.frame_number += 1
+
         status = self.zed.retrieve_image(self.frame, sl.VIEW.RIGHT)
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"Failed to retrieve image: {status}")
         await self.publish_frame()
 
-        now = time.time()
-        # раз в ~0.5с — запрос апдейта карты
-        if (now - self._last_map_req) > 0.5:
-            self.zed.request_spatial_map_async()
-            self._last_map_req = now
+        if not self.mapping_activated and self.frame_number % 30 == 0:
+            self.activate_spatial_mapping()
 
-        # если готово — забираем куски в self.mesh
-        if self.zed.get_spatial_map_request_status_async() == sl.ERROR_CODE.SUCCESS:
-            self.zed.retrieve_spatial_map_async(self.mesh)
-            # Печатаем размер (вершины/треугольники)
-            self._print_mesh_size()
+        if self.mapping_activated:
+            await self.retrieve_spatial_mapping()
 
-    def _print_mesh_size(self, prefix: str = ""):
-        try:
-            v = self.mesh.get_number_of_vertices()
-            t = self.mesh.get_number_of_triangles()
-            self.logger.info(f"{prefix} mesh size: {v} vertices, {t} triangles")
-        except AttributeError:
-            # Фолбек: вытянуть целиком и попытаться через чанки
-            try:
-                self.zed.extract_whole_spatial_map(self.mesh)
-                # В некоторых версиях можно обратиться к self.mesh.chunks
-                total_v = 0
-                total_t = 0
-                for ch in self.mesh.chunks:
-                    total_v += ch.get_number_of_vertices()
-                    total_t += ch.get_number_of_triangles()
+    async def retrieve_spatial_mapping(self):
+        mapping_state = self.zed.get_spatial_mapping_state()
+        if mapping_state == sl.SPATIAL_MAPPING_STATE.OK:
+            if self.frame_number % 30 == 0:
+                self.zed.request_spatial_map_async()
+
+            status = self.zed.get_spatial_map_request_status_async()
+            if status == sl.ERROR_CODE.SUCCESS:
+                self.zed.retrieve_spatial_map_async(self.mesh)
+                # self.mesh.apply_texture()
                 self.logger.info(
-                    f"{prefix} mesh size (chunks): {total_v} vertices, {total_t} triangles"
+                    f"Spatial map retrieved successfully: {self.mesh.get_number_of_triangles()} triangles"
                 )
-            except Exception as e:
-                self.logger.warning(f"Cannot read mesh size: {e}")
+                tmp = tempfile.NamedTemporaryFile(suffix=".obj", delete=False)
+                tmp.close()
+                ok = self.mesh.save(tmp.name, sl.MESH_FILE_FORMAT.OBJ)
+                if not ok:
+                    raise RuntimeError("Failed to save spatial map to OBJ file")
+                with open(tmp.name, "rb") as f:
+                    data = f.read()
+                await self.object_store.put("rabbit.zed.mesh", data)
+
+    def activate_spatial_mapping(self):
+        init_pose = sl.Transform()
+        self.zed.reset_positional_tracking(init_pose)
+        status = self.zed.enable_spatial_mapping(self.spatial_mapping_parameters)
+        if status == sl.ERROR_CODE.SUCCESS:
+            self.mesh.clear()
+            self.mapping_activated = True
+            self.logger.info("Spatial mapping activated")
 
     async def publish_frame(self):
         frame_data = self.frame.get_data()

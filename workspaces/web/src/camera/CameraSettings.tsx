@@ -2,13 +2,13 @@ import { css } from '@emotion/css';
 import React from 'react';
 import z from 'zod';
 
-import { useWatchNats } from '../app/NatsProvider.tsx';
+import { useWatchKV } from '../app/NatsProvider.tsx';
 import { L } from '../terminal/LogProvider.tsx';
 
 type CameraSettingsProps = {};
 
 export const CameraSettings: React.FC<CameraSettingsProps> = ({}) => {
-    const [settings, setSettings] = useWatchNats({
+    const [settings, setSettings] = useWatchKV({
         key: 'rabbit.zed.camera_settings',
         fn: (data) => VideoSettings.parse(data.json()),
     });

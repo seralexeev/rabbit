@@ -39,6 +39,7 @@
         "natscli",
         "noexept",
         "numpy",
+        "Objm",
         "opencv",
         "promtail",
         "pwms",
