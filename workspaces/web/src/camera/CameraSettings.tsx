@@ -3,6 +3,7 @@ import React from 'react';
 import z from 'zod';
 
 import { useWatchNats } from '../app/NatsProvider.tsx';
+import { L } from '../terminal/LogProvider.tsx';
 
 type CameraSettingsProps = {};
 
@@ -13,6 +14,7 @@ export const CameraSettings: React.FC<CameraSettingsProps> = ({}) => {
     });
 
     const updateSetting = async (key: keyof VideoSettings, value: number) => {
+        L.info(`Updating camera setting ${key} to ${value}`);
         return setSettings((prev) => (prev ? { ...prev, [key]: value } : null));
     };
 

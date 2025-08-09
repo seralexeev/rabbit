@@ -8,40 +8,37 @@ import { useEvent } from '../hooks.ts';
 import { L } from '../terminal/LogProvider.tsx';
 import { ui } from '../ui/index.ts';
 
-const ALIVE_KEY = 'rabbit.operator.alive';
-
 const NatsContext = React.createContext<{
     nc: NatsConnection;
-    kv: KV;
     js: JetStreamClient;
+    kv: KV;
 } | null>(null);
 
 export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const heartbeatIntervalRef = React.useRef<number | null>(null);
-
     const query = useQuery({
         queryKey: ['nats'],
         queryFn: connect,
     });
 
     React.useEffect(() => {
+        let heartbeatInterval: number | null = null;
+
         if (query.isError) {
             L.error('Failed to connect to NATS server', query.error);
         } else if (query.isSuccess) {
             L.info('Connected to NATS server');
             const { kv } = query.data;
 
-            heartbeatIntervalRef.current = window.setInterval(() => {
+            heartbeatInterval = window.setInterval(() => {
                 void kv
-                    .put(ALIVE_KEY, JSON.stringify(true), { ttl: '5s' })
+                    .put('rabbit.operator.heartbeat', JSON.stringify(true), { ttl: '5s' })
                     .catch((error) => L.error('Failed to send heartbeat', error));
             }, 1_000);
         }
 
         return () => {
-            if (heartbeatIntervalRef.current != null) {
-                window.clearInterval(heartbeatIntervalRef.current);
-                heartbeatIntervalRef.current = null;
+            if (heartbeatInterval != null) {
+                window.clearInterval(heartbeatInterval);
             }
         };
     }, [query]);
@@ -137,12 +134,7 @@ const connect = async () => {
 
     const kvm = new Kvm(nc);
     const js = jetstream(nc);
-    const kv = await kvm.open('rabbit', {
-        markerTTL: 5_000,
-    });
-
-    await kv.purge(ALIVE_KEY);
-    await kv.create(ALIVE_KEY, JSON.stringify(true), '5s');
+    const kv = await kvm.open('rabbit');
 
     return { nc, kv, js };
 };
