@@ -195,6 +195,21 @@ wheels = [
 ]
 
 [[package]]
+name = "dracopy"
+version = "1.5.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f5/1b/c9ba28e5cf3c6532707705e30dfcc83cbb8b01b61a282eede0cbfd306e73/dracopy-1.5.0.tar.gz", hash = "sha256:bafb7c410995ab776cbedbe88fef687550c2c0b6e5c9aa58b0b608801bdbef9f", size = 71422500, upload-time = "2025-03-05T22:41:51.738Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c2/2f/f25b57e5f162672161d51a327b682e6625819ce4b517f8fe60e4cfee441b/DracoPy-1.5.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:dda5fff217e3d34976fc48dce4c7ae59bf2c376def4443e4606c7fb7b86ed28a", size = 2567044, upload-time = "2025-03-05T22:40:36.031Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/a7/67642cc505dc6468b40308edecc27b62eeb68a5ce80fd44145ce7be25513/dracopy-1.5.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:05d78c152350f45f678be45dd462020669bb4a8a8dcc54f1547239d985a627b8", size = 2967721, upload-time = "2025-03-05T22:40:43.049Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/3d/a726f70ec7539d5469fed3dffe62e86da59cda61d07b66263fa48f304b7f/dracopy-1.5.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d72a2520bf7bee8a84b0bb83859d9e851a104f23a45d504deadec5ecf63ac6f6", size = 4522105, upload-time = "2025-03-05T22:40:45.163Z" },
+    { url = "https://files.pythonhosted.org/packages/68/d4/c9e3b8f9deee13e0e3894d7843dce650975837e8401360640e7d6686160d/dracopy-1.5.0-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:39ef75908db48706691d808cb8aab45f6b73656b8970b95e835ee332b229a24d", size = 4867785, upload-time = "2025-03-05T22:40:47.256Z" },
+    { url = "https://files.pythonhosted.org/packages/13/a5/1ab63608d93901d13da98ceba56c2e4717f9465ff34c19d64920b9e569ce/dracopy-1.5.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:49d3419efdbd93285ce4d0ec738f67cb5c3aaca6a70ac967f04ea2e3f1b8c73a", size = 4613817, upload-time = "2025-03-05T22:40:48.931Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/14/08b7125cae34c275bb30fb2da02a62aaa19c68eb8149a84ec3368e22595e/dracopy-1.5.0-cp310-cp310-win32.whl", hash = "sha256:a328f25f036c882a719ca1df98f8ef107c3513524567c1d71719c0ec96234af1", size = 4240959, upload-time = "2025-03-05T22:40:51.258Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/0a/066ac7296176bc9df2cb2fa7dcd90eaa794f61b932ebb9f8396737d32112/dracopy-1.5.0-cp310-cp310-win_amd64.whl", hash = "sha256:3bc9141425eb6685e2f3c12b0e6013d979b8d8b84db8e36f79bd624825f778fc", size = 4944343, upload-time = "2025-03-05T22:40:54.034Z" },
+]
+
+[[package]]
 name = "jetson-gpio"
 version = "2.1.9"
 source = { registry = "https://pypi.org/simple" }
@@ -331,6 +346,7 @@ dependencies = [
     { name = "adafruit-blinka" },
     { name = "adafruit-circuitpython-servokit" },
     { name = "cython" },
+    { name = "dracopy" },
     { name = "jetson-gpio" },
     { name = "nats-py" },
     { name = "numpy" },
@@ -345,6 +361,7 @@ requires-dist = [
     { name = "adafruit-blinka" },
     { name = "adafruit-circuitpython-servokit" },
     { name = "cython", specifier = ">=3.0.0" },
+    { name = "dracopy" },
     { name = "jetson-gpio" },
     { name = "nats-py" },
     { name = "numpy", specifier = ">=2.0,<3.0.0" },

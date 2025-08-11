@@ -1,9 +1,7 @@
 import cv2
 from lib.node import RabbitNode
-from nats.aio.msg import Msg
 from nats.js.errors import KeyNotFoundError
 from nats.js.kv import KeyValue
-from numpy import diff
 from pydantic import BaseModel, Field
 from pyzed import sl
 
@@ -33,11 +31,12 @@ class Node(RabbitNode):
 
         self.runtime_params = sl.RuntimeParameters()
         self.camera_parameters = sl.CameraParameters()
+        self.camera_fps = 30
 
         self.init_params = sl.InitParameters(
             camera_resolution=sl.RESOLUTION.HD720,
-            camera_fps=30,
-            depth_mode=sl.DEPTH_MODE.NEURAL,
+            camera_fps=self.camera_fps,
+            depth_mode=sl.DEPTH_MODE.NEURAL_LIGHT,
             coordinate_units=sl.UNIT.METER,
             coordinate_system=sl.COORDINATE_SYSTEM.RIGHT_HANDED_Y_UP,
             sdk_verbose=1,
@@ -47,7 +46,7 @@ class Node(RabbitNode):
         self.positional_tracking_parameters.set_floor_as_origin = True
 
         self.spatial_mapping_parameters = sl.SpatialMappingParameters(
-            resolution=sl.MAPPING_RESOLUTION.LOW,
+            resolution=sl.MAPPING_RESOLUTION.MEDIUM,
             mapping_range=sl.MAPPING_RANGE.SHORT,
             max_memory_usage=2048,
             save_texture=False,
@@ -108,14 +107,15 @@ class Node(RabbitNode):
         await self.publish_frame()
 
         if not self.mapping_activated:
-            if self.frame_number % 30 == 0:
+            if self.frame_number % self.camera_fps == 0:
                 self.activate_spatial_mapping()
+        else:
             await self.retrieve_spatial_mapping()
 
     async def retrieve_spatial_mapping(self):
         mapping_state = self.zed.get_spatial_mapping_state()
         if mapping_state == sl.SPATIAL_MAPPING_STATE.OK:
-            if self.frame_number % 30 == 0:
+            if self.frame_number % self.camera_fps * 5 == 0:
                 self.zed.request_spatial_map_async()
             status = self.zed.get_spatial_map_request_status_async()
             if status == sl.ERROR_CODE.SUCCESS:
@@ -125,6 +125,10 @@ class Node(RabbitNode):
                     f"Spatial map retrieved successfully: {self.mesh.get_number_of_triangles()} triangles"
                 )
                 tmp_file_name = "/tmp/spatial_map.obj"
+                params = sl.MeshFilterParameters()
+                params.set(sl.MESH_FILTER.MEDIUM)
+                self.mesh.filter(params)
+                self.mesh.merge_chunks(100_000)
                 if not self.mesh.save(tmp_file_name, sl.MESH_FILE_FORMAT.OBJ):
                     raise RuntimeError("Failed to save spatial map to OBJ file")
                 with open(tmp_file_name, "rb") as f:

@@ -106,9 +106,7 @@ export const useWatchKV = <T,>(options: { key: string; fn: (data: KvWatchEntry) 
                     L.error('Failed to parse entry from NATS', e);
                 }
             }
-        })().catch((e) => {
-            L.error('Failed to watch NATS', e);
-        });
+        })().catch((e) => L.error('Failed to watch NATS', e));
 
         return () => {
             void watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close NATS watcher', e));
@@ -124,7 +122,7 @@ export const useWatchKV = <T,>(options: { key: string; fn: (data: KvWatchEntry) 
     return [value, updateValue] as const;
 };
 
-export const useSubscribeObj = () => {
+export const useObjectStoreSubscribe = () => {
     const { obj } = useNats();
     const [emitter] = React.useState(() => createNanoEvents<{ onChange: (info: ObjectWatchInfo) => Promise<void> }>());
 
@@ -149,9 +147,7 @@ export const useSubscribeObj = () => {
                     L.error('Failed to parse entry from NATS Object Store', e);
                 }
             }
-        })().catch((e) => {
-            L.error('Failed to watch NATS Object Store', e);
-        });
+        })().catch((e) => L.error('Failed to watch NATS Object Store', e));
 
         return () => {
             void watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close NATS Object Store watcher', e));

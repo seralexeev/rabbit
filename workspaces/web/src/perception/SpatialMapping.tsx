@@ -4,14 +4,14 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
-import { useSubscribeObj } from '../app/NatsProvider.tsx';
+import { useObjectStoreSubscribe } from '../app/NatsProvider.tsx';
 
 export const SpatialMapping: React.FC = () => {
-    const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
-    const subscribe = useSubscribeObj();
+    const ref = React.useRef<HTMLCanvasElement | null>(null);
+    const subscribe = useObjectStoreSubscribe();
 
     React.useEffect(() => {
-        const canvas = canvasRef.current;
+        const canvas = ref.current;
         if (canvas == null) {
             return;
         }
@@ -45,6 +45,15 @@ export const SpatialMapping: React.FC = () => {
                 .then((x) => new TextDecoder().decode(new Uint8Array(x)))
                 .then((buffer) => new OBJLoader().parse(buffer));
 
+            mesh.traverse((child) => {
+                if ((child as THREE.Mesh).isMesh) {
+                    (child as THREE.Mesh).material = new THREE.MeshBasicMaterial({
+                        color: 0x00ff00,
+                        wireframe: true,
+                    });
+                }
+            });
+
             if (prev != null) {
                 scene.remove(prev);
             }
@@ -61,15 +70,19 @@ export const SpatialMapping: React.FC = () => {
     }, []);
 
     return (
-        <canvas
-            ref={canvasRef}
+        <div
             className={css`
                 width: 100%;
                 height: 100%;
-                display: block;
-            `}
-            width={1200}
-            height={600}
-        />
+            `}>
+            <canvas
+                className={css`
+                    width: 100%;
+                `}
+                ref={ref}
+                width={1200}
+                height={600}
+            />
+        </div>
     );
 };
