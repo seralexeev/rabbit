@@ -141,6 +141,6 @@ yarn-error.log
 
 .venv
 
-__pycache__
+__pycache__/
 
-**/workspaces/nats/data
+workspaces/nats/data/
