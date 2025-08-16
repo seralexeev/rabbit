@@ -81,4 +81,17 @@ make -j$(nproc)
 cd ../nvblox_torch
 pip3 install --editable .
 
+
+INSTALLER  METADATA  RECORD  REQUESTED  WHEEL  direct_url.json  top_level.txt
+(venv) root@dffb35653686:/# cat nvblox_env.sh^C
+(venv) root@dffb35653686:/# ^C
+(venv) root@dffb35653686:/# cat /etc/nvblox_env.sh
+PATH=$PATH:/usr/local/cuda/bin
+export CMAKE_PREFIX_PATH=/opt/venv/lib/python3.10/site-packages/torch
+export CUDA_PATH=/usr/local/cuda
+source /opt/venv/bin/activate
+(venv) root@dffb35653686:/# 
+
 ```
+
+

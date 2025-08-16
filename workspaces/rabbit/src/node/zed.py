@@ -1,7 +1,9 @@
 import json
 import time
+
 import cv2
 import numpy as np
+from lib.model import CameraIntrinsics, Pose
 from lib.node import RabbitNode
 from nats.js.errors import KeyNotFoundError
 from nats.js.kv import KeyValue
@@ -20,22 +22,6 @@ class CameraSettings(BaseModel):
     EXPOSURE: int = Field(default=67, ge=0, le=100)
     WHITEBALANCE_TEMPERATURE: int = Field(default=4700, ge=2800, le=6500)
     WHITEBALANCE_AUTO: int = Field(default=1, ge=0, le=1)
-
-
-class Pose(BaseModel):
-    translation: list[float]
-    orientation: list[float]
-    frame_number: int
-    timestamp: int
-
-
-class CameraIntrinsics(BaseModel):
-    fx: float
-    fy: float
-    cx: float
-    cy: float
-    width: int
-    height: int
 
 
 class Node(RabbitNode):
