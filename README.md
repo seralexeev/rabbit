@@ -15,6 +15,7 @@ wg-quick up wg0
 
 mutagen sync terminate rabbit-workspace
 mutagen project start
+mutagen sync flush --all
 ```
 
 Blue - RX - S1
@@ -63,3 +64,21 @@ $ i2cdetect -y -r 7
 70: -- -- -- -- -- -- -- --
 
 41 - INA4235
+
+# nvblox
+
+```
+cd /workspaces/nvblox
+rm -rf build
+mkdir build && cd build
+
+cmake .. \
+    -DBUILD_PYTORCH_WRAPPER=ON \
+    -DCMAKE_PREFIX_PATH=$(python3 -c 'import torch;print(torch.utils.cmake_prefix_path)')
+
+make -j$(nproc)
+
+cd ../nvblox_torch
+pip3 install --editable .
+
+```

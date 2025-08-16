@@ -89,9 +89,9 @@ export const useSubscribe = (
     }, [nc, subject]);
 };
 
-export const useWatchKV = <T,>(options: { key: string; fn: (data: KvWatchEntry) => Promise<T> | T }) => {
+export const useWatchKV = <T,>(options: { key: string; parse: (data: KvWatchEntry) => Promise<T> | T }) => {
     const { kv } = useNats();
-    const fn = useEvent(options.fn);
+    const fn = useEvent(options.parse);
     const [value, setValue] = React.useState<T | null>(null);
 
     React.useEffect(() => {

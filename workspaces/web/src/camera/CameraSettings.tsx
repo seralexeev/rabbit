@@ -10,7 +10,7 @@ type CameraSettingsProps = {};
 export const CameraSettings: React.FC<CameraSettingsProps> = ({}) => {
     const [settings, setSettings] = useWatchKV({
         key: 'rabbit.zed.camera_settings',
-        fn: (data) => VideoSettings.parse(data.json()),
+        parse: (data) => VideoSettings.parse(data.json()),
     });
 
     const updateSetting = async (key: keyof VideoSettings, value: number) => {

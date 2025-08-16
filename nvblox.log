@@ -1,0 +1,1955 @@
+root@rabbit:/workspaces/nvblox/build# cd /workspaces/nvblox
+rm -rf build
+mkdir build && cd build
+
+cmake .. \
+    -DBUILD_PYTORCH_WRAPPER=ON \
+    -DCMAKE_PREFIX_PATH=$(python3 -c 'import torch;print(torch.utils.cmake_prefix_path)')
+
+make -j$(nproc)
+-- The CXX compiler identification is GNU 11.4.0
+-- The CUDA compiler identification is NVIDIA 12.2.140
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting CUDA compiler ABI info
+-- Detecting CUDA compiler ABI info - done
+-- Check for working CUDA compiler: /usr/local/cuda/bin/nvcc - skipped
+-- Detecting CUDA compile features
+-- Detecting CUDA compile features - done
+-- Detecting CCs of GPUs : /workspaces/nvblox/cmake/cuda/compute_capability.cpp
+-- Looking for C++ include pthread.h
+-- Looking for C++ include pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Detecting CCs of GPUs : /workspaces/nvblox/cmake/cuda/compute_capability.cpp - Success (found CCs : 87)
+-- Building for cuda architectues: 87
+-- CUDA_ARCH_LIST 870
+-- TORCH_CUDA_ARCH_LIST: 8.7
+-- Building without pre-C++11 ABI support
+-- Found CUDA: /usr/local/cuda (found version "12.2")
+-- Found CUDAToolkit: /usr/local/cuda/include (found version "12.2.140")
+-- Caffe2: CUDA detected: 12.2
+-- Caffe2: CUDA nvcc is: /usr/local/cuda/bin/nvcc
+-- Caffe2: CUDA toolkit directory: /usr/local/cuda
+-- Caffe2: Header version is: 12.2
+-- /usr/local/cuda/lib64/libnvrtc.so shorthash is ef836f31
+-- USE_CUDNN is set to 0. Compiling without cuDNN support
+-- USE_CUSPARSELT is set to 0. Compiling without cuSPARSELt support
+-- Added CUDA NVCC flags for: -gencode;arch=compute_87,code=sm_87
+CMake Warning at /opt/venv/lib/python3.10/site-packages/torch/share/cmake/Torch/TorchConfig.cmake:22 (message):
+  static library kineto_LIBRARY-NOTFOUND not found.
+Call Stack (most recent call first):
+  /opt/venv/lib/python3.10/site-packages/torch/share/cmake/Torch/TorchConfig.cmake:127 (append_torchlib_if_found)
+  nvblox_torch/cpp/CMakeLists.txt:14 (find_package)
+
+
+-- Found Torch: /opt/venv/lib/python3.10/site-packages/torch/lib/libtorch.so
+-- Adding nvblox shared library: py_nvblox
+-- Adding nvblox shared library: py_nvblox_test
+-- Adding nvblox executable library: test_tensor_conversions
+-- Adding nvblox executable library: test_color_tensor
+-- Found CUDAToolkit: /usr/local/cuda/include (found version "12.2.140")
+-- Downloading 3rdparty dependencies
+-- Downloading GFLAGS
+CMake Warning (dev) at build/_deps/ext_gflags-src/CMakeLists.txt:94 (project):
+  Policy CMP0048 is not set: project() command manages VERSION variables.
+  Run "cmake --help-policy CMP0048" for policy details.  Use the cmake_policy
+  command to set the policy and suppress this warning.
+
+  The following variable(s) would be set to empty:
+
+    PROJECT_VERSION
+    PROJECT_VERSION_MAJOR
+    PROJECT_VERSION_MINOR
+    PROJECT_VERSION_PATCH
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- The C compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Looking for C++ include unistd.h
+-- Looking for C++ include unistd.h - found
+-- Looking for C++ include stdint.h
+-- Looking for C++ include stdint.h - found
+-- Looking for C++ include inttypes.h
+-- Looking for C++ include inttypes.h - found
+-- Looking for C++ include sys/types.h
+-- Looking for C++ include sys/types.h - found
+-- Looking for C++ include sys/stat.h
+-- Looking for C++ include sys/stat.h - found
+-- Looking for C++ include fnmatch.h
+-- Looking for C++ include fnmatch.h - found
+-- Looking for C++ include stddef.h
+-- Looking for C++ include stddef.h - found
+-- Check size of uint32_t
+-- Check size of uint32_t - done
+-- Looking for strtoll
+-- Looking for strtoll - found
+-- Check size of pthread_rwlock_t
+-- Check size of pthread_rwlock_t - done
+-- Downloading SQLITE
+CMake Deprecation Warning at build/_deps/ext_sqlite3-src/CMakeLists.txt:2 (cmake_minimum_required):
+  Compatibility with CMake < 2.8.12 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value or use a ...<max> suffix to tell
+  CMake that the project does not need compatibility with older versions.
+
+
+-- Downloading Eigen
+-- Downloading STDGPU
+-- Configuring with CMake 3.22.1
+-- Could NOT find ClangFormat (missing: CLANG_FORMAT_EXECUTABLE) (Required is exact version "10")
+-- Found thrust: /usr/local/cuda/include (found suitable version "2.2.0", minimum required is "1.9.9")
+-- Found CUDAToolkit: /usr/local/cuda/include (found suitable version "12.2.140", minimum required is "11.0")
+--
+-- ************************ stdgpu Configuration Summary *************************
+--
+-- General:
+--   Version                                   :   1.3.0
+--   System                                    :   Linux
+--   Build type                                :   RelWithDebInfo
+--
+-- Build:
+--   STDGPU_BACKEND                            :   STDGPU_BACKEND_CUDA
+--   STDGPU_BUILD_SHARED_LIBS                  :   OFF
+--   STDGPU_SETUP_COMPILER_FLAGS               :   OFF
+--   STDGPU_COMPILE_WARNING_AS_ERROR           :   OFF
+--   STDGPU_ANALYZE_WITH_CLANG_TIDY            :   OFF
+--   STDGPU_ANALYZE_WITH_CPPCHECK              :   OFF
+--
+-- Configuration:
+--   STDGPU_ENABLE_CONTRACT_CHECKS             :   OFF
+--   STDGPU_USE_32_BIT_INDEX                   :   ON
+--
+-- Examples:
+--   STDGPU_BUILD_EXAMPLES                     :   OFF
+--
+-- Benchmarks:
+--   STDGPU_BUILD_BENCHMARKS                   :   OFF
+--
+-- Tests:
+--   STDGPU_BUILD_TESTS                        :   OFF
+--   STDGPU_BUILD_TEST_COVERAGE                :   OFF
+--
+-- Documentation:
+--   STDGPU_BUILD_DOCUMENTATION                :   OFF
+--
+-- *******************************************************************************
+--
+-- Downloading GLOG
+-- Could NOT find GTest (missing: GTEST_LIBRARY GTEST_INCLUDE_DIR GTEST_MAIN_LIBRARY)
+-- Could NOT find Unwind (missing: Unwind_INCLUDE_DIR Unwind_LIBRARY Unwind_PLATFORM_LIBRARY)
+-- Looking for C++ include dlfcn.h
+-- Looking for C++ include dlfcn.h - found
+-- Looking for C++ include execinfo.h
+-- Looking for C++ include execinfo.h - found
+-- Looking for C++ include glob.h
+-- Looking for C++ include glob.h - found
+-- Looking for C++ include memory.h
+-- Looking for C++ include memory.h - found
+-- Looking for C++ include pwd.h
+-- Looking for C++ include pwd.h - found
+-- Looking for C++ include strings.h
+-- Looking for C++ include strings.h - found
+-- Looking for C++ include sys/syscall.h
+-- Looking for C++ include sys/syscall.h - found
+-- Looking for C++ include sys/time.h
+-- Looking for C++ include sys/time.h - found
+-- Looking for C++ include sys/utsname.h
+-- Looking for C++ include sys/utsname.h - found
+-- Looking for C++ include sys/wait.h
+-- Looking for C++ include sys/wait.h - found
+-- Looking for C++ include syscall.h
+-- Looking for C++ include syscall.h - found
+-- Looking for C++ include syslog.h
+-- Looking for C++ include syslog.h - found
+-- Looking for C++ include ucontext.h
+-- Looking for C++ include ucontext.h - found
+-- Looking for C++ include ext/hash_map
+-- Looking for C++ include ext/hash_map - found
+-- Looking for C++ include ext/hash_set
+-- Looking for C++ include ext/hash_set - found
+-- Looking for C++ include ext/slist
+-- Looking for C++ include ext/slist - found
+-- Looking for C++ include tr1/unordered_map
+-- Looking for C++ include tr1/unordered_map - found
+-- Looking for C++ include tr1/unordered_set
+-- Looking for C++ include tr1/unordered_set - found
+-- Looking for C++ include unordered_map
+-- Looking for C++ include unordered_map - found
+-- Looking for C++ include unordered_set
+-- Looking for C++ include unordered_set - found
+-- Check size of unsigned __int16
+-- Check size of unsigned __int16 - failed
+-- Check size of u_int16_t
+-- Check size of u_int16_t - done
+-- Check size of uint16_t
+-- Check size of uint16_t - done
+-- Looking for dladdr
+-- Looking for dladdr - found
+-- Looking for fcntl
+-- Looking for fcntl - found
+-- Looking for pread
+-- Looking for pread - found
+-- Looking for pwrite
+-- Looking for pwrite - found
+-- Looking for sigaction
+-- Looking for sigaction - found
+-- Looking for sigaltstack
+-- Looking for sigaltstack - found
+-- Performing Test HAVE_NO_DEPRECATED
+-- Performing Test HAVE_NO_DEPRECATED - Success
+-- Performing Test HAVE_NO_UNNAMED_TYPE_TEMPLATE_ARGS
+-- Performing Test HAVE_NO_UNNAMED_TYPE_TEMPLATE_ARGS - Failed
+-- Looking for snprintf
+-- Looking for snprintf - found
+-- Looking for UnDecorateSymbolName in dbghelp
+-- Looking for UnDecorateSymbolName in dbghelp - not found
+-- Performing Test HAVE___ATTRIBUTE__
+-- Performing Test HAVE___ATTRIBUTE__ - Success
+-- Performing Test HAVE___ATTRIBUTE__VISIBILITY_DEFAULT
+-- Performing Test HAVE___ATTRIBUTE__VISIBILITY_DEFAULT - Success
+-- Performing Test HAVE___ATTRIBUTE__VISIBILITY_HIDDEN
+-- Performing Test HAVE___ATTRIBUTE__VISIBILITY_HIDDEN - Success
+-- Performing Test HAVE___BUILTIN_EXPECT
+-- Performing Test HAVE___BUILTIN_EXPECT - Success
+-- Performing Test HAVE___SYNC_VAL_COMPARE_AND_SWAP
+-- Performing Test HAVE___SYNC_VAL_COMPARE_AND_SWAP - Success
+-- Performing Test HAVE___DECLSPEC
+-- Performing Test HAVE___DECLSPEC - Failed
+-- Performing Test STL_NO_NAMESPACE
+-- Performing Test STL_NO_NAMESPACE - Failed
+-- Performing Test STL_STD_NAMESPACE
+-- Performing Test STL_STD_NAMESPACE - Success
+-- Performing Test HAVE_USING_OPERATOR
+-- Performing Test HAVE_USING_OPERATOR - Success
+-- Performing Test HAVE_NAMESPACES
+-- Performing Test HAVE_NAMESPACES - Success
+-- Performing Test HAVE_GCC_TLS
+-- Performing Test HAVE_GCC_TLS - Success
+-- Performing Test HAVE_MSVC_TLS
+-- Performing Test HAVE_MSVC_TLS - Failed
+-- Performing Test HAVE_CXX11_TLS
+-- Performing Test HAVE_CXX11_TLS - Success
+-- Performing Test HAVE_ALIGNED_STORAGE
+-- Performing Test HAVE_ALIGNED_STORAGE - Success
+-- Performing Test HAVE_CXX11_ATOMIC
+-- Performing Test HAVE_CXX11_ATOMIC - Success
+-- Performing Test HAVE_CXX11_NULLPTR_T
+-- Performing Test HAVE_CXX11_NULLPTR_T - Success
+-- Performing Test HAVE_LOCALTIME_R
+-- Performing Test HAVE_LOCALTIME_R - Success
+-- Performing Test COMPILER_HAS_HIDDEN_VISIBILITY
+-- Performing Test COMPILER_HAS_HIDDEN_VISIBILITY - Success
+-- Performing Test COMPILER_HAS_HIDDEN_INLINE_VISIBILITY
+-- Performing Test COMPILER_HAS_HIDDEN_INLINE_VISIBILITY - Success
+-- Performing Test COMPILER_HAS_DEPRECATED_ATTR
+-- Performing Test COMPILER_HAS_DEPRECATED_ATTR - Success
+-- Downloading GTEST
+-- Downloading benchmark
+-- Found Git: /usr/bin/git (found version "2.34.1")
+-- Google Benchmark version: v0.0.8-3-g23d35fcd-dirty, normalized to 0.0.8.3
+-- Looking for shm_open in rt
+-- Looking for shm_open in rt - found
+-- Performing Test HAVE_CXX_FLAG_WALL
+-- Performing Test HAVE_CXX_FLAG_WALL - Success
+-- Performing Test HAVE_CXX_FLAG_WEXTRA
+-- Performing Test HAVE_CXX_FLAG_WEXTRA - Success
+-- Performing Test HAVE_CXX_FLAG_WSHADOW
+-- Performing Test HAVE_CXX_FLAG_WSHADOW - Success
+-- Performing Test HAVE_CXX_FLAG_WFLOAT_EQUAL
+-- Performing Test HAVE_CXX_FLAG_WFLOAT_EQUAL - Success
+-- Performing Test HAVE_CXX_FLAG_WOLD_STYLE_CAST
+-- Performing Test HAVE_CXX_FLAG_WOLD_STYLE_CAST - Success
+-- Performing Test HAVE_CXX_FLAG_WCONVERSION
+-- Performing Test HAVE_CXX_FLAG_WCONVERSION - Success
+-- Performing Test HAVE_CXX_FLAG_WSUGGEST_OVERRIDE
+-- Performing Test HAVE_CXX_FLAG_WSUGGEST_OVERRIDE - Success
+-- Performing Test HAVE_CXX_FLAG_PEDANTIC
+-- Performing Test HAVE_CXX_FLAG_PEDANTIC - Success
+-- Performing Test HAVE_CXX_FLAG_PEDANTIC_ERRORS
+-- Performing Test HAVE_CXX_FLAG_PEDANTIC_ERRORS - Success
+-- Performing Test HAVE_CXX_FLAG_WSHORTEN_64_TO_32
+-- Performing Test HAVE_CXX_FLAG_WSHORTEN_64_TO_32 - Failed
+-- Performing Test HAVE_CXX_FLAG_FSTRICT_ALIASING
+-- Performing Test HAVE_CXX_FLAG_FSTRICT_ALIASING - Success
+-- Performing Test HAVE_CXX_FLAG_WNO_DEPRECATED_DECLARATIONS
+-- Performing Test HAVE_CXX_FLAG_WNO_DEPRECATED_DECLARATIONS - Success
+-- Performing Test HAVE_CXX_FLAG_WSTRICT_ALIASING
+-- Performing Test HAVE_CXX_FLAG_WSTRICT_ALIASING - Success
+-- Performing Test HAVE_CXX_FLAG_WD654
+-- Performing Test HAVE_CXX_FLAG_WD654 - Failed
+-- Performing Test HAVE_CXX_FLAG_WTHREAD_SAFETY
+-- Performing Test HAVE_CXX_FLAG_WTHREAD_SAFETY - Failed
+-- Performing Test HAVE_CXX_FLAG_COVERAGE
+-- Performing Test HAVE_CXX_FLAG_COVERAGE - Success
+-- Compiling and running to test HAVE_STD_REGEX
+-- Performing Test HAVE_STD_REGEX -- success
+-- Compiling and running to test HAVE_GNU_POSIX_REGEX
+-- Performing Test HAVE_GNU_POSIX_REGEX -- failed to compile
+-- Compiling and running to test HAVE_POSIX_REGEX
+-- Performing Test HAVE_POSIX_REGEX -- success
+-- Compiling and running to test HAVE_STEADY_CLOCK
+-- Performing Test HAVE_STEADY_CLOCK -- success
+-- Compiling and running to test HAVE_PTHREAD_AFFINITY
+-- Performing Test HAVE_PTHREAD_AFFINITY -- success
+-- Adding nvblox static library: nvblox_gpu_hash
+-- Adding nvblox shared library: nvblox_lib
+-- Adding nvblox executable library: sphere_benchmark
+-- Adding nvblox shared library: nvblox_datasets
+-- Adding nvblox executable library: fuse_3dmatch
+-- Adding nvblox executable library: fuse_replica
+-- Adding nvblox executable library: fuse_redwood
+-- Adding nvblox executable library: esdf_query
+-- Adding nvblox executable library: load_map_and_mesh
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/human_dataset
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/human_dataset/depth_image_1.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/human_dataset/camera-intrinsics.txt
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/human_dataset/depth_image_2.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/dynamic_mask
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/dynamic_mask/mask_21.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0_mesh.ply
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/cam_params.json
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/results
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/results/depth000001.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/results/frame000001.jpg
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/results/depth000002.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/results/frame000002.jpg
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/results/depth000003.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/results/frame000000.jpg
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/results/frame000003.jpg
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/results/depth000000.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/replica/office0/traj.txt
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000422.pose.txt
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000001.pose.txt
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000001.color.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000002.pose.txt
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000116.color.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000422.color.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000002.depth.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000116.pose.txt
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000001.depth.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000116.depth.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000000.depth.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000002.color.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000000.color.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000000.pose.txt
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/seq-01/frame-000422.depth.png
+-- Installing: /workspaces/nvblox/build/nvblox/tests/data/3dmatch/camera-intrinsics.txt
+-- Adding nvblox static library: nvblox_test_utils
+-- Adding nvblox executable library: test_3d_interpolation
+-- Adding nvblox executable library: test_3dmatch
+-- Adding nvblox executable library: test_blox
+-- Adding nvblox executable library: test_shape_clearer
+-- Adding nvblox executable library: test_bounding_spheres
+-- Adding nvblox executable library: test_mask_preprocessor
+-- Adding nvblox executable library: test_mask_from_detections
+-- Adding nvblox executable library: test_cake
+-- Adding nvblox executable library: test_camera
+-- Adding nvblox executable library: test_color_image
+-- Adding nvblox executable library: test_color_integrator
+-- Adding nvblox executable library: test_feature_integrator
+-- Adding nvblox executable library: test_cuda_stream
+-- Adding nvblox executable library: test_mono_image
+-- Adding nvblox executable library: test_depth_image
+-- Adding nvblox executable library: test_dynamics
+-- Adding nvblox executable library: test_for_memory_leaks
+-- Adding nvblox executable library: test_freespace_integrator
+-- Adding nvblox executable library: test_frustum
+-- Adding nvblox executable library: test_gpu_layer_view
+-- Adding nvblox executable library: test_image_io
+-- Adding nvblox executable library: test_image_masker
+-- Adding nvblox executable library: test_image_projector
+-- Adding nvblox executable library: test_indexing
+-- Adding nvblox executable library: test_interpolation_2d
+-- Adding nvblox executable library: test_layer
+-- Adding nvblox executable library: test_lidar
+-- Adding nvblox executable library: test_lidar_integration
+-- Adding nvblox executable library: test_mapper
+-- Adding nvblox executable library: test_mesh_appearance
+-- Adding nvblox executable library: test_mesh
+-- Adding nvblox executable library: test_mesh_serializer
+-- Adding nvblox executable library: test_nvtx_ranges
+-- Adding nvblox executable library: test_occupancy_decay
+-- Adding nvblox executable library: test_occupancy_integrator
+-- Adding nvblox executable library: test_pointcloud
+-- Adding nvblox executable library: test_ray_caster
+-- Adding nvblox executable library: test_scene
+-- Adding nvblox executable library: test_serialization
+-- Adding nvblox executable library: test_sphere_tracing
+-- Adding nvblox executable library: test_time
+-- Adding nvblox executable library: test_timing
+-- Adding nvblox executable library: test_traits
+-- Adding nvblox executable library: test_tsdf_decay
+-- Adding nvblox executable library: test_tsdf_error
+-- Adding nvblox executable library: test_tsdf_integrator
+-- Adding nvblox executable library: test_tsdf_integrator_cuda_components
+-- Adding nvblox executable library: test_unified_3d_grid
+-- Adding nvblox executable library: test_unified_ptr
+-- Adding nvblox executable library: test_unified_vector
+-- Adding nvblox executable library: test_weighting_function
+-- Adding nvblox executable library: test_workspace_bounds
+-- Adding nvblox executable library: test_rates
+-- Adding nvblox executable library: test_layer_streamer
+-- Adding nvblox executable library: test_npp_image_operations
+-- Adding nvblox executable library: test_depth_image_preprocessing
+-- Adding nvblox executable library: test_layer_serializer_gpu
+-- Adding nvblox executable library: test_image_cache
+-- Adding nvblox executable library: test_params
+-- Adding nvblox executable library: test_block_memory_pool
+-- Adding nvblox executable library: test_delays
+-- Adding nvblox executable library: test_image_view
+-- Adding nvblox executable library: test_bitmask
+-- Adding nvblox executable library: test_nvblox_h
+-- Adding nvblox executable library: test_ransac_plane_fitter_cpu
+-- Adding nvblox executable library: test_ransac_plane_fitter
+-- Adding nvblox executable library: test_layer_cake_streamer
+-- Adding nvblox executable library: test_replica
+-- Adding nvblox executable library: test_checks
+-- Adding nvblox executable library: regression_test_query_after_clear
+-- Adding nvblox executable library: test_layer_to_3d_grid
+-- Adding nvblox executable library: test_gpu_hash_interface
+-- Adding nvblox executable library: test_masked_image_view
+-- Adding nvblox executable library: test_esdf_integrator_slicing
+-- Adding nvblox executable library: test_plane
+-- Adding nvblox executable library: test_device_function_utils
+-- Adding nvblox executable library: test_zero_crossings_extractor
+-- Adding nvblox executable library: test_error_check
+-- Adding nvblox executable library: test_array
+-- Adding nvblox executable library: test_esdf_integrator
+-- Adding nvblox executable library: test_fuser
+-- Adding nvblox executable library: test_mapper_block_allocation
+-- Adding nvblox executable library: test_multi_mapper
+-- Adding nvblox executable library: nvblox_benchmark
+-- Adding nvblox executable library: test_bench
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /workspaces/nvblox/build
+[  0%] Creating directories for 'ext_eigen'
+[  0%] Building CXX object _deps/ext_glog-build/CMakeFiles/glog.dir/src/demangle.cc.o
+[  1%] Building CXX object _deps/ext_gflags-build/CMakeFiles/gflags_nothreads_static.dir/src/gflags.cc.o
+[  1%] Building CXX object _deps/ext_gtest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+[  1%] Building C object _deps/ext_sqlite3-build/CMakeFiles/sqlite3.dir/src/sqlite3.c.o
+[  1%] Building CXX object _deps/ext_stdgpu-build/src/stdgpu/CMakeFiles/stdgpu.dir/impl/device.cpp.o
+[  2%] Building CXX object _deps/ext_stdgpu-build/src/stdgpu/CMakeFiles/stdgpu.dir/impl/iterator.cpp.o
+[  2%] Performing download step (download, verify and extract) for 'ext_eigen'
+-- Downloading...
+   dst='/workspaces/nvblox/build/nvblox/eigen/src/eigen-3.4.0.tar.gz'
+   timeout='none'
+   inactivity timeout='none'
+-- Using src='https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz'
+-- Downloading... done
+-- extracting...
+     src='/workspaces/nvblox/build/nvblox/eigen/src/eigen-3.4.0.tar.gz'
+     dst='/workspaces/nvblox/build/nvblox/eigen/src/ext_eigen'
+-- extracting... [tar xfz]
+-- extracting... [analysis]
+-- extracting... [rename]
+-- extracting... [clean up]
+-- extracting... done
+[  2%] No update step for 'ext_eigen'
+[  3%] No patch step for 'ext_eigen'
+[  4%] Performing configure step for 'ext_eigen'
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+[  4%] Building CXX object _deps/ext_glog-build/CMakeFiles/glog.dir/src/logging.cc.o
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test EIGEN_COMPILER_SUPPORT_CPP11
+-- Performing Test EIGEN_COMPILER_SUPPORT_CPP11 - Success
+-- Performing Test COMPILER_SUPPORT_std=cpp03
+-- Performing Test COMPILER_SUPPORT_std=cpp03 - Success
+-- Performing Test standard_math_library_linked_to_automatically
+-- Performing Test standard_math_library_linked_to_automatically - Success
+-- Standard libraries to link to explicitly: none
+-- Performing Test COMPILER_SUPPORT_WERROR
+-- Performing Test COMPILER_SUPPORT_WERROR - Success
+-- Performing Test COMPILER_SUPPORT_pedantic
+[  4%] Building CXX object _deps/ext_stdgpu-build/src/stdgpu/CMakeFiles/stdgpu.dir/impl/memory.cpp.o
+-- Performing Test COMPILER_SUPPORT_pedantic - Success
+-- Performing Test COMPILER_SUPPORT_Wall
+-- Performing Test COMPILER_SUPPORT_Wall - Success
+-- Performing Test COMPILER_SUPPORT_Wextra
+-- Performing Test COMPILER_SUPPORT_Wextra - Success
+-- Performing Test COMPILER_SUPPORT_Wundef
+-- Performing Test COMPILER_SUPPORT_Wundef - Success
+-- Performing Test COMPILER_SUPPORT_Wcastalign
+-- Performing Test COMPILER_SUPPORT_Wcastalign - Success
+-- Performing Test COMPILER_SUPPORT_Wcharsubscripts
+-- Performing Test COMPILER_SUPPORT_Wcharsubscripts - Success
+-- Performing Test COMPILER_SUPPORT_Wnonvirtualdtor
+-- Performing Test COMPILER_SUPPORT_Wnonvirtualdtor - Success
+-- Performing Test COMPILER_SUPPORT_Wunusedlocaltypedefs
+-- Performing Test COMPILER_SUPPORT_Wunusedlocaltypedefs - Success
+-- Performing Test COMPILER_SUPPORT_Wpointerarith
+-- Performing Test COMPILER_SUPPORT_Wpointerarith - Success
+-- Performing Test COMPILER_SUPPORT_Wwritestrings
+-- Performing Test COMPILER_SUPPORT_Wwritestrings - Success
+-- Performing Test COMPILER_SUPPORT_Wformatsecurity
+-- Performing Test COMPILER_SUPPORT_Wformatsecurity - Success
+-- Performing Test COMPILER_SUPPORT_Wshorten64to32
+-- Performing Test COMPILER_SUPPORT_Wshorten64to32 - Failed
+-- Performing Test COMPILER_SUPPORT_Wlogicalop
+-- Performing Test COMPILER_SUPPORT_Wlogicalop - Success
+-- Performing Test COMPILER_SUPPORT_Wenumconversion
+-- Performing Test COMPILER_SUPPORT_Wenumconversion - Success
+-- Performing Test COMPILER_SUPPORT_Wcpp11extensions
+-- Performing Test COMPILER_SUPPORT_Wcpp11extensions - Failed
+-- Performing Test COMPILER_SUPPORT_Wdoublepromotion
+-- Performing Test COMPILER_SUPPORT_Wdoublepromotion - Success
+-- Performing Test COMPILER_SUPPORT_Wshadow
+-- Performing Test COMPILER_SUPPORT_Wshadow - Success
+-- Performing Test COMPILER_SUPPORT_Wnopsabi
+-- Performing Test COMPILER_SUPPORT_Wnopsabi - Success
+-- Performing Test COMPILER_SUPPORT_Wnovariadicmacros
+-- Performing Test COMPILER_SUPPORT_Wnovariadicmacros - Success
+-- Performing Test COMPILER_SUPPORT_Wnolonglong
+-- Performing Test COMPILER_SUPPORT_Wnolonglong - Success
+-- Performing Test COMPILER_SUPPORT_fnochecknew
+-- Performing Test COMPILER_SUPPORT_fnochecknew - Success
+-- Performing Test COMPILER_SUPPORT_fnocommon
+-- Performing Test COMPILER_SUPPORT_fnocommon - Success
+-- Performing Test COMPILER_SUPPORT_fstrictaliasing
+-- Performing Test COMPILER_SUPPORT_fstrictaliasing - Success
+-- Performing Test COMPILER_SUPPORT_wd981
+-- Performing Test COMPILER_SUPPORT_wd981 - Failed
+-- Performing Test COMPILER_SUPPORT_wd2304
+-- Performing Test COMPILER_SUPPORT_wd2304 - Failed
+-- Performing Test COMPILER_SUPPORT_STRICTANSI
+-- Performing Test COMPILER_SUPPORT_STRICTANSI - Failed
+-- Performing Test COMPILER_SUPPORT_Qunusedarguments
+[  4%] Building CXX object _deps/ext_stdgpu-build/src/stdgpu/CMakeFiles/stdgpu.dir/cuda/impl/device.cpp.o
+-- Performing Test COMPILER_SUPPORT_Qunusedarguments - Failed
+-- Performing Test COMPILER_SUPPORT_ansi
+-- Performing Test COMPILER_SUPPORT_ansi - Success
+-- Performing Test COMPILER_SUPPORT_OPENMP
+-- Performing Test COMPILER_SUPPORT_OPENMP - Success
+-- Found unsuitable Qt version "" from NOTFOUND
+-- Looking for a Fortran compiler
+-- Looking for a Fortran compiler - NOTFOUND
+-- Looking for sgemm_
+[  4%] Building CXX object _deps/ext_stdgpu-build/src/stdgpu/CMakeFiles/stdgpu.dir/cuda/impl/memory.cpp.o
+-- Looking for sgemm_ - found
+-- Could NOT find CHOLMOD (missing: CHOLMOD_INCLUDES CHOLMOD_LIBRARIES)
+-- Could NOT find UMFPACK (missing: UMFPACK_INCLUDES UMFPACK_LIBRARIES)
+-- Could NOT find KLU (missing: KLU_INCLUDES KLU_LIBRARIES)
+-- Could NOT find SuperLU (missing: SUPERLU_INCLUDES SUPERLU_LIBRARIES SUPERLU_VERSION_OK) (Required is at least version "4.0")
+-- A version of Pastix has been found but pastix_nompi.h does not exist in the include directory. Because Eigen tests require a version without MPI, we disable the Pastix backend.
+-- Could NOT find SPQR (missing: SPQR_INCLUDES SPQR_LIBRARIES)
+-- Found unsuitable Qt version "" from NOTFOUND
+-- Performing Test COMPILER_SUPPORT_FASTMATH
+-- Performing Test COMPILER_SUPPORT_FASTMATH - Success
+-- Could NOT find Boost (missing: Boost_INCLUDE_DIR) (Required is at least version "1.53.0")
+-- Found Threads: TRUE
+-- Could NOT find GoogleHash (missing: GOOGLEHASH_INCLUDES GOOGLEHASH_COMPILE)
+-- Could NOT find Adolc (missing: ADOLC_INCLUDES ADOLC_LIBRARIES)
+-- Could NOT find MPFR (missing: MPFR_INCLUDES MPFR_LIBRARIES MPFR_VERSION_OK) (Required is at least version "1.0.0")
+-- Could NOT find PkgConfig (missing: PKG_CONFIG_EXECUTABLE)
+-- Found CUDA: /usr/local/cuda (found suitable version "12.2", minimum required is "7.0")
+[  4%] Building CXX object _deps/ext_glog-build/CMakeFiles/glog.dir/src/raw_logging.cc.o
+-- Found unsuitable Qt version "" from NOTFOUND
+-- Qt4 not found, so disabling the mandelbrot and opengl demos
+-- Could NOT find CHOLMOD (missing: CHOLMOD_INCLUDES CHOLMOD_LIBRARIES)
+-- Could NOT find UMFPACK (missing: UMFPACK_INCLUDES UMFPACK_LIBRARIES)
+-- Could NOT find KLU (missing: KLU_INCLUDES KLU_LIBRARIES)
+-- Could NOT find SuperLU (missing: SUPERLU_INCLUDES SUPERLU_LIBRARIES SUPERLU_VERSION_OK) (Required is at least version "4.0")
+-- A version of Pastix has been found but pastix_nompi.h does not exist in the include directory. Because Eigen tests require a version without MPI, we disable the Pastix backend.
+-- ************************************************************
+-- ***    Eigen's unit tests configuration summary          ***
+-- ************************************************************
+--
+-- Build type:        Release
+-- Build site:        rabbit
+-- Build string:      linux-5.15.148-tegra-_-11.4.0-sse2-64bit
+-- Enabled backends:
+-- Disabled backends: CHOLMOD,  UMFPACK,  KLU,  SuperLU,  PaStiX,  METIS,  SPQR,  Qt4 support,  Boost.Multiprecision,  GoogleHash,  Adolc,  MPFR C++,  fftw,  OpenGL,
+-- Default order:     Column-major
+-- Maximal matrix/vector size: 320
+-- SSE2:              Using architecture defaults
+-- SSE3:              Using architecture defaults
+-- SSSE3:             Using architecture defaults
+-- SSE4.1:            Using architecture defaults
+-- SSE4.2:            Using architecture defaults
+-- AVX:               Using architecture defaults
+-- AVX2:              Using architecture defaults
+-- FMA:               Using architecture defaults
+-- AVX512:            Using architecture defaults
+-- AVX512DQ:          Using architecture defaults
+-- Altivec:           Using architecture defaults
+-- VSX:               Using architecture defaults
+-- MIPS MSA:          Using architecture defaults
+-- ARM NEON:          Using architecture defaults
+-- ARMv8 NEON:        Using architecture defaults
+-- S390X ZVECTOR:     Using architecture defaults
+-- C++11:             OFF
+-- SYCL:              OFF
+-- CUDA:              OFF
+-- HIP:               OFF
+--
+CXX:               /usr/bin/c++
+ CXX_VERSION:       c++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
+ CXX_FLAGS:          -std=c++03 -pedantic -Wall -Wextra -Wundef -Wcast-align -Wchar-subscripts -Wnon-virtual-dtor -Wunused-local-typedefs -Wpointer-arith -Wwrite-strings -Wformat-security -Wlogical-op -Wenum-conversion -Wdouble-promotion -Wshadow -Wno-psabi -Wno-variadic-macros -Wno-long-long -fno-check-new -fno-common -fstrict-aliasing -ansi
+ Sparse lib flags:
+
+-- ************************************************************
+--
+-- Configured Eigen 3.4.0
+--
+-- Available targets (use: make TARGET):
+-- ---------+--------------------------------------------------------------
+-- Target   |   Description
+-- ---------+--------------------------------------------------------------
+-- install  | Install Eigen. Headers will be installed to:
+--          |     <CMAKE_INSTALL_PREFIX>/<INCLUDE_INSTALL_DIR>
+--          |   Using the following values:
+--          |     CMAKE_INSTALL_PREFIX: /workspaces/nvblox/build/nvblox/eigen
+--          |     INCLUDE_INSTALL_DIR:  include/eigen3
+--          |   Change the install location of Eigen headers using:
+--          |     cmake . -DCMAKE_INSTALL_PREFIX=yourprefix
+--          |   Or:
+--          |     cmake . -DINCLUDE_INSTALL_DIR=yourdir
+-- doc      | Generate the API documentation, requires Doxygen & LaTeX
+-- check    | Build and run the unit-tests. Read this page:
+--          |   http://eigen.tuxfamily.org/index.php?title=Tests
+-- blas     | Build BLAS library (not the same thing as Eigen)
+-- uninstall| Remove files installed by the install target
+-- ---------+--------------------------------------------------------------
+--
+-- Configuring done
+[  4%] Building CXX object _deps/ext_gflags-build/CMakeFiles/gflags_nothreads_static.dir/src/gflags_reporting.cc.o
+[  5%] Building CXX object _deps/ext_glog-build/CMakeFiles/glog.dir/src/symbolize.cc.o
+[  6%] Linking CXX static library ../../bin/libstdgpu.a
+[  6%] Built target stdgpu
+[  7%] Building CXX object _deps/ext_gflags-build/CMakeFiles/gflags_static.dir/src/gflags.cc.o
+[  7%] Building CXX object _deps/ext_glog-build/CMakeFiles/glog.dir/src/utilities.cc.o
+[  7%] Building CXX object _deps/ext_gflags-build/CMakeFiles/gflags_nothreads_static.dir/src/gflags_completions.cc.o
+-- Generating done
+-- Build files have been written to: /workspaces/nvblox/build/nvblox/eigen/src/ext_eigen-build
+[  7%] Performing build step for 'ext_eigen'
+[  7%] Building CXX object _deps/ext_glog-build/CMakeFiles/glog.dir/src/vlog_is_on.cc.o
+[  7%] Performing install step for 'ext_eigen'
+Install the project...
+-- Install configuration: "Release"
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/signature_of_eigen3_matrix_library
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/share/pkgconfig/eigen3.pc
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/MetisSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/Eigen
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/QtAlignedMalloc
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/UmfPackSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/SparseLU
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/SparseCore
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/Core
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/Householder
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/PardisoSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/misc
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/misc/Kernel.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/misc/blas.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/misc/Image.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/misc/lapack.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/misc/lapacke_mangling.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/misc/lapacke.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/misc/RealSvd2x2.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/MetisSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/MetisSupport/MetisSupport.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/UmfPackSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/UmfPackSupport/UmfPackSupport.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_pruneL.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_copy_to_ucol.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_column_dfs.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_panel_dfs.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLUImpl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_Structs.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_panel_bmod.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_relax_snode.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_Memory.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_column_bmod.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_heap_relax_snode.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_SupernodalMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_kernel_bmod.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_Utils.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_pivotL.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseLU/SparseLU_gemm_kernel.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/AmbiVector.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseSolverBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseCwiseUnaryOp.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseAssign.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseCompressedBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseVector.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseRedux.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/MappedSparseMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseSparseProductWithPruning.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/CompressedStorage.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseMatrixBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseBlock.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseDot.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseSelfAdjointView.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseTranspose.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseTriangularView.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseCwiseBinaryOp.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseDiagonalProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseRef.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/ConservativeSparseSparseProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparsePermutation.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseUtil.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseDenseProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/TriangularSolver.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseView.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseColEtree.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseFuzzy.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCore/SparseMap.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/AssignEvaluator.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/MapBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/IO.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/NoAlias.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Assign.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/ReturnByValue.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/DenseCoeffsBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Select.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Product.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/EigenBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Map.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/CwiseBinaryOp.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/ConditionEstimator.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/BooleanRedux.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Ref.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/SelfAdjointView.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/ArithmeticSequence.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/MathFunctionsImpl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/GeneralProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/CoreEvaluators.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Redux.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/ForceAlignedAccess.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/PermutationMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/DiagonalProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Array.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/CommaInitializer.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/StlIterators.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Swap.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/BandMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Transpose.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Matrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/ArrayWrapper.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/IndexedView.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/SelfCwiseBinaryOp.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Random.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Block.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Diagonal.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Dot.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Reverse.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/CwiseUnaryOp.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Solve.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/SolveTriangular.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Assign_MKL.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/DenseBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/MatrixBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/Parallelizer.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/TriangularMatrixVector.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/TriangularSolverMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/GeneralBlockPanelKernel.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/TriangularSolverVector.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/TriangularMatrixMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/SelfadjointMatrixMatrix_BLAS.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/SelfadjointMatrixVector.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/SelfadjointRank2Update.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/GeneralMatrixVector_BLAS.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/GeneralMatrixMatrixTriangular.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/GeneralMatrixVector.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/SelfadjointMatrixVector_BLAS.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/GeneralMatrixMatrix_BLAS.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/SelfadjointProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/TriangularMatrixVector_BLAS.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/GeneralMatrixMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/TriangularMatrixMatrix_BLAS.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/SelfadjointMatrixMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/GeneralMatrixMatrixTriangular_BLAS.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/products/TriangularSolverMatrix_BLAS.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/CoreIterators.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Visitor.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/functors
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/functors/UnaryFunctors.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/functors/NullaryFunctors.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/functors/AssignmentFunctors.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/functors/StlFunctors.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/functors/TernaryFunctors.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/functors/BinaryFunctors.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/CwiseNullaryOp.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/NestByValue.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Transpositions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Reshaped.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/CwiseUnaryView.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/VectorBlock.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/TriangularMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/NumTraits.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Stride.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/CwiseTernaryOp.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/ArrayBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/GlobalFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/SolverBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/VectorwiseOp.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/GenericPacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/PartialReduxEvaluator.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/PlainObjectBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/ProductEvaluators.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/StableNorm.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/StaticAssert.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/NonMPL2.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/ConfigureVectorization.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/BlasUtil.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/ReenableStupidWarnings.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/ReshapedHelper.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/MKL_support.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/Meta.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/DisableStupidWarnings.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/IntegralConstant.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/XprHelper.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/Constants.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/Macros.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/IndexedViewHelper.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/SymbolicIndex.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/ForwardDeclarations.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/util/Memory.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/DenseStorage.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/Default
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/Default/GenericPacketMathFunctionsFwd.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/Default/TypeCasting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/Default/BFloat16.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/Default/ConjHelper.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/Default/GenericPacketMathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/Default/Half.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/Default/Settings.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX512
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX512/TypeCasting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX512/Complex.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX512/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX512/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/HIP
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/HIP/hcc
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/HIP/hcc/math_constants.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/GPU
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/GPU/TypeCasting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/GPU/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/GPU/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SVE
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SVE/TypeCasting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SVE/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SVE/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX/TypeCasting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX/Complex.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AVX/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SSE
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SSE/TypeCasting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SSE/Complex.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SSE/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SSE/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/NEON
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/NEON/TypeCasting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/NEON/Complex.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/NEON/GeneralBlockPanelKernel.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/NEON/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/CUDA
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/CUDA/Complex.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/MSA
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/MSA/Complex.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/MSA/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/MSA/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AltiVec
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProductMMA.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AltiVec/Complex.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AltiVec/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AltiVec/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/AltiVec/MatrixProductCommon.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/ZVector
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/ZVector/Complex.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/ZVector/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/ZVector/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SYCL
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SYCL/TypeCasting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SYCL/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SYCL/PacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SYCL/SyclMemoryModel.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/arch/SYCL/InteropHeaders.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Replicate.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Inverse.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/DiagonalMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Core/Fuzzy.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Householder
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Householder/BlockHouseholder.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Householder/Householder.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Householder/HouseholderSequence.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/PardisoSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/PardisoSupport/PardisoSupport.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/OrderingMethods
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/OrderingMethods/Amd.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/OrderingMethods/Ordering.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/OrderingMethods/Eigen_Colamd.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Cholesky
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Cholesky/LLT_LAPACKE.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Cholesky/LDLT.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Cholesky/LLT.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SVD
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SVD/UpperBidiagonalization.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SVD/JacobiSVD_LAPACKE.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SVD/SVDBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SVD/JacobiSVD.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SVD/BDCSVD.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseQR
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseQR/SparseQR.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/StlSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/StlSupport/StdVector.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/StlSupport/StdDeque.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/StlSupport/details.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/StlSupport/StdList.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/Rotation2D.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/Homogeneous.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/OrthoMethods.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/Hyperplane.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/Scaling.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/AlignedBox.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/Translation.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/RotationBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/AngleAxis.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/Umeyama.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/Quaternion.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/ParametrizedLine.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/EulerAngles.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/Transform.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/arch
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Geometry/arch/Geometry_SIMD.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/PaStiXSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/PaStiXSupport/PaStiXSupport.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/LU
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/LU/InverseImpl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/LU/PartialPivLU_LAPACKE.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/LU/PartialPivLU.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/LU/Determinant.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/LU/FullPivLU.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/LU/arch
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/LU/arch/InverseSize4.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins/BlockMethods.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins/ArrayCwiseUnaryOps.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins/ReshapedMethods.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins/CommonCwiseBinaryOps.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins/IndexedViewMethods.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins/MatrixCwiseUnaryOps.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins/MatrixCwiseBinaryOps.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins/ArrayCwiseBinaryOps.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/plugins/CommonCwiseUnaryOps.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Jacobi
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Jacobi/Jacobi.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/KLUSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/KLUSupport/KLUSupport.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/IterativeLinearSolvers
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/IterativeLinearSolvers/IncompleteLUT.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/IterativeLinearSolvers/SolveWithGuess.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/IterativeLinearSolvers/BasicPreconditioners.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/IterativeLinearSolvers/BiCGSTAB.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/IterativeLinearSolvers/ConjugateGradient.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/IterativeLinearSolvers/IterativeSolverBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/IterativeLinearSolvers/IncompleteCholesky.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/IterativeLinearSolvers/LeastSquareConjugateGradient.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SuperLUSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SuperLUSupport/SuperLUSupport.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCholesky
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCholesky/SimplicialCholesky_impl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SparseCholesky/SimplicialCholesky.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/CholmodSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/CholmodSupport/CholmodSupport.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/RealSchur_LAPACKE.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/SelfAdjointEigenSolver.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/Tridiagonalization.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/ComplexEigenSolver.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/ComplexSchur.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/SelfAdjointEigenSolver_LAPACKE.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/RealSchur.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/GeneralizedEigenSolver.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/ComplexSchur_LAPACKE.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/EigenSolver.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/RealQZ.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/HessenbergDecomposition.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/Eigenvalues/GeneralizedSelfAdjointEigenSolver.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/QR
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/QR/HouseholderQR_LAPACKE.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/QR/ColPivHouseholderQR.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/QR/FullPivHouseholderQR.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/QR/CompleteOrthogonalDecomposition.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/QR/HouseholderQR.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/QR/ColPivHouseholderQR_LAPACKE.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SPQRSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/src/SPQRSupport/SuiteSparseQRSupport.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/Sparse
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/OrderingMethods
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/Cholesky
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/SVD
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/SparseQR
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/Dense
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/StdList
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/Geometry
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/PaStiXSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/StdVector
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/LU
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/Jacobi
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/KLUSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/IterativeLinearSolvers
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/SuperLUSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/SparseCholesky
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/StdDeque
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/CholmodSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/Eigenvalues
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/QR
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/Eigen/SPQRSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/share/eigen3/cmake/Eigen3Targets.cmake
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/share/eigen3/cmake/UseEigen3.cmake
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/share/eigen3/cmake/Eigen3Config.cmake
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/share/eigen3/cmake/Eigen3ConfigVersion.cmake
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/AdolcForward
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/AlignedVector3
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/ArpackSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/AutoDiff
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/BVH
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/EulerAngles
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/FFT
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/IterativeSolvers
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/KroneckerProduct
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/LevenbergMarquardt
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/MatrixFunctions
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/MoreVectorization
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/MPRealSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/NonLinearOptimization
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/NumericalDiff
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/OpenGLSupport
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/Polynomials
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/Skyline
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/SparseExtra
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/SpecialFunctions
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/Splines
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Skyline
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Skyline/SkylineMatrixBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Skyline/SkylineUtil.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Skyline/SkylineProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Skyline/SkylineStorage.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Skyline/SkylineInplaceLU.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Skyline/SkylineMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/KroneckerProduct
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/KroneckerProduct/KroneckerTensorProduct.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/BVH
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/BVH/KdBVH.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/BVH/BVAlgorithms.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SparseExtra
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SparseExtra/MarketIO.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SparseExtra/BlockOfDynamicSparseMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SparseExtra/RandomSetter.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SparseExtra/DynamicSparseMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SparseExtra/MatrixMarketIterator.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SparseExtra/BlockSparseMatrix.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NumericalDiff
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NumericalDiff/NumericalDiff.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsPacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/HipVectorCompatibility.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsBFloat16.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsFunctors.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsHalf.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsFunctors.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsArrayAPI.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsBFloat16.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsHalf.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsImpl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsArrayAPI.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsPacketMath.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsImpl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/AVX512
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/AVX512/SpecialFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/AVX512/BesselFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/GPU
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/GPU/SpecialFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/AVX
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/AVX/SpecialFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/AVX/BesselFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/NEON
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/NEON/SpecialFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/SpecialFunctions/arch/NEON/BesselFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Splines
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Splines/Spline.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Splines/SplineFitting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Splines/SplineFwd.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/FFT
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/FFT/ei_kissfft_impl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/FFT/ei_fftw_impl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/AutoDiff
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/AutoDiff/AutoDiffVector.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/AutoDiff/AutoDiffJacobian.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/AutoDiff/AutoDiffScalar.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/LevenbergMarquardt
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/LevenbergMarquardt/LMonestep.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/LevenbergMarquardt/LMcovar.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/LevenbergMarquardt/LevenbergMarquardt.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/LevenbergMarquardt/LMpar.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/LevenbergMarquardt/LMqrsolv.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/IterativeSolvers
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/IterativeSolvers/IterationController.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/IterativeSolvers/Scaling.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/IterativeSolvers/IncompleteLU.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/IterativeSolvers/GMRES.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/IterativeSolvers/DGMRES.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/IterativeSolvers/IDRS.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/IterativeSolvers/MINRES.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/IterativeSolvers/ConstrainedConjGrad.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/r1updt.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/HybridNonLinearSolver.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/dogleg.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/covar.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/LevenbergMarquardt.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/qrsolv.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/r1mpyq.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/rwupdt.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/fdjac1.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/lmpar.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/NonLinearOptimization/chkder.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Polynomials
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Polynomials/PolynomialUtils.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Polynomials/PolynomialSolver.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Polynomials/Companion.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/EulerAngles
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/EulerAngles/EulerAngles.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/EulerAngles/EulerSystem.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Eigenvalues
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/Eigenvalues/ArpackSelfAdjointEigenSolver.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/MatrixFunctions
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/MatrixFunctions/StemFunction.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/MatrixFunctions/MatrixPower.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/MatrixFunctions/MatrixExponential.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/MatrixFunctions/MatrixLogarithm.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/MatrixFunctions/MatrixFunction.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/MatrixFunctions/MatrixSquareRoot.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/MoreVectorization
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/src/MoreVectorization/MathFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/Tensor
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/TensorSymmetry
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/ThreadPool
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorReductionGpu.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorLayoutSwap.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorEvalTo.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorIO.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorBase.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorMorphing.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorContractionGpu.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorStriding.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorContractionSycl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorScanSycl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorIndexList.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorGpuHipCudaDefines.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorBlock.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorConvolutionSycl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorForwardDeclarations.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorAssign.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/Tensor.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorVolumePatch.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorExpr.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorGlobalFunctions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorIntDiv.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorRef.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorTrace.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorGpuHipCudaUndefines.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceSycl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorConversion.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorForcedEval.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorUInt128.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorContractionBlocking.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorPatch.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorMeta.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorDimensions.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorBroadcasting.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorRandom.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorGenerator.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorStorage.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorConvolution.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorFFT.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorFixedSize.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorFunctors.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceCuda.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceDefault.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorMacros.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceGpu.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorReverse.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorArgMax.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorCustomOp.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorTraits.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorPadding.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorContractionCuda.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorCostModel.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorInitializer.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorReductionCuda.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorInflation.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorReductionSycl.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorContractionMapper.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorEvaluator.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorContractionThreadPool.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorDevice.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorConcatenation.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorShuffling.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorDimensionList.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorMap.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorChipping.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorContraction.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceThreadPool.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorScan.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/Tensor/TensorExecutor.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/TensorSymmetry
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/TensorSymmetry/StaticSymmetry.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/TensorSymmetry/DynamicSymmetry.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/TensorSymmetry/Symmetry.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/TensorSymmetry/util
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/TensorSymmetry/util/TemplateGroupTheory.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool/ThreadEnvironment.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool/ThreadYield.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool/ThreadCancel.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool/Barrier.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool/ThreadPoolInterface.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool/NonBlockingThreadPool.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool/ThreadLocal.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool/RunQueue.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/ThreadPool/EventCount.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/util
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/util/CXX11Workarounds.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/util/MaxSizeVector.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/util/CXX11Meta.h
+-- Installing: /workspaces/nvblox/build/nvblox/eigen/include/eigen3/unsupported/Eigen/CXX11/src/util/EmulateArray.h
+[  7%] Completed 'ext_eigen'
+[  7%] Building CXX object _deps/ext_glog-build/CMakeFiles/glog.dir/src/signalhandler.cc.o
+[  7%] Built target ext_eigen
+[  7%] Building C object _deps/ext_sqlite3-build/CMakeFiles/sqlite.dir/src/sqlite3.c.o
+[  7%] Linking CXX static library libgflags_nothreads.a
+[  7%] Built target gflags_nothreads_static
+[  7%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/benchmark.cc.o
+[  8%] Linking CXX static library libglog.a
+[  8%] Built target glog
+[  8%] Building C object _deps/ext_sqlite3-build/CMakeFiles/sqlite.dir/src/shell.c.o
+[  8%] Building CXX object _deps/ext_gflags-build/CMakeFiles/gflags_static.dir/src/gflags_reporting.cc.o
+[  8%] Building CXX object _deps/ext_gflags-build/CMakeFiles/gflags_static.dir/src/gflags_completions.cc.o
+[  9%] Building CUDA object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/core/error_check.cu.o
+[  9%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/benchmark_api_internal.cc.o
+[  9%] Linking CXX static library libgflags.a
+[  9%] Built target gflags_static
+[  9%] Building CXX object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/utils/timing.cpp.o
+[  9%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/benchmark_name.cc.o
+/workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c: In function 'sqlite3SelectNew':
+/workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c:121468:10: warning: function may return address of local variable [-Wreturn-local-addr]
+121468 |   return pNew;
+       |          ^~~~
+/workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c:121430:10: note: declared here
+121430 |   Select standin;
+       |          ^~~~~~~
+[ 10%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/benchmark_register.cc.o
+[ 10%] Linking CXX static library ../../../lib/libgtest.a
+[ 10%] Built target gtest
+[ 11%] Building CXX object _deps/ext_gflags-build/test/CMakeFiles/gflags_strip_flags_test.dir/gflags_strip_flags_test.cc.o
+[ 11%] Linking CXX executable ../bin/gflags_strip_flags_test
+[ 11%] Built target gflags_strip_flags_test
+[ 11%] Building CXX object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/utils/nvtx_ranges.cpp.o
+[ 11%] Building CUDA object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/gpu_hash/tsdf_layer_specialization.cu.o
+[ 12%] Building CUDA object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/gpu_hash/feature_layer_specialization.cu.o
+[ 12%] Building CUDA object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/gpu_hash/freespace_layer_specialization.cu.o
+/workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c: In function 'sqlite3SelectNew':
+/workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c:121468:10: warning: function may return address of local variable [-Wreturn-local-addr]
+121468 |   return pNew;
+       |          ^~~~
+/workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c:121430:10: note: declared here
+121430 |   Select standin;
+       |          ^~~~~~~
+[ 12%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/benchmark_runner.cc.o
+[ 12%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/check.cc.o
+[ 12%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/colorprint.cc.o
+[ 13%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/commandlineflags.cc.o
+[ 13%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/complexity.cc.o
+[ 13%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/console_reporter.cc.o
+[ 13%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/counter.cc.o
+[ 14%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/csv_reporter.cc.o
+[ 14%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/json_reporter.cc.o
+[ 14%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/perf_counters.cc.o
+[ 14%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/reporter.cc.o
+[ 15%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/statistics.cc.o
+[ 15%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/string_util.cc.o
+[ 15%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/sysinfo.cc.o
+[ 16%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark.dir/timers.cc.o
+In file included from /usr/include/string.h:535,
+                 from /workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c:13319:
+In function 'memcpy',
+    inlined from 'sqlite3Fts5IndexQuery' at /workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c:203792:18:
+/usr/include/aarch64-linux-gnu/bits/string_fortified.h:29:10: warning: '__builtin_memcpy' specified bound 18446744073709551615 exceeds maximum object size 9223372036854775807 [-Wstringop-overflow=]
+   29 |   return __builtin___memcpy_chk (__dest, __src, __len,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   30 |                                  __glibc_objsize0 (__dest));
+      |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~
+[ 16%] Linking CXX static library libbenchmark.a
+[ 16%] Built target benchmark
+[ 16%] Building CXX object _deps/ext_gflags-build/test/CMakeFiles/gflags_unittest.dir/gflags_unittest.cc.o
+[ 16%] Linking C static library libsqlite3.a
+[ 16%] Built target sqlite3
+[ 17%] Building CXX object _deps/ext_gflags-build/test/CMakeFiles/gflags_unittest-main.dir/gflags_unittest-main.cc.o
+[ 17%] Linking CXX executable ../bin/gflags_unittest
+[ 17%] Built target gflags_unittest
+[ 17%] Building CXX object _deps/ext_gflags-build/test/CMakeFiles/gflags_unittest_main.dir/gflags_unittest_main.cc.o
+In file included from /usr/include/string.h:535,
+                 from /workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c:13319:
+In function 'memcpy',
+    inlined from 'sqlite3Fts5IndexQuery' at /workspaces/nvblox/build/_deps/ext_sqlite3-src/src/sqlite3.c:203792:18:
+/usr/include/aarch64-linux-gnu/bits/string_fortified.h:29:10: warning: '__builtin_memcpy' specified bound 18446744073709551615 exceeds maximum object size 9223372036854775807 [-Wstringop-overflow=]
+   29 |   return __builtin___memcpy_chk (__dest, __src, __len,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   30 |                                  __glibc_objsize0 (__dest));
+      |                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~
+[ 17%] Linking CXX executable ../bin/gflags_unittest-main
+[ 17%] Built target gflags_unittest-main
+[ 17%] Building CXX object _deps/ext_gflags-build/test/CMakeFiles/gflags_declare_test.dir/gflags_declare_test.cc.o
+[ 17%] Building CXX object _deps/ext_gflags-build/test/CMakeFiles/gflags_declare_test.dir/gflags_declare_flags.cc.o
+[ 18%] Linking CXX executable ../bin/gflags_unittest_main
+[ 18%] Built target gflags_unittest_main
+[ 18%] Building CXX object _deps/ext_gtest-build/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
+[ 18%] Linking CXX executable ../bin/gflags_declare_test
+[ 18%] Built target gflags_declare_test
+[ 18%] Building CXX object _deps/ext_gtest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[ 19%] Linking CXX static library ../../../lib/libgtest_main.a
+[ 19%] Built target gtest_main
+[ 19%] Building CXX object _deps/ext_benchmark-build/src/CMakeFiles/benchmark_main.dir/benchmark_main.cc.o
+[ 19%] Linking CXX static library libbenchmark_main.a
+[ 19%] Built target benchmark_main
+[ 19%] Building CUDA object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/gpu_hash/esdf_layer_specialization.cu.o
+[ 20%] Linking C executable sqlite
+[ 20%] Built target sqlite
+[ 21%] Building CUDA object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/gpu_hash/color_layer_specialization.cu.o
+[ 21%] Linking CXX static library ../../../lib/libgmock.a
+[ 21%] Built target gmock
+[ 21%] Building CUDA object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/gpu_hash/occupancy_layer_specialization.cu.o
+[ 21%] Building CUDA object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/gpu_hash/mesh_layer_specialization.cu.o
+[ 21%] Building CUDA object nvblox/CMakeFiles/nvblox_gpu_hash.dir/src/gpu_hash/gpu_set.cu.o
+[ 21%] Building CXX object _deps/ext_gtest-build/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o
+[ 22%] Linking CXX static library ../../../lib/libgmock_main.a
+[ 22%] Built target gmock_main
+[ 23%] Linking CXX static library libnvblox_gpu_hash.a
+[ 23%] Built target nvblox_gpu_hash
+[ 23%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/core/warmup.cu.o
+[ 23%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/core/cuda_stream.cpp.o
+[ 24%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/core/parameter_tree.cpp.o
+[ 24%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/dynamics/dynamics_detection.cu.o
+[ 24%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/core/error_check.cu.o
+[ 24%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/experimental/ground_plane/tsdf_zero_crossings_extractor.cu.o
+[ 24%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/experimental/ground_plane/ransac_plane_fitter_cpu.cpp.o
+[ 25%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/experimental/ground_plane/ransac_plane_fitter.cu.o
+[ 25%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/experimental/ground_plane/ground_plane_estimator.cpp.o
+[ 25%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/map/blocks_to_update_tracker.cpp.o
+[ 25%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/map/blox.cu.o
+[ 26%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/map/layer.cu.o
+[ 26%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/sensors/mask_preprocessor.cpp.o
+[ 26%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/sensors/camera.cpp.o
+[ 27%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/sensors/color.cpp.o
+[ 27%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/sensors/pointcloud.cu.o
+[ 27%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/sensors/image.cu.o
+[ 27%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/sensors/npp_image_operations.cpp.o
+[ 28%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/sensors/depth_preprocessing.cpp.o
+[ 28%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/geometry/bounding_boxes.cpp.o
+[ 28%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/geometry/bounding_shape.cpp.o
+[ 28%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/geometry/bounding_spheres.cpp.o
+[ 29%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/geometry/workspace_bounds.cpp.o
+[ 29%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/geometry/transforms.cpp.o
+[ 29%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/mapper/mapper.cpp.o
+[ 29%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/mapper/multi_mapper.cpp.o
+[ 30%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/shape_clearer.cu.o
+[ 30%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/view_calculator.cu.o
+[ 30%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/occupancy_decay_integrator.cu.o
+[ 30%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/tsdf_decay_integrator.cu.o
+[ 31%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/projective_occupancy_integrator.cu.o
+[ 31%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/projective_tsdf_integrator.cu.o
+[ 31%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/projective_appearance_integrator.cu.o
+[ 32%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/freespace_integrator.cu.o
+[ 32%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/esdf_integrator.cu.o
+[ 32%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/esdf_slicer.cu.o
+[ 32%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/integrators/viewpoint.cpp.o
+[ 33%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/rays/sphere_tracer.cu.o
+[ 33%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/interpolation/interpolation_3d.cpp.o
+[ 33%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/io/mesh_io.cpp.o
+[ 33%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/io/ply_writer.cpp.o
+[ 34%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/io/layer_cake_io.cpp.o
+[ 34%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/io/pointcloud_io.cpp.o
+[ 34%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/io/image_io.cpp.o
+[ 34%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/map_saving/serializer.cpp.o
+[ 35%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/map_saving/sqlite_database.cpp.o
+[ 35%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/map_saving/layer_type_register.cpp.o
+[ 35%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/mesh/mesh_block.cu.o
+[ 35%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/mesh/mesh_integrator_appearance.cu.o
+[ 36%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/mesh/mesh_integrator.cu.o
+[ 36%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/primitives/primitives.cpp.o
+[ 36%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/primitives/scene.cpp.o
+[ 37%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/utils/nvtx_ranges.cpp.o
+[ 37%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/utils/timing.cpp.o
+[ 37%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/utils/rates.cpp.o
+[ 37%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/utils/nvblox_art.cpp.o
+[ 38%] Building CXX object nvblox/CMakeFiles/nvblox_lib.dir/src/utils/delays.cpp.o
+[ 38%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/serialization/mesh_serializer_gpu.cu.o
+[ 38%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/serialization/serialization_gpu.cu.o
+[ 38%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/semantics/image_masker.cu.o
+[ 39%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/semantics/image_projector.cu.o
+[ 39%] Building CUDA object nvblox/CMakeFiles/nvblox_lib.dir/src/semantics/mask_from_detections.cu.o
+[ 39%] Linking CXX shared library libnvblox_lib.so
+[ 39%] Built target nvblox_lib
+[ 40%] Building CXX object nvblox_torch/cpp/CMakeFiles/py_nvblox_test.dir/src/convert_tensors.cpp.o
+[ 40%] Building CXX object nvblox/executables/CMakeFiles/nvblox_datasets.dir/src/datasets/3dmatch.cpp.o
+[ 40%] Building CUDA object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/py_nvblox.cu.o
+[ 41%] Building CUDA object nvblox/examples/CMakeFiles/esdf_query.dir/src/esdf_query.cu.o
+[ 41%] Building CXX object nvblox/CMakeFiles/sphere_benchmark.dir/src/benchmarks/sphere_benchmark.cpp.o
+[ 41%] Building CXX object nvblox/examples/CMakeFiles/load_map_and_mesh.dir/src/load_map_and_mesh.cpp.o
+[ 42%] Linking CXX executable sphere_benchmark
+[ 42%] Built target sphere_benchmark
+[ 42%] Building CUDA object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/py_mapper.cu.o
+[ 42%] Linking CXX executable load_map_and_mesh
+[ 42%] Built target load_map_and_mesh
+[ 42%] Building CUDA object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/py_scene.cu.o
+[ 43%] Linking CXX shared library libpy_nvblox_test.so
+[ 43%] Built target py_nvblox_test
+[ 43%] Building CXX object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/convert_tensors.cpp.o
+[ 43%] Building CXX object nvblox/executables/CMakeFiles/nvblox_datasets.dir/src/datasets/image_loader.cpp.o
+[ 43%] Linking CXX executable esdf_query
+[ 43%] Built target esdf_query
+[ 44%] Building CXX object nvblox/executables/CMakeFiles/nvblox_datasets.dir/src/datasets/replica.cpp.o
+[ 44%] Building CXX object nvblox/executables/CMakeFiles/nvblox_datasets.dir/src/datasets/redwood.cpp.o
+[ 45%] Building CUDA object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/sdf_query.cu.o
+[ 45%] Building CXX object nvblox/executables/CMakeFiles/nvblox_datasets.dir/src/fuser.cpp.o
+[ 45%] Building CXX object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/py_layer.cpp.o
+[ 45%] Linking CXX shared library libnvblox_datasets.so
+[ 45%] Built target nvblox_datasets
+[ 45%] Building CXX object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/py_mesh.cpp.o
+[ 45%] Building CXX object nvblox/executables/CMakeFiles/fuse_3dmatch.dir/src/fuse_3dmatch.cpp.o
+[ 45%] Linking CXX executable fuse_3dmatch
+[ 45%] Built target fuse_3dmatch
+[ 45%] Building CXX object nvblox/executables/CMakeFiles/fuse_replica.dir/src/fuse_replica.cpp.o
+[ 46%] Building CXX object nvblox/executables/CMakeFiles/fuse_redwood.dir/src/fuse_redwood.cpp.o
+[ 47%] Linking CXX executable fuse_replica
+[ 47%] Built target fuse_replica
+[ 47%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/blox_utils.cu.o
+[ 47%] Linking CXX executable fuse_redwood
+[ 47%] Built target fuse_redwood
+[ 47%] Building CXX object nvblox/experiments/CMakeFiles/test_bench.dir/src/test_bench.cpp.o
+[ 48%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/index_layer_specialization.cu.o
+[ 49%] Linking CXX executable test_bench
+[ 49%] Built target test_bench
+[ 49%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/boolean_layer_specialization.cu.o
+[ 49%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/float_layer_specialization.cu.o
+[ 50%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/initialization_test_layer_specialization.cu.o
+[ 50%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/gpu_image_routines.cu.o
+[ 50%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/gpu_indexing.cu.o
+[ 50%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/gpu_layer_utils.cu.o
+[ 50%] Building CXX object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/py_mapper_params.cpp.o
+[ 51%] Building CXX object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/cuda_stream.cpp.o
+[ 51%] Building CXX object nvblox_torch/cpp/CMakeFiles/py_nvblox.dir/src/py_rendering.cpp.o
+[ 52%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/increment_kernel.cu.o
+[ 52%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/interpolation_2d_gpu.cu.o
+[ 52%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/layer.cu.o
+[ 52%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/mesh_utils.cu.o
+[ 53%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/projective_tsdf_integrator_cuda_components.cu.o
+[ 53%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/test_utils_cuda.cu.o
+[ 53%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/weighting_utils.cu.o
+[ 53%] Building CUDA object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/cuda/test_layer.cu.o
+[ 54%] Building CXX object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/projective_tsdf_integrator_cpu.cpp.o
+[ 54%] Building CXX object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/tsdf_zero_crossings_extractor_cpu.cpp.o
+[ 54%] Building CXX object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/utils.cpp.o
+[ 54%] Building CXX object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/esdf_integrator_cpu.cpp.o
+[ 55%] Building CXX object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/integrator_utils.cpp.o
+[ 55%] Building CXX object nvblox/tests/CMakeFiles/nvblox_test_utils.dir/lib/ransac_plane_fitter_utils.cpp.o
+[ 55%] Linking CXX static library libnvblox_test_utils.a
+[ 55%] Built target nvblox_test_utils
+[ 55%] Building CXX object nvblox/tests/CMakeFiles/test_3dmatch.dir/test_3dmatch.cpp.o
+[ 55%] Building CXX object nvblox/tests/CMakeFiles/test_shape_clearer.dir/test_shape_clearer.cpp.o
+[ 55%] Building CXX object nvblox/tests/CMakeFiles/test_3d_interpolation.dir/test_3d_interpolation.cpp.o
+[ 55%] Building CXX object nvblox/tests/CMakeFiles/test_blox.dir/test_blox.cpp.o
+[ 55%] Linking CXX executable test_blox
+[ 55%] Built target test_blox
+[ 56%] Building CXX object nvblox/tests/CMakeFiles/test_bounding_spheres.dir/test_bounding_spheres.cpp.o
+[ 57%] Building CXX object nvblox/tests/CMakeFiles/test_mask_preprocessor.dir/test_mask_preprocessor.cpp.o
+[ 57%] Linking CXX executable test_3d_interpolation
+[ 57%] Built target test_3d_interpolation
+[ 57%] Building CXX object nvblox/tests/CMakeFiles/test_mask_from_detections.dir/test_mask_from_detections.cpp.o
+[ 57%] Linking CXX executable test_bounding_spheres
+[ 57%] Built target test_bounding_spheres
+[ 57%] Building CXX object nvblox/tests/CMakeFiles/test_cake.dir/test_cake.cpp.o
+[ 58%] Linking CXX executable test_shape_clearer
+[ 59%] Linking CXX executable test_3dmatch
+[ 59%] Built target test_3dmatch
+[ 60%] Building CXX object nvblox/tests/CMakeFiles/test_camera.dir/test_camera.cpp.o
+[ 60%] Built target test_shape_clearer
+[ 61%] Building CXX object nvblox/tests/CMakeFiles/test_color_image.dir/test_color_image.cpp.o
+[ 61%] Linking CXX executable test_mask_preprocessor
+[ 61%] Built target test_mask_preprocessor
+[ 61%] Building CXX object nvblox/tests/CMakeFiles/test_color_integrator.dir/test_color_integrator.cpp.o
+[ 61%] Linking CXX executable test_mask_from_detections
+[ 61%] Built target test_mask_from_detections
+[ 61%] Building CXX object nvblox/tests/CMakeFiles/test_feature_integrator.dir/test_feature_integrator.cpp.o
+[ 61%] Linking CXX executable test_cake
+[ 61%] Linking CXX executable test_camera
+[ 61%] Built target test_camera
+[ 61%] Building CXX object nvblox/tests/CMakeFiles/test_cuda_stream.dir/test_cuda_stream.cpp.o
+[ 61%] Built target test_cake
+[ 61%] Building CXX object nvblox/tests/CMakeFiles/test_mono_image.dir/test_mono_image.cpp.o
+[ 61%] Linking CXX executable test_color_image
+[ 61%] Built target test_color_image
+[ 61%] Building CXX object nvblox/tests/CMakeFiles/test_depth_image.dir/test_depth_image.cpp.o
+[ 61%] Linking CXX shared library libpy_nvblox.so
+[ 62%] Linking CXX executable test_mono_image
+[ 62%] Linking CXX executable test_feature_integrator
+[ 63%] Linking CXX executable test_cuda_stream
+[ 63%] Built target test_mono_image
+[ 63%] Building CXX object nvblox/tests/CMakeFiles/test_dynamics.dir/test_dynamics.cpp.o
+[ 63%] Built target test_cuda_stream
+[ 64%] Building CXX object nvblox/tests/CMakeFiles/test_for_memory_leaks.dir/test_for_memory_leaks.cpp.o
+[ 64%] Built target test_feature_integrator
+[ 64%] Building CXX object nvblox/tests/CMakeFiles/test_freespace_integrator.dir/test_freespace_integrator.cpp.o
+[ 64%] Built target py_nvblox
+[ 65%] Building CXX object nvblox/tests/CMakeFiles/test_frustum.dir/test_frustum.cpp.o
+[ 66%] Linking CXX executable test_color_integrator
+[ 66%] Built target test_color_integrator
+[ 66%] Building CXX object nvblox/tests/CMakeFiles/test_gpu_layer_view.dir/test_gpu_layer_view.cpp.o
+[ 67%] Linking CXX executable test_depth_image
+[ 67%] Built target test_depth_image
+[ 67%] Building CXX object nvblox/tests/CMakeFiles/test_image_io.dir/test_image_io.cpp.o
+[ 67%] Linking CXX executable test_freespace_integrator
+[ 67%] Built target test_freespace_integrator
+[ 67%] Building CXX object nvblox/tests/CMakeFiles/test_image_masker.dir/test_image_masker.cpp.o
+[ 67%] Linking CXX executable test_for_memory_leaks
+[ 67%] Built target test_for_memory_leaks
+[ 67%] Building CXX object nvblox/tests/CMakeFiles/test_image_projector.dir/test_image_projector.cpp.o
+[ 67%] Linking CXX executable test_gpu_layer_view
+[ 67%] Built target test_gpu_layer_view
+[ 67%] Building CXX object nvblox/tests/CMakeFiles/test_indexing.dir/test_indexing.cpp.o
+[ 67%] Linking CXX executable test_dynamics
+[ 68%] Linking CXX executable test_image_io
+[ 68%] Built target test_dynamics
+[ 68%] Building CXX object nvblox/tests/CMakeFiles/test_interpolation_2d.dir/test_interpolation_2d.cpp.o
+[ 68%] Built target test_image_io
+[ 68%] Building CXX object nvblox/tests/CMakeFiles/test_layer.dir/test_layer.cpp.o
+[ 68%] Linking CXX executable test_frustum
+[ 68%] Built target test_frustum
+[ 68%] Building CXX object nvblox/tests/CMakeFiles/test_lidar.dir/test_lidar.cpp.o
+[ 69%] Linking CXX executable test_indexing
+[ 69%] Built target test_indexing
+[ 70%] Building CXX object nvblox/tests/CMakeFiles/test_lidar_integration.dir/test_lidar_integration.cpp.o
+[ 70%] Linking CXX executable test_image_masker
+[ 70%] Built target test_image_masker
+[ 70%] Linking CXX executable test_interpolation_2d
+[ 70%] Building CXX object nvblox/tests/CMakeFiles/test_mapper.dir/test_mapper.cpp.o
+[ 70%] Built target test_interpolation_2d
+[ 70%] Building CXX object nvblox/tests/CMakeFiles/test_mesh_appearance.dir/test_mesh_appearance.cpp.o
+[ 71%] Linking CXX executable test_image_projector
+[ 71%] Built target test_image_projector
+[ 71%] Building CXX object nvblox/tests/CMakeFiles/test_mesh.dir/test_mesh.cpp.o
+[ 71%] Linking CXX executable test_lidar
+[ 71%] Built target test_lidar
+[ 71%] Building CXX object nvblox/tests/CMakeFiles/test_mesh_serializer.dir/test_mesh_serializer.cpp.o
+[ 72%] Linking CXX executable test_layer
+[ 72%] Linking CXX executable test_lidar_integration
+[ 72%] Built target test_layer
+[ 72%] Building CXX object nvblox/tests/CMakeFiles/test_nvtx_ranges.dir/test_nvtx_ranges.cpp.o
+[ 72%] Built target test_lidar_integration
+[ 72%] Building CXX object nvblox/tests/CMakeFiles/test_occupancy_decay.dir/test_occupancy_decay.cpp.o
+[ 73%] Linking CXX executable test_mesh_appearance
+[ 73%] Built target test_mesh_appearance
+[ 74%] Building CXX object nvblox/tests/CMakeFiles/test_occupancy_integrator.dir/test_occupancy_integrator.cpp.o
+[ 75%] Linking CXX executable test_nvtx_ranges
+[ 75%] Linking CXX executable test_mapper
+[ 75%] Built target test_nvtx_ranges
+[ 75%] Building CXX object nvblox/tests/CMakeFiles/test_pointcloud.dir/test_pointcloud.cpp.o
+[ 75%] Linking CXX executable test_mesh_serializer
+[ 75%] Built target test_mapper
+[ 75%] Building CXX object nvblox/tests/CMakeFiles/test_ray_caster.dir/test_ray_caster.cpp.o
+[ 75%] Built target test_mesh_serializer
+[ 75%] Building CXX object nvblox/tests/CMakeFiles/test_scene.dir/test_scene.cpp.o
+[ 75%] Linking CXX executable test_occupancy_decay
+[ 75%] Built target test_occupancy_decay
+[ 75%] Building CXX object nvblox/tests/CMakeFiles/test_serialization.dir/test_serialization.cpp.o
+[ 75%] Linking CXX executable test_mesh
+[ 75%] Built target test_mesh
+[ 75%] Building CXX object nvblox/tests/CMakeFiles/test_sphere_tracing.dir/test_sphere_tracing.cpp.o
+[ 75%] Linking CXX executable test_pointcloud
+[ 75%] Built target test_pointcloud
+[ 75%] Building CXX object nvblox/tests/CMakeFiles/test_time.dir/test_time.cpp.o
+[ 75%] Linking CXX executable test_time
+[ 75%] Built target test_time
+[ 75%] Building CXX object nvblox/tests/CMakeFiles/test_timing.dir/test_timing.cpp.o
+[ 75%] Linking CXX executable test_ray_caster
+[ 75%] Built target test_ray_caster
+[ 75%] Building CXX object nvblox/tests/CMakeFiles/test_traits.dir/test_traits.cpp.o
+[ 76%] Linking CXX executable test_timing
+[ 76%] Built target test_timing
+[ 76%] Building CXX object nvblox/tests/CMakeFiles/test_tsdf_decay.dir/test_tsdf_decay.cpp.o
+[ 76%] Linking CXX executable test_occupancy_integrator
+[ 76%] Built target test_occupancy_integrator
+[ 76%] Building CXX object nvblox/tests/CMakeFiles/test_tsdf_error.dir/test_tsdf_error.cpp.o
+[ 76%] Linking CXX executable test_traits
+[ 76%] Linking CXX executable test_serialization
+[ 76%] Built target test_traits
+[ 77%] Building CXX object nvblox/tests/CMakeFiles/test_tsdf_integrator.dir/test_tsdf_integrator.cpp.o
+[ 77%] Built target test_serialization
+[ 77%] Building CXX object nvblox/tests/CMakeFiles/test_tsdf_integrator_cuda_components.dir/test_tsdf_integrator_cuda_components.cpp.o
+[ 77%] Linking CXX executable test_sphere_tracing
+[ 77%] Built target test_sphere_tracing
+[ 78%] Building CXX object nvblox/tests/CMakeFiles/test_unified_3d_grid.dir/test_unified_3d_grid.cpp.o
+[ 79%] Linking CXX executable test_scene
+[ 79%] Built target test_scene
+[ 79%] Building CXX object nvblox/tests/CMakeFiles/test_unified_ptr.dir/test_unified_ptr.cpp.o
+[ 80%] Linking CXX executable test_tsdf_decay
+[ 80%] Built target test_tsdf_decay
+[ 81%] Building CXX object nvblox/tests/CMakeFiles/test_unified_vector.dir/test_unified_vector.cpp.o
+[ 81%] Linking CXX executable test_tsdf_error
+[ 81%] Built target test_tsdf_error
+[ 81%] Building CXX object nvblox/tests/CMakeFiles/test_weighting_function.dir/test_weighting_function.cpp.o
+[ 81%] Linking CXX executable test_tsdf_integrator_cuda_components
+[ 81%] Built target test_tsdf_integrator_cuda_components
+[ 82%] Building CXX object nvblox/tests/CMakeFiles/test_workspace_bounds.dir/test_workspace_bounds.cpp.o
+[ 82%] Linking CXX executable test_unified_3d_grid
+[ 82%] Built target test_unified_3d_grid
+[ 83%] Building CXX object nvblox/tests/CMakeFiles/test_rates.dir/test_rates.cpp.o
+[ 83%] Linking CXX executable test_weighting_function
+[ 83%] Built target test_weighting_function
+[ 83%] Building CXX object nvblox/tests/CMakeFiles/test_layer_streamer.dir/test_layer_streamer.cpp.o
+[ 83%] Linking CXX executable test_tsdf_integrator
+[ 83%] Built target test_tsdf_integrator
+[ 83%] Building CXX object nvblox/tests/CMakeFiles/test_npp_image_operations.dir/test_npp_image_operations.cpp.o
+[ 83%] Linking CXX executable test_unified_ptr
+[ 83%] Built target test_unified_ptr
+[ 83%] Building CXX object nvblox/tests/CMakeFiles/test_depth_image_preprocessing.dir/test_depth_image_preprocessing.cpp.o
+[ 83%] Linking CXX executable test_rates
+[ 83%] Built target test_rates
+[ 83%] Building CXX object nvblox/tests/CMakeFiles/test_layer_serializer_gpu.dir/test_layer_serializer_gpu.cpp.o
+[ 83%] Linking CXX executable test_unified_vector
+[ 83%] Built target test_unified_vector
+[ 84%] Building CXX object nvblox/tests/CMakeFiles/test_image_cache.dir/test_image_cache.cpp.o
+[ 84%] Linking CXX executable test_workspace_bounds
+[ 84%] Built target test_workspace_bounds
+[ 84%] Building CXX object nvblox/tests/CMakeFiles/test_params.dir/test_params.cpp.o
+[ 84%] Linking CXX executable test_image_cache
+[ 84%] Built target test_image_cache
+[ 85%] Building CXX object nvblox/tests/CMakeFiles/test_block_memory_pool.dir/test_block_memory_pool.cpp.o
+[ 85%] Linking CXX executable test_params
+[ 85%] Built target test_params
+[ 85%] Building CXX object nvblox/tests/CMakeFiles/test_delays.dir/test_delays.cpp.o
+[ 85%] Linking CXX executable test_depth_image_preprocessing
+[ 86%] Linking CXX executable test_layer_serializer_gpu
+[ 86%] Built target test_depth_image_preprocessing
+[ 86%] Building CXX object nvblox/tests/CMakeFiles/test_image_view.dir/test_image_view.cpp.o
+[ 86%] Built target test_layer_serializer_gpu
+[ 86%] Building CXX object nvblox/tests/CMakeFiles/test_bitmask.dir/test_bitmask.cpp.o
+[ 86%] Linking CXX executable test_delays
+[ 86%] Built target test_delays
+[ 86%] Building CXX object nvblox/tests/CMakeFiles/test_nvblox_h.dir/test_nvblox_h.cpp.o
+[ 86%] Linking CXX executable test_block_memory_pool
+[ 86%] Built target test_block_memory_pool
+[ 86%] Building CXX object nvblox/tests/CMakeFiles/test_ransac_plane_fitter_cpu.dir/test_ransac_plane_fitter_cpu.cpp.o
+[ 87%] Linking CXX executable test_npp_image_operations
+[ 87%] Built target test_npp_image_operations
+[ 88%] Building CXX object nvblox/tests/CMakeFiles/test_ransac_plane_fitter.dir/test_ransac_plane_fitter.cpp.o
+[ 88%] Linking CXX executable test_bitmask
+[ 88%] Built target test_bitmask
+[ 88%] Building CXX object nvblox/tests/CMakeFiles/test_layer_cake_streamer.dir/test_layer_cake_streamer.cpp.o
+[ 88%] Linking CXX executable test_layer_streamer
+[ 88%] Built target test_layer_streamer
+[ 88%] Linking CXX executable test_image_view
+[ 89%] Building CXX object nvblox/tests/CMakeFiles/test_replica.dir/test_replica.cpp.o
+[ 89%] Built target test_image_view
+[ 89%] Building CXX object nvblox/tests/CMakeFiles/test_checks.dir/test_checks.cpp.o
+[ 89%] Linking CXX executable test_checks
+[ 89%] Built target test_checks
+[ 89%] Building CUDA object nvblox/tests/CMakeFiles/regression_test_query_after_clear.dir/regression_test_query_after_clear.cu.o
+[ 89%] Linking CXX executable test_nvblox_h
+[ 89%] Built target test_nvblox_h
+[ 90%] Building CUDA object nvblox/tests/CMakeFiles/test_layer_to_3d_grid.dir/test_layer_to_3d_grid.cu.o
+[ 90%] Linking CXX executable test_ransac_plane_fitter
+[ 90%] Built target test_ransac_plane_fitter
+[ 91%] Building CUDA object nvblox/tests/CMakeFiles/test_gpu_hash_interface.dir/test_gpu_hash_interface.cu.o
+[ 91%] Linking CXX executable test_ransac_plane_fitter_cpu
+[ 91%] Built target test_ransac_plane_fitter_cpu
+[ 91%] Building CUDA object nvblox/tests/CMakeFiles/test_masked_image_view.dir/test_masked_image_view.cu.o
+[ 91%] Linking CXX executable test_layer_cake_streamer
+[ 91%] Built target test_layer_cake_streamer
+[ 92%] Building CUDA object nvblox/tests/CMakeFiles/test_esdf_integrator_slicing.dir/test_esdf_integrator_slicing.cu.o
+[ 92%] Linking CXX executable test_replica
+[ 92%] Built target test_replica
+[ 93%] Building CUDA object nvblox/tests/CMakeFiles/test_plane.dir/test_plane.cu.o
+[ 94%] Linking CXX executable test_masked_image_view
+[ 94%] Built target test_masked_image_view
+[ 94%] Building CUDA object nvblox/tests/CMakeFiles/test_device_function_utils.dir/test_device_function_utils.cu.o
+[ 94%] Linking CXX executable regression_test_query_after_clear
+[ 94%] Built target regression_test_query_after_clear
+[ 94%] Building CUDA object nvblox/tests/CMakeFiles/test_zero_crossings_extractor.dir/test_zero_crossings_extractor.cu.o
+[ 95%] Linking CXX executable test_device_function_utils
+[ 95%] Built target test_device_function_utils
+[ 95%] Building CUDA object nvblox/tests/CMakeFiles/test_error_check.dir/test_error_check.cu.o
+[ 95%] Linking CXX executable test_gpu_hash_interface
+[ 95%] Linking CXX executable test_plane
+[ 95%] Built target test_gpu_hash_interface
+[ 95%] Building CUDA object nvblox/tests/CMakeFiles/test_array.dir/test_array.cu.o
+[ 95%] Built target test_plane
+[ 95%] Building CXX object nvblox/tests/CMakeFiles/test_esdf_integrator.dir/test_esdf_integrator.cpp.o
+[ 95%] Linking CXX executable test_esdf_integrator_slicing
+[ 95%] Built target test_esdf_integrator_slicing
+[ 95%] Building CXX object nvblox/tests/CMakeFiles/test_fuser.dir/test_fuser.cpp.o
+[ 95%] Linking CXX executable test_layer_to_3d_grid
+[ 95%] Built target test_layer_to_3d_grid
+[ 96%] Building CXX object nvblox/tests/CMakeFiles/test_mapper_block_allocation.dir/test_mapper_block_allocation.cpp.o
+[ 97%] Linking CXX executable test_error_check
+[ 97%] Built target test_error_check
+[ 97%] Building CXX object nvblox/tests/CMakeFiles/test_multi_mapper.dir/test_multi_mapper.cpp.o
+[ 97%] Linking CXX executable test_array
+[ 97%] Built target test_array
+[ 98%] Building CXX object nvblox/tests/CMakeFiles/nvblox_benchmark.dir/benchmark.cpp.o
+[ 98%] Linking CXX executable test_fuser
+[ 98%] Built target test_fuser
+[ 98%] Building CXX object nvblox_torch/cpp/tests/CMakeFiles/test_tensor_conversions.dir/test_tensor_conversions.cpp.o
+[ 98%] Linking CXX executable test_esdf_integrator
+[ 98%] Built target test_esdf_integrator
+[ 98%] Building CXX object nvblox_torch/cpp/tests/CMakeFiles/test_color_tensor.dir/test_color_tensor.cpp.o
+[ 98%] Linking CXX executable test_multi_mapper
+[ 99%] Linking CXX executable test_zero_crossings_extractor
+[ 99%] Built target test_multi_mapper
+[ 99%] Built target test_zero_crossings_extractor
+[ 99%] Linking CXX executable nvblox_benchmark
+[ 99%] Built target nvblox_benchmark
+[ 99%] Linking CXX executable test_mapper_block_allocation
+[ 99%] Built target test_mapper_block_allocation
+[100%] Linking CXX executable test_tensor_conversions
+[100%] Built target test_tensor_conversions
+[100%] Linking CXX executable test_color_tensor
+[100%] Built target test_color_tensor
+
+root@rabbit:/workspaces/nvblox/build# cd /workspaces/nvblox/nvblox_torch
+pip3 uninstall -y nvblox_torch || true
+pip3 install .
+WARNING: Skipping nvblox_torch as it is not installed.
+Processing /workspaces/nvblox/nvblox_torch
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Preparing metadata (pyproject.toml) ... done
+Collecting transforms3d>=0.4.2 (from nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading transforms3d-0.4.2-py3-none-any.whl.metadata (2.8 kB)
+Collecting imageio>=2.35.0 (from nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading imageio-2.37.0-py3-none-any.whl.metadata (5.2 kB)
+Requirement already satisfied: numpy in /opt/venv/lib/python3.10/site-packages (from nvblox_torch==0.0.8.dev1+cuubuntu22) (2.2.6)
+Collecting open3d (from nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading open3d-0.18.0-cp310-cp310-manylinux_2_27_aarch64.whl.metadata (3.9 kB)
+Collecting timm (from nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading timm-1.0.19-py3-none-any.whl.metadata (60 kB)
+Collecting opencv-python (from nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading opencv_python-4.12.0.88-cp37-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (19 kB)
+Collecting einops (from nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading einops-0.8.1-py3-none-any.whl.metadata (13 kB)
+Requirement already satisfied: nvtx in /opt/venv/lib/python3.10/site-packages (from nvblox_torch==0.0.8.dev1+cuubuntu22) (0.2.13)
+Requirement already satisfied: torch==2.3.0 in /opt/venv/lib/python3.10/site-packages (from nvblox_torch==0.0.8.dev1+cuubuntu22) (2.3.0)
+Requirement already satisfied: torchvision<=0.18.0,>0.17.2 in /opt/venv/lib/python3.10/site-packages (from nvblox_torch==0.0.8.dev1+cuubuntu22) (0.18.0a0+6043bc2)
+Collecting matplotlib==3.10 (from nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading matplotlib-3.10.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (11 kB)
+Collecting numpy (from nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading numpy-1.26.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (58 kB)
+Collecting contourpy>=1.0.1 (from matplotlib==3.10->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading contourpy-1.3.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (5.5 kB)
+Collecting cycler>=0.10 (from matplotlib==3.10->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading cycler-0.12.1-py3-none-any.whl.metadata (3.8 kB)
+Collecting fonttools>=4.22.0 (from matplotlib==3.10->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading fonttools-4.59.1-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (108 kB)
+Collecting kiwisolver>=1.3.1 (from matplotlib==3.10->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading kiwisolver-1.4.9-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl.metadata (6.3 kB)
+Requirement already satisfied: packaging>=20.0 in /opt/venv/lib/python3.10/site-packages (from matplotlib==3.10->nvblox_torch==0.0.8.dev1+cuubuntu22) (25.0)
+Requirement already satisfied: pillow>=8 in /opt/venv/lib/python3.10/site-packages (from matplotlib==3.10->nvblox_torch==0.0.8.dev1+cuubuntu22) (11.3.0)
+Collecting pyparsing>=2.3.1 (from matplotlib==3.10->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading pyparsing-3.2.3-py3-none-any.whl.metadata (5.0 kB)
+Collecting python-dateutil>=2.7 (from matplotlib==3.10->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Requirement already satisfied: filelock in /opt/venv/lib/python3.10/site-packages (from torch==2.3.0->nvblox_torch==0.0.8.dev1+cuubuntu22) (3.18.0)
+Requirement already satisfied: typing-extensions>=4.8.0 in /opt/venv/lib/python3.10/site-packages (from torch==2.3.0->nvblox_torch==0.0.8.dev1+cuubuntu22) (4.14.1)
+Requirement already satisfied: sympy in /opt/venv/lib/python3.10/site-packages (from torch==2.3.0->nvblox_torch==0.0.8.dev1+cuubuntu22) (1.14.0)
+Requirement already satisfied: networkx in /opt/venv/lib/python3.10/site-packages (from torch==2.3.0->nvblox_torch==0.0.8.dev1+cuubuntu22) (3.4.2)
+Requirement already satisfied: jinja2 in /opt/venv/lib/python3.10/site-packages (from torch==2.3.0->nvblox_torch==0.0.8.dev1+cuubuntu22) (3.1.6)
+Requirement already satisfied: fsspec in /opt/venv/lib/python3.10/site-packages (from torch==2.3.0->nvblox_torch==0.0.8.dev1+cuubuntu22) (2025.7.0)
+Collecting six>=1.5 (from python-dateutil>=2.7->matplotlib==3.10->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Requirement already satisfied: MarkupSafe>=2.0 in /opt/venv/lib/python3.10/site-packages (from jinja2->torch==2.3.0->nvblox_torch==0.0.8.dev1+cuubuntu22) (3.0.2)
+Collecting dash>=2.6.0 (from open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading dash-3.2.0-py3-none-any.whl.metadata (10 kB)
+Collecting werkzeug>=2.2.3 (from open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading werkzeug-3.1.3-py3-none-any.whl.metadata (3.7 kB)
+Collecting nbformat>=5.7.0 (from open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading nbformat-5.10.4-py3-none-any.whl.metadata (3.6 kB)
+Collecting configargparse (from open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading configargparse-1.7.1-py3-none-any.whl.metadata (24 kB)
+Collecting Flask<3.2,>=1.0.4 (from dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading flask-3.1.1-py3-none-any.whl.metadata (3.0 kB)
+Collecting plotly>=5.0.0 (from dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading plotly-6.3.0-py3-none-any.whl.metadata (8.5 kB)
+Collecting importlib-metadata (from dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading importlib_metadata-8.7.0-py3-none-any.whl.metadata (4.8 kB)
+Requirement already satisfied: requests in /opt/venv/lib/python3.10/site-packages (from dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22) (2.32.4)
+Collecting retrying (from dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading retrying-1.4.2-py3-none-any.whl.metadata (5.5 kB)
+Collecting nest-asyncio (from dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading nest_asyncio-1.6.0-py3-none-any.whl.metadata (2.8 kB)
+Requirement already satisfied: setuptools in /opt/venv/lib/python3.10/site-packages (from dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22) (80.9.0)
+Collecting blinker>=1.9.0 (from Flask<3.2,>=1.0.4->dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting click>=8.1.3 (from Flask<3.2,>=1.0.4->dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading click-8.2.1-py3-none-any.whl.metadata (2.5 kB)
+Collecting itsdangerous>=2.2.0 (from Flask<3.2,>=1.0.4->dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+Collecting fastjsonschema>=2.15 (from nbformat>=5.7.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading fastjsonschema-2.21.2-py3-none-any.whl.metadata (2.3 kB)
+Collecting jsonschema>=2.6 (from nbformat>=5.7.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading jsonschema-4.25.0-py3-none-any.whl.metadata (7.7 kB)
+Collecting jupyter-core!=5.0.*,>=4.12 (from nbformat>=5.7.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading jupyter_core-5.8.1-py3-none-any.whl.metadata (1.6 kB)
+Collecting traitlets>=5.1 (from nbformat>=5.7.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading traitlets-5.14.3-py3-none-any.whl.metadata (10 kB)
+Collecting attrs>=22.2.0 (from jsonschema>=2.6->nbformat>=5.7.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading attrs-25.3.0-py3-none-any.whl.metadata (10 kB)
+Collecting jsonschema-specifications>=2023.03.6 (from jsonschema>=2.6->nbformat>=5.7.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading jsonschema_specifications-2025.4.1-py3-none-any.whl.metadata (2.9 kB)
+Collecting referencing>=0.28.4 (from jsonschema>=2.6->nbformat>=5.7.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading referencing-0.36.2-py3-none-any.whl.metadata (2.8 kB)
+Collecting rpds-py>=0.7.1 (from jsonschema>=2.6->nbformat>=5.7.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading rpds_py-0.27.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (4.2 kB)
+Collecting platformdirs>=2.5 (from jupyter-core!=5.0.*,>=4.12->nbformat>=5.7.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading platformdirs-4.3.8-py3-none-any.whl.metadata (12 kB)
+Collecting narwhals>=1.15.1 (from plotly>=5.0.0->dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading narwhals-2.1.2-py3-none-any.whl.metadata (11 kB)
+Collecting zipp>=3.20 (from importlib-metadata->dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading zipp-3.23.0-py3-none-any.whl.metadata (3.6 kB)
+INFO: pip is looking at multiple versions of opencv-python to determine which version is compatible with other requirements. This could take a while.
+Collecting opencv-python (from nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading opencv_python-4.11.0.86-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (20 kB)
+Requirement already satisfied: charset_normalizer<4,>=2 in /opt/venv/lib/python3.10/site-packages (from requests->dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22) (3.4.3)
+Requirement already satisfied: idna<4,>=2.5 in /opt/venv/lib/python3.10/site-packages (from requests->dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22) (3.10)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /opt/venv/lib/python3.10/site-packages (from requests->dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22) (2.5.0)
+Requirement already satisfied: certifi>=2017.4.17 in /opt/venv/lib/python3.10/site-packages (from requests->dash>=2.6.0->open3d->nvblox_torch==0.0.8.dev1+cuubuntu22) (2025.8.3)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in /opt/venv/lib/python3.10/site-packages (from sympy->torch==2.3.0->nvblox_torch==0.0.8.dev1+cuubuntu22) (1.3.0)
+Collecting pyyaml (from timm->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading PyYAML-6.0.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (2.1 kB)
+Collecting huggingface_hub (from timm->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading huggingface_hub-0.34.4-py3-none-any.whl.metadata (14 kB)
+Collecting safetensors (from timm->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading safetensors-0.6.2-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (4.1 kB)
+Collecting tqdm>=4.42.1 (from huggingface_hub->timm->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading tqdm-4.67.1-py3-none-any.whl.metadata (57 kB)
+Collecting hf-xet<2.0.0,>=1.1.3 (from huggingface_hub->timm->nvblox_torch==0.0.8.dev1+cuubuntu22)
+  Downloading hf_xet-1.1.7-cp37-abi3-manylinux_2_28_aarch64.whl.metadata (703 bytes)
+Downloading matplotlib-3.10.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (8.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.4/8.4 MB 16.5 MB/s  0:00:00
+Downloading numpy-1.26.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (14.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 14.2/14.2 MB 29.7 MB/s  0:00:00
+Downloading contourpy-1.3.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (312 kB)
+Downloading cycler-0.12.1-py3-none-any.whl (8.3 kB)
+Downloading fonttools-4.59.1-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (4.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.8/4.8 MB 45.3 MB/s  0:00:00
+Downloading imageio-2.37.0-py3-none-any.whl (315 kB)
+Downloading kiwisolver-1.4.9-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 28.2 MB/s  0:00:00
+Downloading pyparsing-3.2.3-py3-none-any.whl (111 kB)
+Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading transforms3d-0.4.2-py3-none-any.whl (1.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 39.5 MB/s  0:00:00
+Downloading einops-0.8.1-py3-none-any.whl (64 kB)
+Downloading open3d-0.18.0-cp310-cp310-manylinux_2_27_aarch64.whl (58.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 58.4/58.4 MB 51.4 MB/s  0:00:01
+Downloading dash-3.2.0-py3-none-any.whl (7.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.9/7.9 MB 43.2 MB/s  0:00:00
+Downloading flask-3.1.1-py3-none-any.whl (103 kB)
+Downloading werkzeug-3.1.3-py3-none-any.whl (224 kB)
+Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+Downloading click-8.2.1-py3-none-any.whl (102 kB)
+Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+Downloading nbformat-5.10.4-py3-none-any.whl (78 kB)
+Downloading fastjsonschema-2.21.2-py3-none-any.whl (24 kB)
+Downloading jsonschema-4.25.0-py3-none-any.whl (89 kB)
+Downloading attrs-25.3.0-py3-none-any.whl (63 kB)
+Downloading jsonschema_specifications-2025.4.1-py3-none-any.whl (18 kB)
+Downloading jupyter_core-5.8.1-py3-none-any.whl (28 kB)
+Downloading platformdirs-4.3.8-py3-none-any.whl (18 kB)
+Downloading plotly-6.3.0-py3-none-any.whl (9.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.8/9.8 MB 40.6 MB/s  0:00:00
+Downloading narwhals-2.1.2-py3-none-any.whl (392 kB)
+Downloading referencing-0.36.2-py3-none-any.whl (26 kB)
+Downloading rpds_py-0.27.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (381 kB)
+Downloading traitlets-5.14.3-py3-none-any.whl (85 kB)
+Downloading configargparse-1.7.1-py3-none-any.whl (25 kB)
+Downloading importlib_metadata-8.7.0-py3-none-any.whl (27 kB)
+Downloading zipp-3.23.0-py3-none-any.whl (10 kB)
+Downloading nest_asyncio-1.6.0-py3-none-any.whl (5.2 kB)
+Downloading opencv_python-4.11.0.86-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (42.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 42.2/42.2 MB 40.4 MB/s  0:00:01
+Downloading retrying-1.4.2-py3-none-any.whl (10 kB)
+Downloading timm-1.0.19-py3-none-any.whl (2.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.5/2.5 MB 39.9 MB/s  0:00:00
+Downloading huggingface_hub-0.34.4-py3-none-any.whl (561 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 561.5/561.5 kB 13.0 MB/s  0:00:00
+Downloading hf_xet-1.1.7-cp37-abi3-manylinux_2_28_aarch64.whl (3.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.1/3.1 MB 35.3 MB/s  0:00:00
+Downloading PyYAML-6.0.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (718 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 718.5/718.5 kB 19.3 MB/s  0:00:00
+Downloading tqdm-4.67.1-py3-none-any.whl (78 kB)
+Downloading safetensors-0.6.2-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (473 kB)
+Building wheels for collected packages: nvblox_torch
+  Building wheel for nvblox_torch (pyproject.toml) ... done
+  Created wheel for nvblox_torch: filename=nvblox_torch-0.0.8.dev1+cuubuntu22-py3-none-any.whl size=67137123 sha256=2e82b30700c4133139ff0d0502864ffb7d4147ab5a9df366cce39e02561057c2
+  Stored in directory: /tmp/pip-ephem-wheel-cache-87qayjlf/wheels/1b/94/0d/c429f5179cb336134083e72e3df8c7dfa8154f56c77b4804bd
+Successfully built nvblox_torch
+Installing collected packages: fastjsonschema, zipp, werkzeug, traitlets, tqdm, six, safetensors, rpds-py, retrying, pyyaml, pyparsing, platformdirs, numpy, nest-asyncio, narwhals, kiwisolver, itsdangerous, hf-xet, fonttools, einops, cycler, configargparse, click, blinker, attrs, transforms3d, referencing, python-dateutil, plotly, opencv-python, jupyter-core, importlib-metadata, imageio, huggingface_hub, Flask, contourpy, matplotlib, jsonschema-specifications, dash, timm, jsonschema, nbformat, open3d, nvblox_torch
+  Attempting uninstall: numpy
+    Found existing installation: numpy 2.2.6
+    Uninstalling numpy-2.2.6:
+      Successfully uninstalled numpy-2.2.6
+Successfully installed Flask-3.1.1 attrs-25.3.0 blinker-1.9.0 click-8.2.1 configargparse-1.7.1 contourpy-1.3.2 cycler-0.12.1 dash-3.2.0 einops-0.8.1 fastjsonschema-2.21.2 fonttools-4.59.1 hf-xet-1.1.7 huggingface_hub-0.34.4 imageio-2.37.0 importlib-metadata-8.7.0 itsdangerous-2.2.0 jsonschema-4.25.0 jsonschema-specifications-2025.4.1 jupyter-core-5.8.1 kiwisolver-1.4.9 matplotlib-3.10.0 narwhals-2.1.2 nbformat-5.10.4 nest-asyncio-1.6.0 numpy-1.26.0 nvblox_torch-0.0.8.dev1+cuubuntu22 open3d-0.18.0 opencv-python-4.11.0.86 platformdirs-4.3.8 plotly-6.3.0 pyparsing-3.2.3 python-dateutil-2.9.0.post0 pyyaml-6.0.2 referencing-0.36.2 retrying-1.4.2 rpds-py-0.27.0 safetensors-0.6.2 six-1.17.0 timm-1.0.19 tqdm-4.67.1 traitlets-5.14.3 transforms3d-0.4.2 werkzeug-3.1.3 zipp-3.23.0
+
+[notice] A new release of pip is available: 22.0.2 -> 25.2
+[notice] To update, run: pip install --upgrade pip

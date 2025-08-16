@@ -1,4 +1,6 @@
+import json
 import cv2
+import numpy as np
 from lib.node import RabbitNode
 from nats.js.errors import KeyNotFoundError
 from nats.js.kv import KeyValue
@@ -19,6 +21,11 @@ class CameraSettings(BaseModel):
     WHITEBALANCE_AUTO: int = Field(default=1, ge=0, le=1)
 
 
+class Pose(BaseModel):
+    translation: list[float] = [0.0, 0.0, 0.0]
+    orientation: list[float] = [0.0, 0.0, 0.0, 1.0]
+
+
 class Node(RabbitNode):
     CAMERA_SETTINGS_KEY = "rabbit.zed.camera_settings"
 
@@ -27,6 +34,7 @@ class Node(RabbitNode):
 
         self.frame = sl.Mat()
         self.zed = sl.Camera()
+        self.pose = sl.Pose()
         self.mesh = sl.Mesh()
 
         self.runtime_params = sl.RuntimeParameters()
@@ -46,7 +54,7 @@ class Node(RabbitNode):
         self.positional_tracking_parameters.set_floor_as_origin = True
 
         self.spatial_mapping_parameters = sl.SpatialMappingParameters(
-            resolution=sl.MAPPING_RESOLUTION.MEDIUM,
+            resolution=sl.MAPPING_RESOLUTION.LOW,
             mapping_range=sl.MAPPING_RANGE.SHORT,
             max_memory_usage=2048,
             save_texture=False,
@@ -105,12 +113,25 @@ class Node(RabbitNode):
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"Failed to retrieve image: {status}")
         await self.publish_frame()
+        await self.publish_pose()
 
         if not self.mapping_activated:
             if self.frame_number % self.camera_fps == 0:
                 self.activate_spatial_mapping()
         else:
             await self.retrieve_spatial_mapping()
+
+    async def publish_pose(self):
+        state = self.zed.get_position(self.pose, sl.REFERENCE_FRAME.WORLD)
+        if state == sl.POSITIONAL_TRACKING_STATE.OK:
+            translation = self.pose.get_translation().get()
+            orientation = self.pose.get_orientation().get()
+            await self.kv.put(
+                "rabbit.zed.pose",
+                Pose(translation=translation, orientation=orientation)
+                .model_dump_json()
+                .encode(),
+            )
 
     async def retrieve_spatial_mapping(self):
         mapping_state = self.zed.get_spatial_mapping_state()
@@ -126,9 +147,8 @@ class Node(RabbitNode):
                 )
                 tmp_file_name = "/tmp/spatial_map.obj"
                 params = sl.MeshFilterParameters()
-                params.set(sl.MESH_FILTER.MEDIUM)
+                params.set(sl.MESH_FILTER.HIGH)
                 self.mesh.filter(params)
-                self.mesh.merge_chunks(100_000)
                 if not self.mesh.save(tmp_file_name, sl.MESH_FILE_FORMAT.OBJ):
                     raise RuntimeError("Failed to save spatial map to OBJ file")
                 with open(tmp_file_name, "rb") as f:

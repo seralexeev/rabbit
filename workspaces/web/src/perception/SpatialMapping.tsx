@@ -3,12 +3,20 @@ import React from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import z from 'zod';
 
-import { useObjectStoreSubscribe } from '../app/NatsProvider.tsx';
+import { useObjectStoreSubscribe, useWatchKV } from '../app/NatsProvider.tsx';
+import { useLiveRef } from '../hooks.ts';
 
 export const SpatialMapping: React.FC = () => {
     const ref = React.useRef<HTMLCanvasElement | null>(null);
-    const subscribe = useObjectStoreSubscribe();
+    const objectStoreSubscribe = useObjectStoreSubscribe();
+    const [pose] = useWatchKV({
+        key: 'rabbit.zed.pose',
+        parse: (x) => Pose.parse(x.json()),
+    });
+
+    const posRef = useLiveRef(pose);
 
     React.useEffect(() => {
         const canvas = ref.current;
@@ -29,13 +37,21 @@ export const SpatialMapping: React.FC = () => {
 
         scene.add(new THREE.DirectionalLight(0xffffff, 1));
 
+        const poseMarker = new THREE.AxesHelper(0.5);
+        scene.add(poseMarker);
+
         renderer.setAnimationLoop(() => {
             controls.update();
             renderer.render(scene, camera);
+
+            if (posRef.current) {
+                poseMarker.position.set(...posRef.current.translation);
+                poseMarker.quaternion.set(...posRef.current.orientation);
+            }
         });
 
         let prev: THREE.Object3D | null = null;
-        const unsubscribe = subscribe('rabbit.zed.mesh', async (res) => {
+        const unsubscribe = objectStoreSubscribe('rabbit.zed.mesh', async (res) => {
             if (res?.data == null) {
                 return;
             }
@@ -86,3 +102,8 @@ export const SpatialMapping: React.FC = () => {
         </div>
     );
 };
+
+const Pose = z.object({
+    translation: z.tuple([z.number(), z.number(), z.number()]),
+    orientation: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+});
