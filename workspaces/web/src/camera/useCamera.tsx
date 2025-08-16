@@ -16,9 +16,7 @@ type Stats = {
     subject: string;
 };
 
-const subject = 'rabbit.zed.frame';
-
-export const useCameraStream = () => {
+export const useCameraStream = ({ subject }: { subject: string }) => {
     const { nc } = useNats();
     const canvas = React.useRef<HTMLCanvasElement>(null);
     const [stats, setStats] = React.useState<Stats | null>(null);

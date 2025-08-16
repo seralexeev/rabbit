@@ -3,11 +3,14 @@ import { byte } from '@untype/toolbox';
 import React from 'react';
 
 import { ui } from '../ui/index.ts';
-import { CameraSettings } from './CameraSettings.tsx';
 import { useCameraStream } from './useCamera.tsx';
 
-export const CameraView: React.FC = () => {
-    const { canvas, stats } = useCameraStream();
+type CameraViewProps = {
+    subject: string;
+};
+
+export const CameraView: React.FC<CameraViewProps> = ({ subject }) => {
+    const { canvas, stats } = useCameraStream({ subject });
 
     const getHeader = () => {
         if (stats == null) {

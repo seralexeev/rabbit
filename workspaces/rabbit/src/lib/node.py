@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import signal
+import time
 from typing import Any, Awaitable, Callable, Coroutine, Dict, Optional
 
 import nats
@@ -46,15 +47,27 @@ class RabbitNode:
         await self.async_task(task)
 
     async def async_task(self, fn: Callable[[], Coroutine[Any, Any, None]]):
-        self.logger.info(f"Starting async task: {fn.__name__}")
+        name = fn.__name__
+        self.logger.info(f"Async task started: {name}")
 
         async def task():
+            started = time.time()
+            tick = 0
+
             while True:
                 try:
                     await fn()
+                    tick += 1
+                    now = time.time()
+                    if now - started > 10:
+                        fps = tick / (now - started)
+                        started = now
+                        tick = 0
+                        self.logger.info(f"Async task {name}: {fps:.2f} tps")
+
                     await asyncio.sleep(0)
                 except:
-                    self.logger.exception(f"Error in task {fn.__name__}")
+                    self.logger.exception(f"Error in task {name}")
                     await asyncio.sleep(1)
 
         self.tasks.append(asyncio.create_task(task()))

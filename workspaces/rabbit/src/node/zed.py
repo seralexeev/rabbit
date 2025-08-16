@@ -1,4 +1,5 @@
 import json
+import time
 import cv2
 import numpy as np
 from lib.node import RabbitNode
@@ -22,8 +23,19 @@ class CameraSettings(BaseModel):
 
 
 class Pose(BaseModel):
-    translation: list[float] = [0.0, 0.0, 0.0]
-    orientation: list[float] = [0.0, 0.0, 0.0, 1.0]
+    translation: list[float]
+    orientation: list[float]
+    frame_number: int
+    timestamp: int
+
+
+class CameraIntrinsics(BaseModel):
+    fx: float
+    fy: float
+    cx: float
+    cy: float
+    width: int
+    height: int
 
 
 class Node(RabbitNode):
@@ -33,9 +45,9 @@ class Node(RabbitNode):
         super().__init__("rabbit-zed")
 
         self.frame = sl.Mat()
+        self.depth = sl.Mat()
         self.zed = sl.Camera()
         self.pose = sl.Pose()
-        self.mesh = sl.Mesh()
 
         self.runtime_params = sl.RuntimeParameters()
         self.camera_parameters = sl.CameraParameters()
@@ -52,19 +64,8 @@ class Node(RabbitNode):
 
         self.positional_tracking_parameters = sl.PositionalTrackingParameters()
         self.positional_tracking_parameters.set_floor_as_origin = True
-
-        self.spatial_mapping_parameters = sl.SpatialMappingParameters(
-            resolution=sl.MAPPING_RESOLUTION.LOW,
-            mapping_range=sl.MAPPING_RANGE.SHORT,
-            max_memory_usage=2048,
-            save_texture=False,
-            use_chunk_only=True,
-            reverse_vertex_order=False,
-            map_type=sl.SPATIAL_MAP_TYPE.MESH,
-        )
-
-        self.mapping_activated = False
         self.frame_number = -1
+        self.timestamp = 0
 
     async def init(self):
         status = self.zed.open(self.init_params)
@@ -77,12 +78,31 @@ class Node(RabbitNode):
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"Failed to enable positional tracking: {status}")
 
+        await self.publish_camera_intrinsics()
         await self.init_camera_settings()
         await self.watch_kv(self.CAMERA_SETTINGS_KEY, self.on_camera_settings_update)
         await self.async_task(self.capture_loop)
 
     async def close(self):
         self.zed.close()
+
+    async def publish_camera_intrinsics(self):
+        camera_info = self.zed.get_camera_information()
+        left_cam = camera_info.camera_configuration.calibration_parameters.left_cam
+
+        intrinsics = CameraIntrinsics(
+            fx=left_cam.fx,
+            fy=left_cam.fy,
+            cx=left_cam.cx,
+            cy=left_cam.cy,
+            width=camera_info.camera_configuration.resolution.width,
+            height=camera_info.camera_configuration.resolution.height,
+        )
+
+        await self.kv.put(
+            "rabbit.zed.intrinsics", intrinsics.model_dump_json().encode()
+        )
+        self.logger.info(f"Published camera intrinsics: {intrinsics.model_dump()}")
 
     async def init_camera_settings(self):
         try:
@@ -108,61 +128,37 @@ class Node(RabbitNode):
             raise RuntimeError(f"Failed to grab image from ZED camera: {status}")
 
         self.frame_number += 1
+        self.timestamp = self.zed.get_timestamp(
+            sl.TIME_REFERENCE.IMAGE
+        ).get_nanoseconds()
 
-        status = self.zed.retrieve_image(self.frame, sl.VIEW.RIGHT)
+        status = self.zed.retrieve_image(self.frame, sl.VIEW.LEFT)
         if status != sl.ERROR_CODE.SUCCESS:
-            raise RuntimeError(f"Failed to retrieve image: {status}")
-        await self.publish_frame()
-        await self.publish_pose()
+            raise RuntimeError(f"Failed to retrieve RGB image: {status}")
 
-        if not self.mapping_activated:
-            if self.frame_number % self.camera_fps == 0:
-                self.activate_spatial_mapping()
-        else:
-            await self.retrieve_spatial_mapping()
+        await self.publish_pose()
+        await self.publish_frame()
+        await self.publish_depth()
+
+        await self.nc.flush()
 
     async def publish_pose(self):
         state = self.zed.get_position(self.pose, sl.REFERENCE_FRAME.WORLD)
         if state == sl.POSITIONAL_TRACKING_STATE.OK:
             translation = self.pose.get_translation().get()
             orientation = self.pose.get_orientation().get()
-            await self.kv.put(
-                "rabbit.zed.pose",
-                Pose(translation=translation, orientation=orientation)
-                .model_dump_json()
-                .encode(),
+
+            pose = Pose(
+                translation=translation,
+                orientation=orientation,
+                frame_number=self.frame_number,
+                timestamp=self.timestamp,
             )
 
-    async def retrieve_spatial_mapping(self):
-        mapping_state = self.zed.get_spatial_mapping_state()
-        if mapping_state == sl.SPATIAL_MAPPING_STATE.OK:
-            if self.frame_number % self.camera_fps * 5 == 0:
-                self.zed.request_spatial_map_async()
-            status = self.zed.get_spatial_map_request_status_async()
-            if status == sl.ERROR_CODE.SUCCESS:
-                self.zed.retrieve_spatial_map_async(self.mesh)
-                # self.mesh.apply_texture()
-                self.logger.info(
-                    f"Spatial map retrieved successfully: {self.mesh.get_number_of_triangles()} triangles"
-                )
-                tmp_file_name = "/tmp/spatial_map.obj"
-                params = sl.MeshFilterParameters()
-                params.set(sl.MESH_FILTER.HIGH)
-                self.mesh.filter(params)
-                if not self.mesh.save(tmp_file_name, sl.MESH_FILE_FORMAT.OBJ):
-                    raise RuntimeError("Failed to save spatial map to OBJ file")
-                with open(tmp_file_name, "rb") as f:
-                    data = f.read()
-                await self.object_store.put("rabbit.zed.mesh", data)
-
-    def activate_spatial_mapping(self):
-        init_pose = sl.Transform()
-        self.zed.reset_positional_tracking(init_pose)
-        status = self.zed.enable_spatial_mapping(self.spatial_mapping_parameters)
-        if status == sl.ERROR_CODE.SUCCESS:
-            self.mesh.clear()
-            self.mapping_activated = True
-            self.logger.info("Spatial mapping activated")
+            await self.kv.put(
+                "rabbit.zed.pose",
+                pose.model_dump_json().encode(),
+            )
 
     async def publish_frame(self):
         frame_data = self.frame.get_data()
@@ -173,7 +169,7 @@ class Node(RabbitNode):
         )
 
         if not success:
-            raise RuntimeError("Failed to encode image")
+            raise RuntimeError("Failed to encode RGB image")
 
         await self.nc.publish(
             "rabbit.zed.frame",
@@ -182,10 +178,41 @@ class Node(RabbitNode):
                 "type": "image/jpg",
                 "width": str(frame_rgb.shape[1]),
                 "height": str(frame_rgb.shape[0]),
+                "frame_number": str(self.frame_number),
             },
         )
 
-        await self.nc.flush()
+    async def publish_depth(self):
+        status = self.zed.retrieve_measure(
+            self.depth,
+            sl.MEASURE.DEPTH,
+            resolution=sl.Resolution(width=640, height=480),
+        )
+        if status != sl.ERROR_CODE.SUCCESS:
+            raise RuntimeError(f"Failed to retrieve depth image: {status}")
+
+        depth_data = self.depth.get_data()
+        depth_clean = np.nan_to_num(depth_data, nan=0.0, posinf=0.0, neginf=0.0)
+        depth_clean = np.clip(depth_clean, 0.0, 65.0)
+        depth_mm = (depth_clean * 1000).astype(np.uint16)
+        success, buffer = cv2.imencode(
+            ".png", depth_mm, [cv2.IMWRITE_PNG_COMPRESSION, 3]
+        )
+
+        if not success:
+            raise RuntimeError("Failed to encode depth image")
+
+        await self.nc.publish(
+            "rabbit.zed.depth",
+            buffer.tobytes(),
+            headers={
+                "type": "image/png",
+                "width": str(depth_mm.shape[1]),
+                "height": str(depth_mm.shape[0]),
+                "frame_number": str(self.frame_number),
+                "depth_scale": "0.001",
+            },
+        )
 
     def get_camera_settings(self) -> CameraSettings:
         settings = CameraSettings()
