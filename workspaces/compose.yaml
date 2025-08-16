@@ -1,66 +1,68 @@
 services:
-  test:
-    build:
-      context: ./rabbit
-      dockerfile: ./docker/Dockerfile.jetson_deps
-    container_name: rabbit-test
-    privileged: true
-    working_dir: /rabbit
-    runtime: nvidia
-    volumes:
-      - ./rabbit:/rabbit
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-    command: /opt/venv/bin/python -m pytest -s /rabbit/src/nvblox_torch
-
-  # nats:
-  #   image: nats:latest
-  #   container_name: nats
-  #   command: -c /etc/nats/nats-server.conf
-  #   volumes:
-  #     - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
-  #     - ./nats/data:/data/nats
-  #     - ../cert:/etc/cert:ro
-  #   restart: unless-stopped
-  #   ports:
-  #     - '4222:4222'
-  #     - '9222:9222'
-  #     - '8222:8222'
-  #   healthcheck:
-  #     test: ['CMD', 'nats', 'server', 'ping', '--server=nats://localhost:4222']
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 3
-  #     start_period: 10s
-
-  # nats-init:
-  #   image: bitnami/natscli
-  #   depends_on:
-  #     - nats
-  #   volumes:
-  #     - ./nats/init.sh:/init.sh
-  #   entrypoint: ['/bin/bash', '/init.sh']
-  #   restart: 'no'
-
-  # rabbit-zed:
-  #   build: ./rabbit
-  #   container_name: rabbit-zed
+  # test:
+  #   build:
+  #     context: ./rabbit
+  #     dockerfile: ./docker/Dockerfile.nvblox
+  #   container_name: rabbit-test
   #   privileged: true
   #   working_dir: /rabbit
   #   runtime: nvidia
   #   volumes:
   #     - ./rabbit:/rabbit
-  #     - /tmp/argus_socket:/tmp/argus_socket
-  #     - ../../zed/settings:/usr/local/zed/settings
-  #     - ../../zed/resources:/usr/local/zed/resources
   #   environment:
   #     - NVIDIA_VISIBLE_DEVICES=all
   #     - NVIDIA_DRIVER_CAPABILITIES=all
-  #   restart: unless-stopped
-  #   command: uv run src/node/zed.py
-  #   depends_on:
-  #     - nats-init
+  #   command: /opt/venv/bin/python -m pytest -s /rabbit/src/nvblox_torch
+
+  nats:
+    image: nats:latest
+    container_name: nats
+    command: -c /etc/nats/nats-server.conf
+    volumes:
+      - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+      - ./nats/data:/data/nats
+      - ../cert:/etc/cert:ro
+    restart: unless-stopped
+    ports:
+      - '4222:4222'
+      - '9222:9222'
+      - '8222:8222'
+    healthcheck:
+      test: ['CMD', 'nats', 'server', 'ping', '--server=nats://localhost:4222']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  nats-init:
+    image: bitnami/natscli
+    depends_on:
+      - nats
+    volumes:
+      - ./nats/init.sh:/init.sh
+    entrypoint: ['/bin/bash', '/init.sh']
+    restart: 'no'
+
+  rabbit-zed:
+    build:
+      context: ./rabbit
+      dockerfile: ./docker/Dockerfile.zed
+    container_name: rabbit-zed
+    privileged: true
+    working_dir: /rabbit
+    runtime: nvidia
+    volumes:
+      - ./rabbit:/rabbit
+      - /tmp/argus_socket:/tmp/argus_socket
+      - ../../zed/settings:/usr/local/zed/settings
+      - ../../zed/resources:/usr/local/zed/resources
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    restart: unless-stopped
+    command: uv run src/node/zed.py
+    depends_on:
+      - nats-init
 
   # rabbit-roboclaw:
   #   build: ./rabbit-roboclaw
