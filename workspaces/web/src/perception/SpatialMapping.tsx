@@ -7,8 +7,35 @@ import z from 'zod';
 import { useObjectStoreSubscribe, useWatchKV } from '../app/NatsProvider.tsx';
 import { useLiveRef } from '../hooks.ts';
 
+const Pose = z.object({
+    translation: z.tuple([z.number(), z.number(), z.number()]),
+    orientation: z.tuple([z.number(), z.number(), z.number(), z.number()]), // x,y,z,w
+});
+
+const Voxel = z.object({
+    position: z.tuple([z.number(), z.number(), z.number()]),
+    color: z.tuple([z.number(), z.number(), z.number()]).optional(), // 0..255 sRGB
+    tsdf: z.number().min(-1).max(1).optional(),
+    weight: z.number().optional(),
+});
+
+const VoxelPayload = z.object({
+    voxels: z.array(Voxel),
+    voxel_size: z.number(),
+    num_voxels: z.number(),
+    bounds: z.object({
+        min: z.tuple([z.number(), z.number(), z.number()]),
+        max: z.tuple([z.number(), z.number(), z.number()]),
+    }),
+});
+type VoxelPayloadT = z.infer<typeof VoxelPayload>;
+
+// sRGB -> linear (0..1)
+const s2l = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+
 export const SpatialMapping: React.FC = () => {
-    const ref = React.useRef<HTMLCanvasElement | null>(null);
+    const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+
     const objectStoreSubscribe = useObjectStoreSubscribe();
     const [pose] = useWatchKV({
         key: 'rabbit.zed.pose',
@@ -17,174 +44,242 @@ export const SpatialMapping: React.FC = () => {
     const posRef = useLiveRef(pose);
 
     React.useEffect(() => {
-        const canvas = ref.current;
-        if (canvas == null) {
-            return;
-        }
+        const canvas = canvasRef.current;
+        if (!canvas) return;
 
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-        renderer.setSize(1200, 600);
+        // ===== Renderer
+        const renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: true,
+            alpha: false,
+            powerPreference: 'high-performance',
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio ?? 1, 2));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.physicallyCorrectLights = true;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.6;
 
+        // ===== Scene
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0f1012);
+        scene.background = new THREE.Color(0x14171c);
 
-        const camera = new THREE.PerspectiveCamera(60, 1200 / 600, 0.1, 1000);
-        camera.position.set(0.8, 1.6, 3.2);
-
-        const controls = new OrbitControls(camera, canvas);
+        // ===== Camera + controls
+        const camera = new THREE.PerspectiveCamera(60, 1, 0.02, 5000);
+        camera.position.set(2, 2, 2);
+        const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        // Lighting
-        scene.add(new THREE.DirectionalLight(0xffffff, 1));
-        scene.add(new THREE.AmbientLight(0x404040, 0.4));
+        // ===== Lights (достаточно яркие)
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const hemi = new THREE.HemisphereLight(0xffffff, 0x222222, 0.9);
+        scene.add(hemi);
+        const dir = new THREE.DirectionalLight(0xffffff, 1.8);
+        dir.position.set(6, 10, 8);
+        dir.castShadow = false;
+        scene.add(dir);
 
-        // Pose marker
-        const poseMarker = new THREE.AxesHelper(0.5);
-        scene.add(poseMarker);
+        // ===== Axes: мировая + ось позы (ось позы всегда поверх)
+        const worldAxes = new THREE.AxesHelper(0.6);
+        scene.add(worldAxes);
 
-        // Voxel container
-        const voxelGroup = new THREE.Group();
-        scene.add(voxelGroup);
-
-        // Instanced mesh for efficient voxel rendering
-        const voxelGeometry = new THREE.BoxGeometry(1, 1, 1);
-        const voxelMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ff00,
-            transparent: false,
-            side: THREE.DoubleSide,
+        const poseAxes = new THREE.AxesHelper(0.35);
+        poseAxes.renderOrder = 9999;
+        poseAxes.traverse((o: any) => {
+            if (o.material) {
+                o.material.depthTest = false;
+                o.material.depthWrite = false;
+                o.material.transparent = true;
+                o.material.opacity = 1.0;
+                o.material.toneMapped = false;
+            }
         });
+        scene.add(poseAxes);
 
-        const instancedMesh = new THREE.InstancedMesh(
-            voxelGeometry,
-            voxelMaterial,
-            10000, // Max voxels
-        );
-        instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        instancedMesh.count = 0; // Start with 0 instances
+        // ===== Resize
+        const resize = () => {
+            const parent = canvas.parentElement ?? document.body;
+            const w = parent.clientWidth || window.innerWidth;
+            const h = parent.clientHeight || window.innerHeight;
+            renderer.setSize(w, h, false);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        };
+        resize();
+        const ro = new ResizeObserver(resize);
+        ro.observe(canvas.parentElement ?? document.body);
 
-        // Enable per-instance colors
-        const colors = new Float32Array(10000 * 3);
-        instancedMesh.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
-        instancedMesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+        // ===== Geometry + material
+        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        // ВАЖНО: добавляем белый per-vertex color (иначе vertexColors у некоторых версий — чёрный)
+        {
+            const vc = boxGeo.attributes.position.count;
+            const white = new Float32Array(vc * 3);
+            white.fill(1);
+            boxGeo.setAttribute('color', new THREE.BufferAttribute(white, 3));
+        }
 
-        voxelGroup.add(instancedMesh);
+        // Выбирай: Lambert (дешевле) или Standard (чуть красивее).
+        const boxMat = new THREE.MeshLambertMaterial({
+            vertexColors: true,
+            transparent: false,
+            // opacity: 0.9, // включи если хочешь полупрозрачные воксели
+        });
+        // Альтернатива:
+        // const boxMat = new THREE.MeshStandardMaterial({
+        //   vertexColors: true, roughness: 0.95, metalness: 0.0
+        // });
 
-        // Update voxel data
-        const updateVoxels = (voxelData: any) => {
-            const voxels = voxelData.voxels || [];
-            const voxelSize = voxelData.voxel_size || 0.05;
+        let voxelMesh: THREE.InstancedMesh | null = null;
+        let capacity = 0;
+        let lastBounds: { min: THREE.Vector3; max: THREE.Vector3 } | null = null;
 
-            console.log(`Received ${voxels.length} voxels with size ${voxelSize}`);
-            console.log('Bounds:', voxelData.bounds);
-            console.log('Sample voxels:', voxels.slice(0, 3));
-
-            if (voxels.length === 0) {
-                instancedMesh.count = 0;
-                return;
+        const ensureMesh = (cap: number) => {
+            if (voxelMesh && capacity >= cap) return;
+            if (voxelMesh) {
+                scene.remove(voxelMesh);
+                // @ts-ignore
+                voxelMesh.instanceColor = null;
+                voxelMesh.dispose?.();
             }
-
-            // Update instance count
-            instancedMesh.count = Math.min(voxels.length, 10000);
-
-            // Create matrices and colors for each voxel
-            const matrix = new THREE.Matrix4();
-            const color = new THREE.Color();
-
-            for (let i = 0; i < instancedMesh.count; i++) {
-                const voxel = voxels[i];
-
-                if (!voxel.position || voxel.position.length !== 3) {
-                    console.error('Invalid voxel position:', voxel);
-                    continue;
-                }
-
-                // Position and scale matrix
-                matrix.makeScale(voxelSize, voxelSize, voxelSize);
-                matrix.setPosition(voxel.position[0], voxel.position[1], voxel.position[2]);
-                instancedMesh.setMatrixAt(i, matrix);
-
-                // Color
-                if (voxel.color && voxel.color.length === 3) {
-                    color.setRGB(voxel.color[0] / 255, voxel.color[1] / 255, voxel.color[2] / 255);
-                } else {
-                    // Make all voxels green for debugging
-                    color.setRGB(0, 1, 0); // Bright green
-                }
-                instancedMesh.setColorAt(i, color);
-            }
-
-            // Update buffers
-            instancedMesh.instanceMatrix.needsUpdate = true;
-            if (instancedMesh.instanceColor) {
-                instancedMesh.instanceColor.needsUpdate = true;
-            }
-
-            console.log(`Successfully updated ${instancedMesh.count} voxel instances`);
+            capacity = Math.max(cap, 1);
+            voxelMesh = new THREE.InstancedMesh(boxGeo, boxMat, capacity);
+            voxelMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            voxelMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
+            scene.add(voxelMesh);
         };
 
-        // Animation loop
+        const matTmp = new THREE.Matrix4();
+        const quatTmp = new THREE.Quaternion();
+        const scaleTmp = new THREE.Vector3();
+        const posTmp = new THREE.Vector3();
+
+        const fitCameraToBounds = (min: THREE.Vector3, max: THREE.Vector3) => {
+            const center = new THREE.Vector3().addVectors(min, max).multiplyScalar(0.5);
+            const size = new THREE.Vector3().subVectors(max, min);
+            const radius = Math.max(size.length() * 0.5, 0.5);
+            camera.near = 0.02;
+            camera.far = Math.max(5000, radius * 20);
+            camera.updateProjectionMatrix();
+            camera.position.copy(center).add(new THREE.Vector3(radius, radius * 0.6, radius));
+            camera.lookAt(center);
+            controls.target.copy(center);
+            controls.update();
+        };
+
+        const updateVoxels = (payload: VoxelPayloadT) => {
+            const { voxels, voxel_size, bounds } = payload;
+
+            ensureMesh(voxels.length);
+            if (!voxelMesh) return;
+
+            voxelMesh.count = voxels.length;
+            scaleTmp.set(voxel_size, voxel_size, voxel_size);
+
+            const instCol = voxelMesh.instanceColor as THREE.InstancedBufferAttribute;
+            const colArr = instCol.array as Float32Array;
+
+            for (let i = 0; i < voxels.length; i++) {
+                const v = voxels[i];
+
+                // матрица
+                const [x, y, z] = v.position;
+                posTmp.set(x, y, z);
+                matTmp.compose(posTmp, quatTmp, scaleTmp);
+                voxelMesh.setMatrixAt(i, matTmp);
+
+                // цвет (0..255 sRGB -> 0..1 linear)
+                let r = 0.6,
+                    g = 0.6,
+                    b = 0.6;
+                if (v.color) {
+                    r = s2l(v.color[0] / 255);
+                    g = s2l(v.color[1] / 255);
+                    b = s2l(v.color[2] / 255);
+                } else if (typeof v.tsdf === 'number') {
+                    const t = Math.max(-1, Math.min(1, v.tsdf));
+                    const sr = 0.5 + 0.5 * Math.max(0, t);
+                    const sg = 0.5 * (1 - Math.abs(t));
+                    const sb = 0.5 + 0.5 * Math.max(0, -t);
+                    r = s2l(sr);
+                    g = s2l(sg);
+                    b = s2l(sb);
+                }
+                // Чуть поднимем яркость
+                const k = 1.15;
+                colArr[i * 3 + 0] = Math.min(1, r * k);
+                colArr[i * 3 + 1] = Math.min(1, g * k);
+                colArr[i * 3 + 2] = Math.min(1, b * k);
+            }
+
+            voxelMesh.instanceMatrix.needsUpdate = true;
+            instCol.needsUpdate = true;
+
+            // Камера по боксам
+            const min = new THREE.Vector3(...bounds.min);
+            const max = new THREE.Vector3(...bounds.max);
+            const needsRefit =
+                !lastBounds ||
+                min.distanceTo(lastBounds.min) > voxel_size * 2 ||
+                max.distanceTo(lastBounds.max) > voxel_size * 2;
+
+            if (needsRefit) {
+                fitCameraToBounds(min, max);
+                lastBounds = { min, max };
+            }
+        };
+
+        // ===== Render loop
         renderer.setAnimationLoop(() => {
+            const p = posRef.current;
+            if (p) {
+                const [tx, ty, tz] = p.translation;
+                const [qx, qy, qz, qw] = p.orientation;
+                poseAxes.position.set(tx, ty, tz);
+                poseAxes.quaternion.set(qx, qy, qz, qw);
+            }
             controls.update();
             renderer.render(scene, camera);
-
-            // Update pose marker
-            if (posRef.current) {
-                poseMarker.position.set(...posRef.current.translation);
-                poseMarker.quaternion.set(...posRef.current.orientation);
-            }
         });
 
-        // Subscribe to voxel updates
+        // ===== Subscribe
         const unsubscribe = objectStoreSubscribe('rabbit.nvblox.voxels', async (res) => {
-            if (res?.data == null) {
-                console.log('No voxel data received');
+            if (!res?.data) return;
+            const buffer = await new Response(res.data).arrayBuffer();
+            const text = new TextDecoder().decode(new Uint8Array(buffer));
+            const parsed = VoxelPayload.safeParse(JSON.parse(text));
+            if (!parsed.success) {
+                console.warn('Invalid voxel payload', parsed.error);
                 return;
             }
-
-            try {
-                const voxelData = await new Response(res.data)
-                    .arrayBuffer()
-                    .then((x) => new TextDecoder().decode(new Uint8Array(x)))
-                    .then((text) => JSON.parse(text));
-
-                console.log('Raw voxel data received:', {
-                    num_voxels: voxelData.num_voxels,
-                    voxel_size: voxelData.voxel_size,
-                    bounds: voxelData.bounds,
-                });
-
-                updateVoxels(voxelData);
-            } catch (error) {
-                console.error('Error parsing voxel data:', error);
-            }
+            updateVoxels(parsed.data);
         });
 
         return () => {
             unsubscribe();
-            controls.dispose();
+            renderer.setAnimationLoop(null);
+            ro.disconnect();
+            if (voxelMesh) {
+                scene.remove(voxelMesh);
+                // @ts-ignore
+                voxelMesh.instanceColor = null;
+                voxelMesh.dispose?.();
+                voxelMesh = null;
+            }
+            boxGeo.dispose();
+            (boxMat as THREE.Material).dispose();
             renderer.dispose();
         };
-    }, []);
+    }, [objectStoreSubscribe, posRef]);
 
     return (
-        <div
+        <canvas
             className={css`
                 width: 100%;
                 height: 100%;
-            `}>
-            <canvas
-                className={css`
-                    width: 100%;
-                `}
-                ref={ref}
-                width={1200}
-                height={600}
-            />
-        </div>
+                display: block;
+            `}
+            ref={canvasRef}
+        />
     );
 };
-
-const Pose = z.object({
-    translation: z.tuple([z.number(), z.number(), z.number()]),
-    orientation: z.tuple([z.number(), z.number(), z.number(), z.number()]),
-});

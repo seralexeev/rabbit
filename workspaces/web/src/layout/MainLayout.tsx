@@ -48,7 +48,7 @@ export const MainLayout: React.FC = () => {
                         width: 100%;
                         flex: 1;
                     `}>
-                    <CameraView subject='rabbit.zed.depth' />
+                    <CameraView subject='rabbit.zed.frame' />
                 </div>
 
                 <div

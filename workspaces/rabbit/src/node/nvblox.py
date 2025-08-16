@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 import cv2
 import numpy as np
@@ -33,6 +33,14 @@ def pose_to_transformation_matrix(translation, orientation):
 
 
 class Node(RabbitNode):
+    # Constants
+    MIN_DEPTH = 0.1
+    MAX_DEPTH = 10.0
+    VOXEL_SIZE = 0.05
+    MAX_INTEGRATION_DISTANCE = 5.0
+    SURFACE_THRESHOLD_MULTIPLIER = 2.0
+    MIN_WEIGHT_THRESHOLD = 0.1
+
     def __init__(self):
         super().__init__("nvblox")
 
@@ -43,16 +51,17 @@ class Node(RabbitNode):
         self.latest_pose: Optional[Pose] = None
         self.processing = False
 
+        # Initialize mapper
         projective_integrator_params = ProjectiveIntegratorParams()
         projective_integrator_params.projective_integrator_max_integration_distance_m = (
-            5.0
+            self.MAX_INTEGRATION_DISTANCE
         )
 
         mapper_params = MapperParams()
         mapper_params.set_projective_integrator_params(projective_integrator_params)
 
         self.mapper = Mapper(
-            voxel_sizes_m=0.05,
+            voxel_sizes_m=self.VOXEL_SIZE,
             integrator_types=ProjectiveIntegratorType.TSDF,
             mapper_parameters=mapper_params,
         )
@@ -63,8 +72,8 @@ class Node(RabbitNode):
         await self.nc.subscribe("rabbit.zed.depth", cb=self.on_depth_frame)
         await self.watch_kv("rabbit.zed.pose", self.on_pose_update)
 
-        self.set_interval(self.update_map, 5)
-        self.set_interval(self.try_process, 0.1)
+        self.set_interval(self.update_and_publish_map, 5)
+        self.set_interval(self.process_frame, 0.1)
 
     async def load_camera_intrinsics(self):
         entry = await self.kv.get("rabbit.zed.intrinsics")
@@ -95,7 +104,9 @@ class Node(RabbitNode):
         depth_image = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
         depth_image = depth_image.astype(np.float32) * depth_scale
         depth_image = np.nan_to_num(depth_image, nan=0.0)
-        valid_mask = (depth_image > 0.1) & (depth_image < 10.0)
+
+        # Apply depth filtering
+        valid_mask = (depth_image > self.MIN_DEPTH) & (depth_image < self.MAX_DEPTH)
         depth_image[~valid_mask] = 0.0
 
         self.latest_depth = depth_image
@@ -104,7 +115,7 @@ class Node(RabbitNode):
         if entry.value:
             self.latest_pose = Pose.model_validate_json(entry.value)
 
-    async def try_process(self):
+    async def process_frame(self):
         if (
             self.processing
             or self.latest_rgb is None
@@ -117,105 +128,133 @@ class Node(RabbitNode):
 
         self.processing = True
 
+        # Convert pose to transformation matrix
         pose_matrix = pose_to_transformation_matrix(
             self.latest_pose.translation, self.latest_pose.orientation
         )
         pose_tensor = torch.from_numpy(pose_matrix).float()
+
+        # Convert images to tensors
         depth_tensor = torch.from_numpy(self.latest_depth).float().cuda()
         rgb_tensor = torch.from_numpy(self.latest_rgb).cuda()
+
+        # Add frames to mapper
         self.mapper.add_depth_frame(depth_tensor, pose_tensor, self.intrinsics_matrix)
         self.mapper.add_color_frame(rgb_tensor, pose_tensor, self.intrinsics_matrix)
+
+        # Clear processed data to free memory
+        self.latest_rgb = None
+        self.latest_depth = None
+        self.latest_pose = None
+
         self.processing = False
 
-    async def update_map(self):
+    def extract_surface_voxels(self) -> List[Dict[str, Any]]:
+        """Extract voxels near the surface from TSDF."""
+        if not self.mapper:
+            return []
+
         tsdf_layer = self.mapper.tsdf_layer_view()
         blocks, indices = tsdf_layer.get_all_blocks()
 
         if len(blocks) == 0:
-            self.logger.warning("No blocks allocated yet")
-            return
+            return []
 
-        voxel_data = []
         voxel_size = tsdf_layer.voxel_size()
-
-        self.logger.info(f"Processing {len(blocks)} blocks, voxel_size={voxel_size}")
+        surface_threshold = self.SURFACE_THRESHOLD_MULTIPLIER * voxel_size
 
         voxel_centers_list = get_voxel_center_grids(indices, voxel_size, device="cuda")
 
-        # Loop over all blocks and extract surface voxels
-        for block, voxel_centers in zip(blocks, voxel_centers_list):
-            # Get TSDF values and weights
-            tsdf_values = block[..., 0]  # First channel is distance
-            weights = block[..., 1]  # Second channel is weight
+        all_surface_centers = []
+        all_surface_tsdf = []
+        all_surface_weights = []
 
-            # Find voxels near surface (like in documentation examples)
-            # Surface is where TSDF is close to 0 and has been observed
-            surface_mask = (torch.abs(tsdf_values) < 0.1) & (weights > 0.1)
+        # Batch process all blocks
+        for block, voxel_centers in zip(blocks, voxel_centers_list):
+            tsdf_values = block[..., 0]
+            weights = block[..., 1]
+
+            # Find surface voxels
+            surface_mask = (torch.abs(tsdf_values) < surface_threshold) & (
+                weights > self.MIN_WEIGHT_THRESHOLD
+            )
 
             if torch.any(surface_mask):
-                # Get positions of surface voxels
-                surface_centers = voxel_centers[surface_mask]
-                surface_tsdf = tsdf_values[surface_mask]
-                surface_weights = weights[surface_mask]
+                all_surface_centers.append(voxel_centers[surface_mask])
+                all_surface_tsdf.append(tsdf_values[surface_mask])
+                all_surface_weights.append(weights[surface_mask])
 
-                # Convert to CPU and add to list
-                surface_centers_cpu = surface_centers.cpu().numpy()
-                surface_tsdf_cpu = surface_tsdf.cpu().numpy()
-                surface_weights_cpu = surface_weights.cpu().numpy()
+        if not all_surface_centers:
+            return []
 
-                for i in range(len(surface_centers_cpu)):
-                    pos = surface_centers_cpu[i]
-                    tsdf_val = float(surface_tsdf_cpu[i])
-                    weight_val = float(surface_weights_cpu[i])
+        # Concatenate and convert to CPU in batch
+        surface_centers = torch.cat(all_surface_centers).cpu().numpy()
+        surface_tsdf = torch.cat(all_surface_tsdf).cpu().numpy()
+        surface_weights = torch.cat(all_surface_weights).cpu().numpy()
 
-                    # Color based on TSDF value (blue inside, red outside)
-                    if tsdf_val < 0:
-                        color = [0, 0, 255]  # Blue for inside
-                    else:
-                        color = [255, 0, 0]  # Red for outside
+        # Create voxel data with gradient colors
+        voxel_data = []
+        for i in range(len(surface_centers)):
+            # Normalize TSDF for color gradient
+            normalized_tsdf = np.clip(surface_tsdf[i] / surface_threshold, -1, 1)
 
-                    voxel_data.append(
-                        {
-                            "position": [
-                                float(pos[0]),
-                                float(pos[1]),
-                                float(pos[2]),
-                            ],
-                            "color": color,
-                            "tsdf": tsdf_val,
-                            "weight": weight_val,
-                        }
-                    )
+            color = [
+                int(255 * max(0, normalized_tsdf)),  # Red for outside
+                int(128 * (1 - abs(normalized_tsdf))),  # Green at surface
+                int(255 * max(0, -normalized_tsdf)),  # Blue for inside
+            ]
 
-        if len(voxel_data) == 0:
-            self.logger.warning("No surface voxels found")
+            voxel_data.append(
+                {
+                    "position": surface_centers[i].tolist(),
+                    "color": color,
+                    "tsdf": float(surface_tsdf[i]),
+                    "weight": float(surface_weights[i]),
+                }
+            )
+
+        return voxel_data
+
+    async def publish_voxel_map(self, voxel_data: List[Dict[str, Any]]):
+        """Publish voxel map to object store."""
+        if not voxel_data:
             return
 
-        # Log some sample voxels for debugging
-        sample_voxels = voxel_data[:3]
-        self.logger.info(f"Sample voxels: {sample_voxels}")
+        # Calculate bounds efficiently
+        positions = np.array([v["position"] for v in voxel_data])
+        bounds_min = positions.min(axis=0).tolist()
+        bounds_max = positions.max(axis=0).tolist()
 
         voxel_output = {
             "voxels": voxel_data,
-            "voxel_size": float(voxel_size),
+            "voxel_size": float(self.VOXEL_SIZE),
             "num_voxels": len(voxel_data),
             "bounds": {
-                "min": [
-                    float(min(v["position"][i] for v in voxel_data)) for i in range(3)
-                ],
-                "max": [
-                    float(max(v["position"][i] for v in voxel_data)) for i in range(3)
-                ],
+                "min": bounds_min,
+                "max": bounds_max,
             },
         }
 
+        # Consider using msgpack here if performance matters
         await self.object_store.put(
             "rabbit.nvblox.voxels", json.dumps(voxel_output).encode()
         )
 
         self.logger.info(
-            f"Published {len(voxel_data)} voxels, bounds: {voxel_output['bounds']}"
+            f"Published {len(voxel_data)} voxels, "
+            f"bounds: [{bounds_min[0]:.2f}, {bounds_min[1]:.2f}, {bounds_min[2]:.2f}] "
+            f"to [{bounds_max[0]:.2f}, {bounds_max[1]:.2f}, {bounds_max[2]:.2f}]"
         )
+
+    async def update_and_publish_map(self):
+        """Main update cycle for map processing."""
+        surface_voxels = self.extract_surface_voxels()
+
+        if not surface_voxels:
+            self.logger.warning("No surface voxels found")
+            return
+
+        await self.publish_voxel_map(surface_voxels)
 
 
 if __name__ == "__main__":
