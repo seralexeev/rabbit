@@ -106,27 +106,24 @@ class RabbitNode:
         return self.__object_store
 
     def set_timeout(
-        self, callback: Callable[[], Any], delay: float
+        self, callback: Callable[[], Coroutine[Any, Any, None]], delay: float
     ) -> asyncio.Task[None]:
         async def worker():
+            await callback()
             await asyncio.sleep(delay)
-            if asyncio.iscoroutinefunction(callback):
-                await callback()
-            else:
-                callback()
 
         return asyncio.create_task(worker())
 
     def set_interval(
-        self, callback: Callable[[], Any], interval: float
+        self, callback: Callable[[], Coroutine[Any, Any, None]], delay: float
     ) -> asyncio.Task[None]:
         async def worker():
             while True:
-                if asyncio.iscoroutinefunction(callback):
+                try:
                     await callback()
-                else:
-                    callback()
-                await asyncio.sleep(interval)
+                except:
+                    self.logger.exception(f"Error in interval task {callback.__name__}")
+                await asyncio.sleep(delay)
 
         return asyncio.create_task(worker())
 

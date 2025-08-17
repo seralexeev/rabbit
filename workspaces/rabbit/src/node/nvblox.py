@@ -51,7 +51,6 @@ class Node(RabbitNode):
         self.latest_pose: Optional[Pose] = None
         self.processing = False
 
-        # Initialize mapper
         projective_integrator_params = ProjectiveIntegratorParams()
         projective_integrator_params.projective_integrator_max_integration_distance_m = (
             self.MAX_INTEGRATION_DISTANCE
@@ -90,7 +89,7 @@ class Node(RabbitNode):
             dtype=torch.float32,
         )
 
-        self.logger.info(f"Loaded camera intrinsics: {intrinsics}")
+        self.logger.info("Loaded camera intrinsics")
 
     async def on_rgb_frame(self, msg: Msg):
         nparr = np.frombuffer(msg.data, np.uint8)

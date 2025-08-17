@@ -109,9 +109,7 @@ export const SpatialMapping: React.FC = () => {
         const ro = new ResizeObserver(resize);
         ro.observe(canvas.parentElement ?? document.body);
 
-        // ===== Geometry + material
         const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-        // ВАЖНО: добавляем белый per-vertex color (иначе vertexColors у некоторых версий — чёрный)
         {
             const vc = boxGeo.attributes.position.count;
             const white = new Float32Array(vc * 3);
@@ -119,13 +117,11 @@ export const SpatialMapping: React.FC = () => {
             boxGeo.setAttribute('color', new THREE.BufferAttribute(white, 3));
         }
 
-        // Выбирай: Lambert (дешевле) или Standard (чуть красивее).
         const boxMat = new THREE.MeshLambertMaterial({
             vertexColors: true,
             transparent: false,
-            // opacity: 0.9, // включи если хочешь полупрозрачные воксели
+            opacity: 0.9,
         });
-        // Альтернатива:
         // const boxMat = new THREE.MeshStandardMaterial({
         //   vertexColors: true, roughness: 0.95, metalness: 0.0
         // });

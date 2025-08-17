@@ -83,7 +83,9 @@ services:
       - nats-init
 
   # rabbit-roboclaw:
-  #   build: ./rabbit-roboclaw
+  #   build:
+  #     context: ./rabbit
+  #     dockerfile: ./docker/Dockerfile.zed
   #   container_name: rabbit-roboclaw
   #   privileged: true
   #   restart: unless-stopped

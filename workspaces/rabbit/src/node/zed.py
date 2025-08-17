@@ -1,6 +1,3 @@
-import json
-import time
-
 import cv2
 import numpy as np
 from lib.model import CameraIntrinsics, Pose
@@ -88,7 +85,7 @@ class Node(RabbitNode):
         await self.kv.put(
             "rabbit.zed.intrinsics", intrinsics.model_dump_json().encode()
         )
-        self.logger.info(f"Published camera intrinsics: {intrinsics.model_dump()}")
+        self.logger.info(f"Published camera intrinsics")
 
     async def init_camera_settings(self):
         try:
@@ -148,10 +145,10 @@ class Node(RabbitNode):
 
     async def publish_frame(self):
         frame_data = self.frame.get_data()
-        frame_rgb = frame_data[:, :, :3]
+        frame_rgb = np.ascontiguousarray(frame_data[:, :, :3])
 
         success, buffer = cv2.imencode(
-            ".jpg", frame_rgb, [cv2.IMWRITE_JPEG_QUALITY, 75]
+            ".jpg", frame_rgb, [cv2.IMWRITE_JPEG_QUALITY, 50]
         )
 
         if not success:
