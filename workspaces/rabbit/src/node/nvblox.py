@@ -89,7 +89,7 @@ class Node(RabbitNode):
             dtype=torch.float32,
         )
 
-        self.logger.info("Loaded camera intrinsics")
+        self.logger.info(f"Loaded camera intrinsics: {intrinsics}")
 
     async def on_rgb_frame(self, msg: Msg):
         nparr = np.frombuffer(msg.data, np.uint8)

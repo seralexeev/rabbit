@@ -55,6 +55,7 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
             };
         }, 500);
 
+        let frame_number = -1;
         const subscription = nc.subscribe(subject, {
             callback: (_, msg) => {
                 const ctx = canvas.current?.getContext('2d');
@@ -63,6 +64,10 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
                 }
 
                 const headers = util.parseNatsHeaders(MessageHeader, msg);
+                if (headers.frame_number <= frame_number) {
+                    L.warn('Received out-of-order frame');
+                    return;
+                }
 
                 if (canvas.current.width !== headers.width || canvas.current.height !== headers.height) {
                     canvas.current.width = headers.width;
@@ -107,4 +112,5 @@ const MessageHeader = z.object({
     type: z.string(),
     width: z.coerce.number().int(),
     height: z.coerce.number().int(),
+    frame_number: z.coerce.number().int(),
 });

@@ -1,3 +1,4 @@
+from typing import Optional
 import cv2
 import numpy as np
 from lib.model import CameraIntrinsics, Pose
@@ -27,7 +28,7 @@ class Node(RabbitNode):
     def __init__(self):
         super().__init__("rabbit-zed")
 
-        self.frame = sl.Mat()
+        self.image = sl.Mat()
         self.depth = sl.Mat()
         self.zed = sl.Camera()
         self.pose = sl.Pose()
@@ -65,6 +66,10 @@ class Node(RabbitNode):
         await self.init_camera_settings()
         await self.watch_kv(self.CAMERA_SETTINGS_KEY, self.on_camera_settings_update)
         await self.async_task(self.capture_loop)
+
+        self.set_interval(self.publish_depth, 1 / self.camera_fps)
+        self.set_interval(self.publish_image, 1 / self.camera_fps)
+        self.set_interval(self.publish_pose, 1 / self.camera_fps)
 
     async def close(self):
         self.zed.close()
@@ -115,15 +120,9 @@ class Node(RabbitNode):
             sl.TIME_REFERENCE.IMAGE
         ).get_nanoseconds()
 
-        status = self.zed.retrieve_image(self.frame, sl.VIEW.LEFT)
+        status = self.zed.retrieve_image(self.image, sl.VIEW.LEFT)
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"Failed to retrieve RGB image: {status}")
-
-        await self.publish_pose()
-        await self.publish_frame()
-        await self.publish_depth()
-
-        await self.nc.flush()
 
     async def publish_pose(self):
         state = self.zed.get_position(self.pose, sl.REFERENCE_FRAME.WORLD)
@@ -142,9 +141,10 @@ class Node(RabbitNode):
                 "rabbit.zed.pose",
                 pose.model_dump_json().encode(),
             )
+            await self.nc.flush()
 
-    async def publish_frame(self):
-        frame_data = self.frame.get_data()
+    async def publish_image(self):
+        frame_data = self.image.get_data()
         frame_rgb = np.ascontiguousarray(frame_data[:, :, :3])
 
         success, buffer = cv2.imencode(
@@ -164,6 +164,7 @@ class Node(RabbitNode):
                 "frame_number": str(self.frame_number),
             },
         )
+        await self.nc.flush()
 
     async def publish_depth(self):
         status = self.zed.retrieve_measure(
@@ -196,6 +197,7 @@ class Node(RabbitNode):
                 "depth_scale": "0.001",
             },
         )
+        await self.nc.flush()
 
     def get_camera_settings(self) -> CameraSettings:
         settings = CameraSettings()

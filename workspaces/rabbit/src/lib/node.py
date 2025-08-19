@@ -115,17 +115,44 @@ class RabbitNode:
         return asyncio.create_task(worker())
 
     def set_interval(
-        self, callback: Callable[[], Coroutine[Any, Any, None]], delay: float
+        self,
+        callback: Callable[[], Awaitable[None]],
+        delay: float,
+        max_parallel: Optional[int] = None,
     ) -> asyncio.Task[None]:
-        async def worker():
-            while True:
-                try:
-                    await callback()
-                except:
-                    self.logger.exception(f"Error in interval task {callback.__name__}")
-                await asyncio.sleep(delay)
+        async def safe_callback():
+            try:
+                await callback()
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                self.logger.exception(f"Exception in interval callback: {e}")
 
-        return asyncio.create_task(worker())
+        async def runner():
+            running: set[asyncio.Task] = set()
+            loop = asyncio.get_running_loop()
+            next_tick = loop.time()
+
+            try:
+                while True:
+                    running = {t for t in running if not t.done()}
+                    if max_parallel is None or len(running) < max_parallel:
+                        t = asyncio.create_task(safe_callback())
+                        running.add(t)
+                    else:
+                        self.logger.warning(
+                            f"Skipping tick: {len(running)}/{max_parallel} tasks running"
+                        )
+
+                    next_tick += delay
+                    sleep_time = next_tick - loop.time()
+                    await asyncio.sleep(sleep_time if sleep_time > 0 else 0)
+            except asyncio.CancelledError:
+                if running:
+                    await asyncio.gather(*running, return_exceptions=True)
+                raise
+
+        return asyncio.create_task(runner())
 
     async def close(self):
         pass
