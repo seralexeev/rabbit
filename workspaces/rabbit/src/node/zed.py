@@ -1,4 +1,7 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
+
 import cv2
 import numpy as np
 from lib.model import CameraIntrinsics, Pose
@@ -67,9 +70,9 @@ class Node(RabbitNode):
         await self.watch_kv(self.CAMERA_SETTINGS_KEY, self.on_camera_settings_update)
         await self.async_task(self.capture_loop)
 
-        self.set_interval(self.publish_depth, 1 / self.camera_fps)
+        # self.set_interval(self.publish_depth, 1 / self.camera_fps)
         self.set_interval(self.publish_image, 1 / self.camera_fps)
-        self.set_interval(self.publish_pose, 1 / self.camera_fps)
+        # self.set_interval(self.publish_pose, 1 / self.camera_fps)
 
     async def close(self):
         self.zed.close()
@@ -145,26 +148,33 @@ class Node(RabbitNode):
 
     async def publish_image(self):
         frame_data = self.image.get_data()
-        frame_rgb = np.ascontiguousarray(frame_data[:, :, :3])
+        frame_number = self.frame_number
 
-        success, buffer = cv2.imencode(
-            ".jpg", frame_rgb, [cv2.IMWRITE_JPEG_QUALITY, 50]
-        )
+        async def encode_publish():
+            frame_rgb = np.ascontiguousarray(frame_data[:, :, :3])
 
-        if not success:
-            raise RuntimeError("Failed to encode RGB image")
+            success, buffer = await asyncio.to_thread(
+                cv2.imencode,
+                ".jpg",
+                frame_rgb,
+                [cv2.IMWRITE_JPEG_QUALITY, 75],
+            )
+            if not success:
+                raise RuntimeError("Failed to encode RGB image")
 
-        await self.nc.publish(
-            "rabbit.zed.frame",
-            buffer.tobytes(),
-            headers={
-                "type": "image/jpg",
-                "width": str(frame_rgb.shape[1]),
-                "height": str(frame_rgb.shape[0]),
-                "frame_number": str(self.frame_number),
-            },
-        )
-        await self.nc.flush()
+            await self.nc.publish(
+                "rabbit.zed.frame",
+                buffer.tobytes(),
+                headers={
+                    "type": "image/jpeg",
+                    "width": str(frame_rgb.shape[1]),
+                    "height": str(frame_rgb.shape[0]),
+                    "frame_number": str(frame_number),
+                },
+            )
+            await self.nc.flush()
+
+        await asyncio.create_task(encode_publish())
 
     async def publish_depth(self):
         status = self.zed.retrieve_measure(

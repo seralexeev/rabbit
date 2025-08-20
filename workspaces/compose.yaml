@@ -64,23 +64,23 @@ services:
     depends_on:
       - nats-init
 
-  rabbit-nvblox:
-    build:
-      context: ./rabbit
-      dockerfile: ./docker/Dockerfile.nvblox
-    container_name: rabbit-nvblox
-    privileged: true
-    working_dir: /rabbit
-    runtime: nvidia
-    volumes:
-      - ./rabbit:/rabbit
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
-    restart: unless-stopped
-    command: python3 src/node/nvblox.py
-    depends_on:
-      - nats-init
+  # rabbit-nvblox:
+  #   build:
+  #     context: ./rabbit
+  #     dockerfile: ./docker/Dockerfile.nvblox
+  #   container_name: rabbit-nvblox
+  #   privileged: true
+  #   working_dir: /rabbit
+  #   runtime: nvidia
+  #   volumes:
+  #     - ./rabbit:/rabbit
+  #   environment:
+  #     - NVIDIA_VISIBLE_DEVICES=all
+  #     - NVIDIA_DRIVER_CAPABILITIES=all
+  #   restart: unless-stopped
+  #   command: python3 src/node/nvblox.py
+  #   depends_on:
+  #     - nats-init
 
   # rabbit-roboclaw:
   #   build:
