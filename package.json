@@ -6,7 +6,7 @@
     "workspaces/toolbox"
   ],
   "engines": {
-    "node": "23.6.0"
+    "node": "24.5.0"
   },
   "scripts": {
     "format": "prettier --write ."
@@ -18,5 +18,5 @@
     "prettier": "3.6.2",
     "typescript": "5.8.3"
   },
-  "packageManager": "yarn@4.9.1"
+  "packageManager": "yarn@4.9.3"
 }

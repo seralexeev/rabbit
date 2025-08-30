@@ -1,5 +1,5 @@
 import { type JetStreamClient, jetstream } from '@nats-io/jetstream';
-import { type KV, type KvWatchEntry, Kvm } from '@nats-io/kv';
+import { type KV, type KvEntry, type KvWatchEntry, Kvm } from '@nats-io/kv';
 import { type Msg, type NatsConnection, type SubscriptionOptions, wsconnect } from '@nats-io/nats-core';
 import { type ObjectResult, type ObjectStore, type ObjectWatchInfo, Objm } from '@nats-io/obj';
 import { useQuery } from '@tanstack/react-query';
@@ -153,6 +153,30 @@ export const useObjectStoreSubscribe = () => {
             void watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close NATS Object Store watcher', e));
         };
     }, []);
+
+    return subscribe;
+};
+
+export const useKVSubscribe = () => {
+    const { kv } = useNats();
+
+    const subscribe = useEvent((key: string, fn: (value: KvEntry | null) => Promise<void> | void) => {
+        const watcher = kv.watch({ key });
+
+        (async () => {
+            for await (const info of await watcher) {
+                try {
+                    await fn(info);
+                } catch (e) {
+                    L.error('Failed to parse KV entry from NATS', e);
+                }
+            }
+        })().catch((e) => L.error('Failed to watch NATS KV Store', e));
+
+        return {
+            unsubscribe: () => watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close NATS watcher', e)),
+        };
+    });
 
     return subscribe;
 };

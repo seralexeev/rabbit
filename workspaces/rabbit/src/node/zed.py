@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 import cv2
+import lz4.frame
 import numpy as np
 from lib.model import CameraIntrinsics, Pose
 from lib.node import RabbitNode
@@ -72,7 +73,8 @@ class Node(RabbitNode):
 
         # self.set_interval(self.publish_depth, 1 / self.camera_fps)
         self.set_interval(self.publish_image, 1 / self.camera_fps)
-        # self.set_interval(self.publish_pose, 1 / self.camera_fps)
+        self.set_interval(self.publish_pose, 1 / self.camera_fps)
+        self.set_interval(self.nc.flush, 1 / self.camera_fps)
 
     async def close(self):
         self.zed.close()
@@ -88,11 +90,9 @@ class Node(RabbitNode):
             cy=left_cam.cy,
             width=camera_info.camera_configuration.resolution.width,
             height=camera_info.camera_configuration.resolution.height,
-        )
+        ).model_dump_json()
 
-        await self.kv.put(
-            "rabbit.zed.intrinsics", intrinsics.model_dump_json().encode()
-        )
+        await self.kv.put("rabbit.zed.intrinsics", intrinsics.encode())
         self.logger.info(f"Published camera intrinsics")
 
     async def init_camera_settings(self):
@@ -130,21 +130,14 @@ class Node(RabbitNode):
     async def publish_pose(self):
         state = self.zed.get_position(self.pose, sl.REFERENCE_FRAME.WORLD)
         if state == sl.POSITIONAL_TRACKING_STATE.OK:
-            translation = self.pose.get_translation().get()
-            orientation = self.pose.get_orientation().get()
-
             pose = Pose(
-                translation=translation,
-                orientation=orientation,
+                translation=self.pose.get_translation().get(),
+                orientation=self.pose.get_orientation().get(),
                 frame_number=self.frame_number,
                 timestamp=self.timestamp,
-            )
+            ).model_dump_json()
 
-            await self.kv.put(
-                "rabbit.zed.pose",
-                pose.model_dump_json().encode(),
-            )
-            await self.nc.flush()
+            await self.kv.put("rabbit.zed.pose", pose.encode())
 
     async def publish_image(self):
         frame_data = self.image.get_data()
@@ -157,7 +150,7 @@ class Node(RabbitNode):
                 cv2.imencode,
                 ".jpg",
                 frame_rgb,
-                [cv2.IMWRITE_JPEG_QUALITY, 75],
+                [cv2.IMWRITE_JPEG_QUALITY, 50],
             )
             if not success:
                 raise RuntimeError("Failed to encode RGB image")
@@ -170,9 +163,9 @@ class Node(RabbitNode):
                     "width": str(frame_rgb.shape[1]),
                     "height": str(frame_rgb.shape[0]),
                     "frame_number": str(frame_number),
+                    "timestamp": str(self.timestamp),
                 },
             )
-            await self.nc.flush()
 
         await asyncio.create_task(encode_publish())
 
@@ -186,28 +179,22 @@ class Node(RabbitNode):
             raise RuntimeError(f"Failed to retrieve depth image: {status}")
 
         depth_data = self.depth.get_data()
-        depth_clean = np.nan_to_num(depth_data, nan=0.0, posinf=0.0, neginf=0.0)
-        depth_clean = np.clip(depth_clean, 0.0, 65.0)
-        depth_mm = (depth_clean * 1000).astype(np.uint16)
-        success, buffer = cv2.imencode(
-            ".png", depth_mm, [cv2.IMWRITE_PNG_COMPRESSION, 3]
-        )
 
-        if not success:
-            raise RuntimeError("Failed to encode depth image")
+        d = np.nan_to_num(depth_data, nan=0.0, posinf=0.0, neginf=0.0)
+        d = np.clip(d, 0.0, 16.0)
+        u16 = (d * 1000.0).astype(np.uint16)
+        compressed = lz4.frame.compress(u16.tobytes())
 
         await self.nc.publish(
             "rabbit.zed.depth",
-            buffer.tobytes(),
+            compressed,
             headers={
-                "type": "image/png",
-                "width": str(depth_mm.shape[1]),
-                "height": str(depth_mm.shape[0]),
-                "frame_number": str(self.frame_number),
-                "depth_scale": "0.001",
+                "enc": "DEPTH_MM_U16_LZ4",
+                "w": "640",
+                "h": "480",
+                "timestamp": str(self.timestamp),
             },
         )
-        await self.nc.flush()
 
     def get_camera_settings(self) -> CameraSettings:
         settings = CameraSettings()

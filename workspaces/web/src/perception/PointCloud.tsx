@@ -1,116 +1,136 @@
 import { css } from '@emotion/css';
-import { inflate } from 'pako';
 import React from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import z from 'zod';
 
-import { useSubscribe } from '../app/NatsProvider.tsx';
+import { useKVSubscribe } from '../app/NatsProvider.tsx';
 
 export const PointCloud: React.FC = () => {
     const ref = React.useRef<HTMLCanvasElement | null>(null);
-    const geometryRef = React.useRef<THREE.BufferGeometry | null>(null);
-    const pointsRef = React.useRef<THREE.Points | null>(null);
-
-    const updateGeometry = (positions: number[], colors: number[]) => {
-        if (!geometryRef.current) return;
-        geometryRef.current.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        geometryRef.current.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-        geometryRef.current.computeBoundingSphere();
-    };
+    const kv = useKVSubscribe();
+    const [pose, setPose] = React.useState<Pose | null>(null);
 
     React.useLayoutEffect(() => {
-        if (!ref.current) return;
+        if (!ref.current) {
+            return;
+        }
 
-        const renderer = new THREE.WebGLRenderer({ canvas: ref.current, antialias: true });
-        renderer.setSize(1200, 600);
+        const { width, height } = ref.current.getBoundingClientRect();
+
+        const renderer = new THREE.WebGLRenderer({
+            canvas: ref.current,
+            antialias: true,
+        });
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, 800 / 600, 0.1, 1000);
-        camera.position.z = -5;
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.update();
+        const grid = new THREE.GridHelper(25, 100, 0x00ff41, 0x00ff41);
+        scene.add(grid);
 
-        const geometry = new THREE.BufferGeometry();
-        geometryRef.current = geometry;
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(10, 10, 10);
+        scene.add(light);
 
-        const material = new THREE.PointsMaterial({ size: 0.05, vertexColors: true });
-        const points = new THREE.Points(geometry, material);
-        pointsRef.current = points;
-        scene.add(points);
+        const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+
+        let poseFrame = 0;
+        const poseWatcher = kv('rabbit.zed.pose', (entry) => {
+            const pose = Pose.parse(entry?.json());
+
+            const [px, py, pz] = pose.translation;
+            const [qx, qy, qz, qw] = pose.orientation;
+
+            camera.position.set(px, py, pz);
+            camera.quaternion.set(qx, qy, qz, qw).normalize();
+            camera.updateMatrixWorld(true);
+
+            if (poseFrame++ % 30 === 0) {
+                setPose(pose);
+            }
+        });
+
+        const cameraIntrinsicWatcher = kv('rabbit.zed.intrinsics', (entry) => {
+            const intrinsics = CameraIntrinsics.parse(entry?.json());
+
+            const { fx, fy, cx, cy, width, height } = intrinsics;
+
+            const near = 0.01;
+            const far = 1000;
+
+            const left = (-cx * near) / fx;
+            const right = ((width - cx) * near) / fx;
+            const top = (cy * near) / fy;
+            const bottom = (-(height - cy) * near) / fy;
+
+            camera.projectionMatrix.makePerspective(left, right, top, bottom, near, far);
+            camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+        });
 
         renderer.setAnimationLoop(() => {
-            // points.rotation.y += 0.002;
-            controls.update();
             renderer.render(scene, camera);
         });
 
-        return () => {
-            renderer.dispose();
-        };
-    }, []);
-
-    useSubscribe('rabbit.camera.point_cloud', {
-        callback: async (msg) => {
-            try {
-                const shapeStr = msg.headers?.get('shape') ?? '[0,0,0]';
-                const [H, W, C] = JSON.parse(shapeStr); // [720,1280,4]
-                const buf = inflate(new Uint8Array(msg.data)).buffer;
-                const arr = new Float32Array(buf);
-
-                const positions: number[] = [];
-                const colors: number[] = [];
-
-                const dv = new DataView(new ArrayBuffer(4));
-
-                for (let i = 0; i < H; i++) {
-                    for (let j = 0; j < W; j++) {
-                        const idx = (i * W + j) * 4;
-                        const rawX = arr[idx + 0];
-                        const rawY = arr[idx + 1];
-                        const rawZ = arr[idx + 2];
-
-                        if (!Number.isFinite(rawX) || !Number.isFinite(rawY) || !Number.isFinite(rawZ)) continue;
-
-                        const scale = 1.5; // от 1.2 до 3 — экспериментируй
-                        const x = rawX * scale;
-                        const y = rawY * scale;
-                        const z = rawZ * scale;
-
-                        positions.push(x, y, z);
-
-                        const depth = Math.sqrt(rawX * rawX + rawY * rawY + rawZ * rawZ);
-                        const t = Math.max(0, Math.min(1, (depth - 0.2) / (5.0 - 0.2)));
-
-                        const r = (1 - t) * 255 + t * 0;
-                        const g = (1 - t) * 0 + t * 100;
-                        const b = (1 - t) * 0 + t * 0;
-
-                        colors.push(r / 255, g / 255, b / 255);
-                    }
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.target !== ref.current) {
+                    continue;
                 }
 
-                updateGeometry(positions, colors);
-            } catch (err) {
-                console.error('Failed to decode point cloud', err);
+                const { width, height } = entry.contentRect;
+                renderer.setSize(width, height);
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
             }
-        },
-    });
+        });
+        observer.observe(ref.current);
+
+        return () => {
+            observer.disconnect();
+            renderer.dispose();
+            poseWatcher.unsubscribe();
+            cameraIntrinsicWatcher.unsubscribe();
+        };
+    }, [ref.current]);
 
     return (
         <div
             className={css`
-                width: 100%;
-                height: 100%;
+                width: 100% !important;
+                height: 100% !important;
+                position: relative;
             `}>
             <canvas
-                className={css`
-                    width: 100%;
-                `}
                 ref={ref}
-                width={1200}
-                height={600}
+                className={css`
+                    width: 100% !important;
+                    height: 100% !important;
+                `}
             />
+            <div
+                className={css`
+                    position: absolute;
+                    top: 8px;
+                    left: 8px;
+                `}>
+                <div>ALTITUDE: {pose?.translation[1].toFixed(2)}m</div>
+            </div>
         </div>
     );
 };
+
+type Pose = z.infer<typeof Pose>;
+const Pose = z.object({
+    translation: z.tuple([z.number(), z.number(), z.number()]),
+    orientation: z.tuple([z.number(), z.number(), z.number(), z.number()]), // x,y,z,w
+});
+
+type CameraIntrinsics = z.infer<typeof CameraIntrinsics>;
+const CameraIntrinsics = z.object({
+    fx: z.number(),
+    fy: z.number(),
+    cx: z.number(),
+    cy: z.number(),
+    width: z.number(),
+    height: z.number(),
+});
