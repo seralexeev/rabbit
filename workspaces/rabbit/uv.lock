@@ -196,6 +196,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/25/04/df3ff37ef6995a3de7dd21d835f6222660cce3c4b1332dfcff6aaf60577a/jetson_gpio-2.1.9.tar.gz", hash = "sha256:9dcdda8f89b66016c7d7e1ecb32ce2e070415b14e3ae8664577ff2e8bdea6f3b", size = 33205, upload-time = "2025-02-07T20:52:26.917Z" }
 
 [[package]]
+name = "lz4"
+version = "4.4.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/5a/945f5086326d569f14c84ac6f7fcc3229f0b9b1e8cc536b951fd53dfb9e1/lz4-4.4.4.tar.gz", hash = "sha256:070fd0627ec4393011251a094e08ed9fdcc78cb4e7ab28f507638eee4e39abda", size = 171884, upload-time = "2025-04-01T22:55:58.62Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/80/4054e99cda2e003097f59aeb3ad470128f3298db5065174a84564d2d6983/lz4-4.4.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:f170abb8416c4efca48e76cac2c86c3185efdf841aecbe5c190121c42828ced0", size = 220896, upload-time = "2025-04-01T22:55:13.577Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/4e/f92424d5734e772b05ddbeec739e2566e2a2336995b36a180e1dd9411e9a/lz4-4.4.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:d33a5105cd96ebd32c3e78d7ece6123a9d2fb7c18b84dec61f27837d9e0c496c", size = 189679, upload-time = "2025-04-01T22:55:15.471Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/70/71ffd496067cba6ba352e10b89c0e9cee3e4bc4717ba866b6aa350f4c7ac/lz4-4.4.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:30ebbc5b76b4f0018988825a7e9ce153be4f0d4eba34e6c1f2fcded120573e88", size = 1237940, upload-time = "2025-04-01T22:55:16.498Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/59/cf34d1e232b11e1ae7122300be00529f369a7cd80f74ac351d58c4c4eedf/lz4-4.4.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dc64d6dfa7a89397529b22638939e70d85eaedc1bd68e30a29c78bfb65d4f715", size = 1264105, upload-time = "2025-04-01T22:55:17.606Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/f6/3a00a98ff5b872d572cc6e9c88e0f6275bea0f3ed1dc1b8f8b736c85784c/lz4-4.4.4-cp310-cp310-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a355223a284f42a723c120ce68827de66d5cb872a38732b3d5abbf544fa2fe26", size = 1184179, upload-time = "2025-04-01T22:55:19.206Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/de/6aeb602786174bad290609c0c988afb1077b74a80eaea23ebc3b5de6e2fa/lz4-4.4.4-cp310-cp310-win32.whl", hash = "sha256:b28228197775b7b5096898851d59ef43ccaf151136f81d9c436bc9ba560bc2ba", size = 88265, upload-time = "2025-04-01T22:55:20.215Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/b5/1f52c8b17d02ae637f85911c0135ca08be1c9bbdfb3e7de1c4ae7af0bac6/lz4-4.4.4-cp310-cp310-win_amd64.whl", hash = "sha256:45e7c954546de4f85d895aa735989d77f87dd649f503ce1c8a71a151b092ed36", size = 99916, upload-time = "2025-04-01T22:55:21.332Z" },
+    { url = "https://files.pythonhosted.org/packages/01/e7/123587e7dae6cdba48393e4fdad2b9412f43f51346afe9ca6f697029de11/lz4-4.4.4-cp310-cp310-win_arm64.whl", hash = "sha256:e3fc90f766401684740978cd781d73b9685bd81b5dbf7257542ef9de4612e4d2", size = 89746, upload-time = "2025-04-01T22:55:22.205Z" },
+]
+
+[[package]]
 name = "nats-py"
 version = "2.11.0"
 source = { registry = "https://pypi.org/simple" }
@@ -327,6 +343,7 @@ dependencies = [
     { name = "adafruit-circuitpython-servokit" },
     { name = "cython" },
     { name = "jetson-gpio" },
+    { name = "lz4" },
     { name = "nats-py" },
     { name = "numpy" },
     { name = "opencv-python" },
@@ -341,6 +358,7 @@ requires-dist = [
     { name = "adafruit-circuitpython-servokit" },
     { name = "cython", specifier = ">=3.0.0" },
     { name = "jetson-gpio" },
+    { name = "lz4" },
     { name = "nats-py" },
     { name = "numpy", specifier = ">=2.0,<3.0.0" },
     { name = "opencv-python" },

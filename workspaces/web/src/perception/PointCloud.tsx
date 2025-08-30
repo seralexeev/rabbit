@@ -1,13 +1,13 @@
 import { css } from '@emotion/css';
 import React from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import z from 'zod';
 
 import { useKVSubscribe } from '../app/NatsProvider.tsx';
 
 export const PointCloud: React.FC = () => {
     const ref = React.useRef<HTMLCanvasElement | null>(null);
+    const intrinsics = React.useRef<CameraIntrinsics | null>(null);
     const kv = useKVSubscribe();
     const [pose, setPose] = React.useState<Pose | null>(null);
 
@@ -51,9 +51,9 @@ export const PointCloud: React.FC = () => {
         });
 
         const cameraIntrinsicWatcher = kv('rabbit.zed.intrinsics', (entry) => {
-            const intrinsics = CameraIntrinsics.parse(entry?.json());
+            intrinsics.current = CameraIntrinsics.parse(entry?.json());
 
-            const { fx, fy, cx, cy, width, height } = intrinsics;
+            const { fx, fy, cx, cy, width, height } = intrinsics.current;
 
             const near = 0.01;
             const far = 1000;

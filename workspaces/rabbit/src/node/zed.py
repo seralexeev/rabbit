@@ -71,7 +71,7 @@ class Node(RabbitNode):
         await self.watch_kv(self.CAMERA_SETTINGS_KEY, self.on_camera_settings_update)
         await self.async_task(self.capture_loop)
 
-        # self.set_interval(self.publish_depth, 1 / self.camera_fps)
+        self.set_interval(self.publish_depth, 1 / self.camera_fps)
         self.set_interval(self.publish_image, 1 / self.camera_fps)
         self.set_interval(self.publish_pose, 1 / self.camera_fps)
         self.set_interval(self.nc.flush, 1 / self.camera_fps)
