@@ -17,44 +17,20 @@ export const GamepadController: React.FC = () => {
         });
     }, [gamepad, nc]);
 
+    if (!state) {
+        return null;
+    }
+
     return (
         <div
             className={css`
-                width: 100%;
-                height: 500px;
-                border: 1px solid var(--color-primary);
                 display: flex;
-                flex-direction: column;
+                gap: 16px;
+                width: 100%;
+                justify-content: center;
             `}>
-            <div>Gamepad Controller</div>
-            <p>Selected Gamepad: {gamepad ? gamepad.id : 'None'}</p>
-            <p>
-                {/* <span
-                    style={{
-                        color: connected ? 'green' : 'red',
-                        marginLeft: '8px',
-                        fontWeight: 'bold',
-                    }}>
-                    {connected ? '🟢 Connected' : '🔴 Disconnected'}
-                </span>
-                {connectionState && (
-                    <span style={{ marginLeft: '8px', fontSize: '12px', opacity: 0.7 }}>({connectionState})</span>
-                )} */}
-            </p>
-            {state && (
-                <div>
-                    <div
-                        className={css`
-                            display: flex;
-                            gap: 16px;
-                            width: 100%;
-                            justify-content: center;
-                        `}>
-                        <Stick stick={state.sticks.left} />
-                        <Stick stick={state.sticks.right} />
-                    </div>
-                </div>
-            )}
+            <Stick stick={state.sticks.left} />
+            <Stick stick={state.sticks.right} />
         </div>
     );
 };

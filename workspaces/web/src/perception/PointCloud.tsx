@@ -3,9 +3,10 @@ import React from 'react';
 import * as THREE from 'three';
 import z from 'zod';
 
-import { useKVSubscribe } from '../app/NatsProvider.tsx';
+import { useKVSubscribe, useNats } from '../app/NatsProvider.tsx';
 
 export const PointCloud: React.FC = () => {
+    const { nc } = useNats();
     const ref = React.useRef<HTMLCanvasElement | null>(null);
     const intrinsics = React.useRef<CameraIntrinsics | null>(null);
     const kv = useKVSubscribe();
@@ -35,19 +36,21 @@ export const PointCloud: React.FC = () => {
         const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
 
         let poseFrame = 0;
-        const poseWatcher = kv('rabbit.zed.pose', (entry) => {
-            const pose = Pose.parse(entry?.json());
+        const poseWatcher = nc.subscribe('rabbit.zed.pose', {
+            callback: (_, msg) => {
+                const pose = Pose.parse(msg?.json());
 
-            const [px, py, pz] = pose.translation;
-            const [qx, qy, qz, qw] = pose.orientation;
+                const [px, py, pz] = pose.translation;
+                const [qx, qy, qz, qw] = pose.orientation;
 
-            camera.position.set(px, py, pz);
-            camera.quaternion.set(qx, qy, qz, qw).normalize();
-            camera.updateMatrixWorld(true);
+                camera.position.set(px, py, pz);
+                camera.quaternion.set(qx, qy, qz, qw).normalize();
+                camera.updateMatrixWorld(true);
 
-            if (poseFrame++ % 30 === 0) {
-                setPose(pose);
-            }
+                if (poseFrame++ % 30 === 0) {
+                    setPose(pose);
+                }
+            },
         });
 
         const cameraIntrinsicWatcher = kv('rabbit.zed.intrinsics', (entry) => {

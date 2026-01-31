@@ -234,7 +234,6 @@ class Node(RabbitNode):
             },
         }
 
-        # Consider using msgpack here if performance matters
         await self.object_store.put(
             "rabbit.nvblox.voxels", json.dumps(voxel_output).encode()
         )

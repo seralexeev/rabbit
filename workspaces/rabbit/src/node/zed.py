@@ -137,7 +137,7 @@ class Node(RabbitNode):
                 timestamp=self.timestamp,
             ).model_dump_json()
 
-            await self.kv.put("rabbit.zed.pose", pose.encode())
+            await self.nc.publish("rabbit.zed.pose", pose.encode())
 
     async def publish_image(self):
         frame_data = self.image.get_data()

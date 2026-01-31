@@ -39,7 +39,7 @@ class Node(RabbitNode):
         cal_swapped = swap_bytes(shunt_cal)
         for reg in CALIB_REGS.values():
             self.bus.write_word_data(INA_ADDR, reg, cal_swapped)
-        print(f"✅ Written SHUNT_CAL={shunt_cal} to calibration registers")
+        print(f"Written SHUNT_CAL={shunt_cal} to calibration registers")
 
     def _read_word(self, reg: int) -> int:
         raw = self.bus.read_word_data(INA_ADDR, reg)
@@ -66,13 +66,13 @@ class Node(RabbitNode):
                     )
                 print("-" * 50)
             except Exception as e:
-                print(f"⚠️ Error reading INA4235: {e}")
+                print(f"Error reading INA4235: {e}")
             await asyncio.sleep(1)
 
     async def close(self):
         await super().close()
         self.bus.close()
-        print("🧹 SMBus closed")
+        print("SMBus closed")
 
 
 if __name__ == "__main__":

@@ -172,7 +172,7 @@ const printYaml = (obj: unknown) => {
 
     const lines = message.split('\n').map((x, i, ar) => `${getFrameSymbol(i, ar.length)} ` + x);
     for (const line of lines) {
-        raw(' '.repeat(13) + line, 'meta');
+        raw(line, 'meta');
     }
 };
 

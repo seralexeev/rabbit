@@ -3,6 +3,7 @@ import React from 'react';
 
 import { CameraSettings } from '../camera/CameraSettings.tsx';
 import { CameraView } from '../camera/CameraView.tsx';
+import { GamepadController } from '../controller/GamepadController.tsx';
 import { PointCloud } from '../perception/PointCloud.tsx';
 import { ui } from '../ui/index.ts';
 
@@ -27,7 +28,7 @@ export const MainLayout: React.FC = () => {
                 `}>
                 <ui.Card header='CONTROLLER'>
                     <CameraSettings />
-                    {/* <GamepadController /> */}
+                    <GamepadController />
                 </ui.Card>
                 <ui.Card header='CAMERA SETTINGS'>
                     <CameraSettings />

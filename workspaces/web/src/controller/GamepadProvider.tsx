@@ -2,6 +2,7 @@ import { createNanoEvents } from 'nanoevents';
 import React from 'react';
 
 import { useEvent } from '../hooks.ts';
+import { L } from '../terminal/LogProvider.tsx';
 
 type GamepadContext = {
     gamepads: Gamepad[];
@@ -25,7 +26,11 @@ export const GamepadProvider: React.FC<{ children?: React.ReactNode }> = ({ chil
         const allGamepads = navigator.getGamepads().filter((x) => x != null);
         setGamepads(allGamepads);
         if (current == null) {
-            setCurrent(allGamepads[0]?.id ?? null);
+            const id = allGamepads[0]?.id ?? null;
+            setCurrent(id);
+            if (id != null) {
+                L.info('Gamepad connected:', id);
+            }
         }
     });
 
@@ -53,13 +58,6 @@ export const GamepadProvider: React.FC<{ children?: React.ReactNode }> = ({ chil
             emitter.emit('onUpdate', state);
         } catch (e) {
             console.error('🔴 Error emitting gamepad update:', e);
-        }
-
-        if (cycleRef.current % 30 === 0) {
-            const total_diff = Date.now() - now.current;
-            const fps = Math.round((cycleRef.current / total_diff) * 1000);
-
-            console.log(`FPS: ${fps} `);
         }
     });
 

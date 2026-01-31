@@ -1,19 +1,4 @@
 services:
-  # test:
-  #   build:
-  #     context: ./rabbit
-  #     dockerfile: ./docker/Dockerfile.nvblox
-  #   container_name: rabbit-test
-  #   privileged: true
-  #   working_dir: /rabbit
-  #   runtime: nvidia
-  #   volumes:
-  #     - ./rabbit:/rabbit
-  #   environment:
-  #     - NVIDIA_VISIBLE_DEVICES=all
-  #     - NVIDIA_DRIVER_CAPABILITIES=all
-  #   command: /opt/venv/bin/python -m pytest -s /rabbit/src/nvblox_torch
-
   nats:
     image: nats:latest
     container_name: nats
@@ -82,19 +67,29 @@ services:
   #   depends_on:
   #     - nats-init
 
-  # rabbit-roboclaw:
-  #   build:
-  #     context: ./rabbit
-  #     dockerfile: ./docker/Dockerfile.zed
-  #   container_name: rabbit-roboclaw
-  #   privileged: true
-  #   restart: unless-stopped
+  rabbit-roboclaw:
+    build:
+      context: ./rabbit
+      dockerfile: ./docker/Dockerfile.zed
+    container_name: rabbit-roboclaw
+    privileged: true
+    working_dir: /rabbit
+    volumes:
+      - ./rabbit:/rabbit
+    restart: unless-stopped
+    command: uv run src/node/roboclaw.py
 
-  # rabbit-steering:
-  #   build: ./rabbit-steering
-  #   container_name: rabbit-steering
-  #   privileged: true
-  #   restart: unless-stopped
+  rabbit-steering:
+    build:
+      context: ./rabbit
+      dockerfile: ./docker/Dockerfile.zed
+    container_name: rabbit-steering
+    privileged: true
+    working_dir: /rabbit
+    volumes:
+      - ./rabbit:/rabbit
+    restart: unless-stopped
+    command: uv run src/node/steering.py
 
   # rabbit-ina:
   #   build: ./rabbit-ina
@@ -102,15 +97,15 @@ services:
   #   privileged: true
   #   restart: unless-stopped
 
-  # nats-dashboard:
-  #   image: mdawar/nats-dashboard
-  #   container_name: nats-dashboard
-  #   environment:
-  #     - NATS_URL=nats://nats:4222
-  #   ports:
-  #     - '8000:80'
-  #   depends_on:
-  #     - nats
+  nats-dashboard:
+    image: mdawar/nats-dashboard
+    container_name: nats-dashboard
+    environment:
+      - NATS_URL=nats://nats:4222
+    ports:
+      - '8000:80'
+    depends_on:
+      - nats
 
   # nats-exporter:
   #   image: natsio/prometheus-nats-exporter:latest
