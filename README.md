@@ -1,5 +1,10 @@
 # rabbit
 
+![whiteboard excalidraw](https://github.com/user-attachments/assets/90191113-4795-4add-820a-ea3d4afff8f1)
+
+![146-1](https://github.com/user-attachments/assets/46094498-2394-4d8f-b6d4-94cd619eff84)
+
+
 - **Aluminum Gantry Plate** - A plate made of aluminum that serves as a structural component in the assembly of a machine or device.
 - **PCB** - Printed Circuit Board
 - **Third hand** - A tool used to hold objects in place while soldering or assembling components.
