@@ -1,4 +1,4 @@
-# rabbit
+# rabbit [rabbit0.dev](https://rabbit0.dev)
 
 ![whiteboard excalidraw](https://github.com/user-attachments/assets/90191113-4795-4add-820a-ea3d4afff8f1)
 
