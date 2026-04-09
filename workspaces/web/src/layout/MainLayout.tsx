@@ -4,6 +4,9 @@ import React from 'react';
 import { CameraView } from '../camera/CameraView.tsx';
 import { GamepadController } from '../controller/GamepadController.tsx';
 import { PointCloud } from '../perception/PointCloud.tsx';
+import { NodeHealthBar } from '../telemetry/NodeHealthBar.tsx';
+import { TelemetryBar } from '../telemetry/TelemetryBar.tsx';
+import { ZedHealthPanel } from '../telemetry/ZedHealthPanel.tsx';
 import { ui } from '../ui/index.ts';
 import { Sidebar } from './Sidebar.tsx';
 
@@ -18,6 +21,25 @@ export const MainLayout: React.FC = () => {
                 display: flex;
                 gap: 8px;
             `}>
+            <div
+                className={css`
+                    flex: 0 0 auto;
+                    height: 100%;
+                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                `}>
+                <ui.Card
+                    header='SYSTEM'
+                    className={css`
+                        height: auto !important;
+                        flex-shrink: 0;
+                    `}>
+                    <TelemetryBar />
+                </ui.Card>
+                <NodeHealthBar />
+            </div>
             <div
                 className={css`
                     display: flex;
@@ -37,6 +59,16 @@ export const MainLayout: React.FC = () => {
                         min-height: 180px;
                         max-height: 30%;
                     `}>
+                    <div
+                        className={css`
+                            flex: 0 0 auto;
+                            display: flex;
+                            align-items: stretch;
+                        `}>
+                        <ui.Card header='ZED CAMERA'>
+                            <ZedHealthPanel />
+                        </ui.Card>
+                    </div>
                     <div
                         className={css`
                             flex: 1;

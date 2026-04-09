@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import z from 'zod';
 
-import { useNats } from '../app/NatsProvider.tsx';
+import { useNats, useWatchKV } from '../app/NatsProvider.tsx';
 import { L } from '../terminal/LogProvider.tsx';
 import { ui } from '../ui/index.ts';
 
@@ -328,13 +328,26 @@ function parseVoxelMessage(payload: Uint8Array): DeltaMessage | SnapshotMessage 
 export const PointCloud: React.FC = () => {
     const { nc } = useNats();
     const ref = React.useRef<HTMLCanvasElement | null>(null);
+    const svgRef = React.useRef<SVGSVGElement | null>(null);
     const [pose, setPose] = React.useState<Pose | null>(null);
     const [voxelCount, setVoxelCount] = React.useState<number | null>(null);
     const [blockCount, setBlockCount] = React.useState<number | null>(null);
     const [lastSeq, setLastSeq] = React.useState<number>(0);
-    const [viewMode, setViewMode] = React.useState<ViewMode>('fpv');
-    const viewModeRef = React.useRef<ViewMode>('fpv');
+    const [storedViewMode, setStoredViewMode] = useWatchKV<ViewMode>({
+        key: 'rabbit.perception.view_mode',
+        parse: (data) => {
+            const val = data.json() as string;
+            return VIEW_MODES.some((m) => m.id === val) ? (val as ViewMode) : 'third';
+        },
+    });
+    const viewMode = storedViewMode ?? 'third';
+    const viewModeRef = React.useRef<ViewMode>(viewMode);
     const [nvblox, setNvblox] = React.useState<NvbloxHealth | null>(null);
+
+    const setViewMode = (mode: ViewMode) => {
+        viewModeRef.current = mode;
+        setStoredViewMode(() => mode);
+    };
 
     React.useEffect(() => {
         viewModeRef.current = viewMode;
@@ -357,7 +370,50 @@ export const PointCloud: React.FC = () => {
 
         const scene = new THREE.Scene();
 
-        const grid = new THREE.GridHelper(25, 100, 0x00ff41, 0x00ff41);
+        const gridMaterial = new THREE.ShaderMaterial({
+            transparent: true,
+            side: THREE.DoubleSide,
+            uniforms: {
+                uColor: { value: new THREE.Color(0x00ff41) },
+                uFade: { value: 8.0 },
+            },
+            vertexShader: `
+                varying vec2 vWorldPos;
+                void main() {
+                    vec4 world = modelMatrix * vec4(position, 1.0);
+                    vWorldPos = world.xz;
+                    gl_Position = projectionMatrix * viewMatrix * world;
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 uColor;
+                uniform float uFade;
+                varying vec2 vWorldPos;
+                void main() {
+                    vec2 grid = abs(fract(vWorldPos - 0.5) - 0.5);
+                    vec2 line = fwidth(vWorldPos);
+                    vec2 g = smoothstep(line * 0.5, line * 1.5, grid);
+                    float gridLine = 1.0 - min(g.x, g.y);
+
+                    // Major grid every 1m, minor every 0.25m
+                    vec2 gridMajor = abs(fract(vWorldPos * 0.25 - 0.5) - 0.5);
+                    vec2 lineMajor = fwidth(vWorldPos * 0.25);
+                    vec2 gM = smoothstep(lineMajor * 0.5, lineMajor * 1.5, gridMajor);
+                    float majorLine = 1.0 - min(gM.x, gM.y);
+
+                    float a = max(gridLine * 0.15, majorLine * 0.35);
+
+                    // Fade with distance from origin
+                    float dist = length(vWorldPos);
+                    a *= 1.0 - smoothstep(uFade * 0.3, uFade, dist);
+
+                    if (a < 0.005) discard;
+                    gl_FragColor = vec4(uColor, a);
+                }
+            `,
+        });
+        const grid = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), gridMaterial);
+        grid.rotation.x = -Math.PI / 2;
         scene.add(grid);
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -381,17 +437,47 @@ export const PointCloud: React.FC = () => {
 
         const robotMarker = new THREE.Group();
         const robotBody = new THREE.Mesh(
-            new THREE.BoxGeometry(0.15, 0.15, 0.30),
+            new THREE.BoxGeometry(0.15, 0.06, 0.30),
             new THREE.MeshStandardMaterial({ color: 0xff3333 }),
         );
         robotMarker.add(robotBody);
+
+        // Wheels
+        const WHEEL_RADIUS = 0.04;
+        const WHEEL_WIDTH = 0.02;
+        const HALF_TRACK = 0.1; // lateral offset from center
+        const FRONT_AXLE = -0.12; // forward from center (-Z is forward)
+        const REAR_AXLE = 0.12; // backward from center
+
+        const wheelGeometry = new THREE.CylinderGeometry(WHEEL_RADIUS, WHEEL_RADIUS, WHEEL_WIDTH, 12);
+        wheelGeometry.rotateZ(Math.PI / 2); // align cylinder axis to X (lateral)
+        const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+
+        const createWheel = (x: number, z: number) => {
+            const pivot = new THREE.Group(); // pivot for steering
+            pivot.position.set(x, -0.03 + WHEEL_RADIUS, z);
+            const mesh = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            pivot.add(mesh);
+            robotMarker.add(pivot);
+            return { pivot, mesh };
+        };
+
+        const wheelFL = createWheel(-HALF_TRACK, FRONT_AXLE);
+        const wheelFR = createWheel(HALF_TRACK, FRONT_AXLE);
+        const wheelRL = createWheel(-HALF_TRACK, REAR_AXLE);
+        const wheelRR = createWheel(HALF_TRACK, REAR_AXLE);
+
+        let wheelRotation = 0;
+        let steeringAngle = 0;
+        let wheelSpeed = 0; // rad/s derived from roboclaw speed
+
         scene.add(robotMarker);
 
         const RETURN_DELAY = 3000;
         const LERP_SPEED = 3;
         let lastInteraction = 0;
         let userControlling = false;
-        let lastViewMode: ViewMode = viewModeRef.current;
+        let lastViewMode: ViewMode = viewModeRef.current ?? 'third';
 
         const fpvPosition = new THREE.Vector3();
         const fpvLookTarget = new THREE.Vector3();
@@ -548,6 +634,30 @@ export const PointCloud: React.FC = () => {
             },
         });
 
+        let speedL = 0;
+        let speedR = 0;
+
+        const roboclawSub = nc.subscribe('rabbit.roboclaw', {
+            callback: (_, msg) => {
+                try {
+                    const data = msg.json() as { m1: { speed: number; encoder: number }; m2: { speed: number; encoder: number } };
+                    speedL = data.m1.speed;
+                    speedR = data.m2.speed;
+                    wheelSpeed = ((data.m1.speed + data.m2.speed) / 2) * 0.001;
+                } catch {}
+            },
+        });
+
+        const joySub = nc.subscribe('rabbit.cmd.joy', {
+            callback: (_, msg) => {
+                try {
+                    const data = msg.json() as { sticks: { left: { x: number } } };
+                    // Map stick [-1, 1] to steering angle (max ~30 degrees)
+                    steeringAngle = -(data.sticks.left.x ?? 0) * (Math.PI / 6);
+                } catch {}
+            },
+        });
+
         let lastFrameTime = performance.now();
         renderer.setAnimationLoop(() => {
             const now = performance.now();
@@ -566,13 +676,16 @@ export const PointCloud: React.FC = () => {
 
             if (hasPose) {
                 const t = 1 - Math.exp(-LERP_SPEED * dt);
+                const defaultUp = new THREE.Vector3(0, 1, 0);
 
                 if (mode === 'fpv') {
+                    camera.up.lerp(defaultUp, t);
                     if (!userControlling && idleMs > RETURN_DELAY) {
                         camera.position.lerp(fpvPosition, t);
                         controls.target.lerp(fpvLookTarget, t);
                     }
                 } else if (mode === 'third') {
+                    camera.up.lerp(defaultUp, t);
                     // Always keep orbit target on the robot
                     controls.target.lerp(fpvPosition, t);
 
@@ -585,10 +698,74 @@ export const PointCloud: React.FC = () => {
                     targetCamPos.set(fpvPosition.x, fpvPosition.y + 2, fpvPosition.z);
                     controls.target.lerp(fpvPosition, t);
 
-                    if (!userControlling) {
+                    if (!userControlling && idleMs > RETURN_DELAY) {
                         camera.position.lerp(targetCamPos, t);
+                        // Align camera up vector with robot forward so top-down rotates with heading
+                        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(robotMarker.quaternion);
+                        forward.y = 0;
+                        forward.normalize();
+                        camera.up.lerp(forward, t);
                     }
                 }
+            }
+
+            // Animate wheels
+            wheelRotation += wheelSpeed * dt;
+            wheelFL.mesh.rotation.x = wheelRotation;
+            wheelFR.mesh.rotation.x = wheelRotation;
+            wheelRL.mesh.rotation.x = wheelRotation;
+            wheelRR.mesh.rotation.x = wheelRotation;
+
+            // Front wheels steer
+            wheelFL.pivot.rotation.y = steeringAngle;
+            wheelFR.pivot.rotation.y = steeringAngle;
+
+            // Project wheel positions to screen for HUD annotations
+            const svg = svgRef.current;
+            if (svg) {
+                const w = renderer.domElement.clientWidth;
+                const h = renderer.domElement.clientHeight;
+                svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+                const project = (pivot: THREE.Group) => {
+                    const pos = new THREE.Vector3();
+                    pivot.getWorldPosition(pos);
+                    pos.project(camera);
+                    return { x: (pos.x * 0.5 + 0.5) * w, y: (-pos.y * 0.5 + 0.5) * h, behind: pos.z > 1 };
+                };
+
+                const fl = project(wheelFL.pivot);
+                const fr = project(wheelFR.pivot);
+                const rl = project(wheelRL.pivot);
+                const rr = project(wheelRR.pivot);
+
+                const steerDeg = (steeringAngle * 180 / Math.PI).toFixed(1);
+
+                const annotations = [
+                    { wp: fl, label: `${speedL}`, offset: [-60, -30] as const },
+                    { wp: fr, label: `${speedR}`, offset: [60, -30] as const },
+                    { wp: rl, label: `${speedL}`, offset: [-60, 30] as const },
+                    { wp: rr, label: `${speedR}`, offset: [60, 30] as const },
+                ];
+
+                let svgContent = '';
+                for (const { wp, label, offset } of annotations) {
+                    if (wp.behind) continue;
+                    const tx = wp.x + offset[0];
+                    const ty = wp.y + offset[1];
+                    svgContent += `<line x1="${wp.x}" y1="${wp.y}" x2="${tx}" y2="${ty}" stroke="rgba(0,255,65,0.4)" stroke-width="1"/>`;
+                    svgContent += `<circle cx="${wp.x}" cy="${wp.y}" r="2.5" fill="#00ff41" opacity="0.6"/>`;
+                    svgContent += `<text x="${tx}" y="${ty - 4}" fill="#00ff41" font-size="10" font-family="monospace" text-anchor="${offset[0] < 0 ? 'end' : 'start'}" opacity="0.85">${label}</text>`;
+                }
+
+                // Steering angle label between front wheels
+                if (!fl.behind && !fr.behind) {
+                    const mx = (fl.x + fr.x) / 2;
+                    const my = (fl.y + fr.y) / 2 - 20;
+                    svgContent += `<text x="${mx}" y="${my}" fill="#00ff41" font-size="10" font-family="monospace" text-anchor="middle" opacity="0.7">${steerDeg}°</text>`;
+                }
+
+                svg.innerHTML = svgContent;
             }
 
             controls.update();
@@ -618,9 +795,14 @@ export const PointCloud: React.FC = () => {
             deltaSub.unsubscribe();
             snapshotSub.unsubscribe();
             nvbloxSub.unsubscribe();
+            roboclawSub.unsubscribe();
+            joySub.unsubscribe();
+            wheelGeometry.dispose();
+            wheelMaterial.dispose();
             blockGeometry.dispose();
             blockMaterial.dispose();
-            grid.dispose();
+            grid.geometry.dispose();
+            gridMaterial.dispose();
             renderer.dispose();
         };
     }, [nc]);
@@ -637,6 +819,17 @@ export const PointCloud: React.FC = () => {
                 className={css`
                     width: 100% !important;
                     height: 100% !important;
+                `}
+            />
+            <svg
+                ref={svgRef}
+                className={css`
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
                 `}
             />
             {/* Top-right: view mode */}

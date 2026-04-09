@@ -42,6 +42,15 @@ export const GamepadProvider: React.FC<{ children?: React.ReactNode }> = ({ chil
         window.addEventListener('gamepadconnected', updateGamepads, { signal: abortController.signal });
         window.addEventListener('gamepaddisconnected', updateGamepads, { signal: abortController.signal });
 
+        // When the tab loses focus, the Gamepad API stops updating and setInterval
+        // gets throttled. Send a neutral state so the robot doesn't wait for a timeout.
+        const handleVisibility = () => {
+            if (document.hidden) {
+                emitter.emit('onUpdate', NEUTRAL_STATE);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility, { signal: abortController.signal });
+
         return () => abortController.abort();
     }, []);
 
@@ -90,6 +99,15 @@ export const useGamepad = () => {
     }
 
     return context;
+};
+
+const NEUTRAL_STATE: DualSenseState = {
+    buttons: Object.fromEntries(
+        ['cross', 'circle', 'square', 'triangle', 'l1', 'r1', 'l2', 'r2', 'l3', 'r3', 'share', 'options', 'up', 'down', 'left', 'right'].map(
+            (k) => [k, { pressed: false, value: 0 }],
+        ),
+    ) as DualSenseState['buttons'],
+    sticks: { left: { x: 0, y: 0 }, right: { x: 0, y: 0 } },
 };
 
 const round = (num: number) => num;

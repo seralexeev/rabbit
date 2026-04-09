@@ -13,6 +13,8 @@ class Node(RabbitNode):
     MIN_PULSE = 1000
     MID_PULSE = 1500
     MAX_PULSE = 2000
+    TIMEOUT = 0.25
+    DECAY_RATE = 0.85
 
     def __init__(self):
         super().__init__("steering")
@@ -21,15 +23,27 @@ class Node(RabbitNode):
         self.pca.frequency = 50
         self.channel = 0
         self.last_command_at: Optional[float] = None
+        self.current_angle = 0.0
 
     async def init(self):
         await self.subscribe("rabbit.cmd.joy", self.joy_handler)
-        await self.set_interval(self.kill_switch, 0.1)
+        await self.set_interval(self.kill_switch, 0.05)
 
     async def kill_switch(self):
-        if self.last_command_at and time.time() - self.last_command_at > 0.1:
-            self.set_angle(0.5)
+        if not self.last_command_at:
+            return
+        if time.time() - self.last_command_at <= self.TIMEOUT:
+            return
+
+        if abs(self.current_angle) < 0.01:
+            self.current_angle = 0.0
+            self.set_angle(0.0)
             self.last_command_at = None
+            self.logger.warning("Kill switch activated: no control input")
+            return
+
+        self.current_angle *= self.DECAY_RATE
+        self.set_angle(self.current_angle)
 
     def map_angle(self, angle):
         if angle < 0:
@@ -43,8 +57,8 @@ class Node(RabbitNode):
         data = msg.data.decode()
         json_data = json.loads(data)
         left_stick_x = json_data.get("sticks", {}).get("left", {}).get("x", 0)
-        angle = max(min(left_stick_x, 1), -1)
-        self.set_angle(angle)
+        self.current_angle = max(min(left_stick_x, 1), -1)
+        self.set_angle(self.current_angle)
 
     def set_angle(self, angle: float):
         value = self.map_angle(angle)

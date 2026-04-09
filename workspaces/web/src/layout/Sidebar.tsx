@@ -1,16 +1,12 @@
 import { css, cx } from '@emotion/css';
 import React from 'react';
 
+import { useWatchKV } from '../app/NatsProvider.tsx';
+import { CameraSettings } from '../camera/CameraSettings.tsx';
 import { ui } from '../ui/index.ts';
-import { ConfigTab } from './tabs/ConfigTab.tsx';
-import { ControlsTab } from './tabs/ControlsTab.tsx';
-import { NodesTab } from './tabs/NodesTab.tsx';
-import { SysTab } from './tabs/SysTab.tsx';
 
 const SIDEBAR_TABS = [
-    { id: 'controls', label: 'CTRL' },
-    { id: 'sys', label: 'SYS' },
-    { id: 'nodes', label: 'NODES' },
+    { id: 'camera', label: 'CAMERA' },
     { id: 'config', label: 'CONF' },
 ] as const;
 
@@ -18,8 +14,14 @@ const SIDEBAR_WIDTH = 360;
 const COLLAPSED_WIDTH = 28;
 
 export const Sidebar: React.FC = () => {
-    const [activeTab, setActiveTab] = React.useState('controls');
-    const [collapsed, setCollapsed] = React.useState(false);
+    const [activeTab, setActiveTab] = React.useState('camera');
+    const [sidebarState, setSidebarState] = useWatchKV({
+        key: 'rabbit.ui.sidebar',
+        parse: (data) => data.json() as { visible: boolean },
+    });
+
+    const collapsed = !(sidebarState?.visible ?? false);
+    const toggle = () => setSidebarState({ visible: collapsed });
 
     React.useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -28,13 +30,13 @@ export const Sidebar: React.FC = () => {
             }
 
             if (e.key === '[') {
-                setCollapsed((prev) => !prev);
+                toggle();
             }
         };
 
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, []);
+    }, [collapsed]);
 
     return (
         <div
@@ -48,7 +50,7 @@ export const Sidebar: React.FC = () => {
             `}
             style={{ width: collapsed ? COLLAPSED_WIDTH : SIDEBAR_WIDTH }}>
             <button
-                onClick={() => setCollapsed((prev) => !prev)}
+                onClick={toggle}
                 className={css`
                     width: ${COLLAPSED_WIDTH}px;
                     flex-shrink: 0;
@@ -100,10 +102,7 @@ export const Sidebar: React.FC = () => {
                             overflow-y: auto;
                             overflow-x: hidden;
                         `}>
-                        {activeTab === 'controls' && <ControlsTab />}
-                        {activeTab === 'sys' && <SysTab />}
-                        {activeTab === 'nodes' && <NodesTab />}
-                        {activeTab === 'config' && <ConfigTab />}
+                        {activeTab === 'camera' && <CameraSettings />}
                     </div>
                 </div>
             )}

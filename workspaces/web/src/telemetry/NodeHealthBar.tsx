@@ -22,15 +22,12 @@ export const NodeHealthBar: React.FC = () => {
     const [ina, setIna] = React.useState<InaData | null>(null);
 
     React.useEffect(() => {
-        const inaSub = nc.subscribe(INA_SUBJECT, {
+        const sub = nc.subscribe(INA_SUBJECT, {
             callback: (_, msg) => {
                 try { setIna(msg.json() as InaData); } catch {}
             },
         });
-
-        return () => {
-            inaSub.unsubscribe();
-        };
+        return () => { sub.unsubscribe(); };
     }, [nc]);
 
     return (

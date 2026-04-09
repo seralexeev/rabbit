@@ -140,6 +140,7 @@ export const TelemetryBar: React.FC = () => {
                 display: flex;
                 flex-direction: column;
                 gap: 6px;
+                padding: 8px;
                 font-variant-numeric: tabular-nums;
             `}>
             {/* CPU — big card with core bars */}
