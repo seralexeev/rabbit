@@ -4,6 +4,7 @@ import z from 'zod';
 
 import { useWatchKV } from '../app/NatsProvider.tsx';
 import { L } from '../terminal/LogProvider.tsx';
+import { ui } from '../ui/index.ts';
 
 type CameraSettingsProps = {};
 
@@ -19,7 +20,7 @@ export const CameraSettings: React.FC<CameraSettingsProps> = ({}) => {
     };
 
     if (settings == null) {
-        return <div>Loading camera settings...</div>;
+        return <ui.Placeholder label='WAITING FOR CAMERA' />;
     }
 
     return (

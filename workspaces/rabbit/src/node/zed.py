@@ -1,11 +1,18 @@
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+import json
 
 import cv2
 import lz4.frame
 import numpy as np
-from lib.model import CameraIntrinsics, Pose
+from lib.model import (
+    DEPTH_ENCODING_MM_U16_LZ4,
+    RGB_ENCODING_JPEG,
+    SENSOR_BUNDLE_SUBJECT,
+    CameraIntrinsics,
+    Pose,
+    SensorBundle,
+    serialize_sensor_bundle,
+)
 from lib.node import RabbitNode
 from nats.js.errors import KeyNotFoundError
 from nats.js.kv import KeyValue
@@ -28,6 +35,12 @@ class CameraSettings(BaseModel):
 
 class Node(RabbitNode):
     CAMERA_SETTINGS_KEY = "rabbit.zed.camera_settings"
+    POSE_SUBJECT = "rabbit.zed.pose"
+    PREVIEW_SUBJECT = "rabbit.zed.frame.preview"
+    LEGACY_PREVIEW_SUBJECT = "rabbit.zed.frame"
+    HEALTH_SUBJECT = "rabbit.health.zed"
+    PREVIEW_FPS = 10
+    INCLUDE_RGB_IN_BUNDLE = False
 
     def __init__(self):
         super().__init__("rabbit-zed")
@@ -40,6 +53,7 @@ class Node(RabbitNode):
         self.runtime_params = sl.RuntimeParameters()
         self.camera_parameters = sl.CameraParameters()
         self.camera_fps = 30
+        self.preview_every_n_frames = 1
 
         self.init_params = sl.InitParameters(
             camera_resolution=sl.RESOLUTION.HD720,
@@ -54,6 +68,16 @@ class Node(RabbitNode):
         self.positional_tracking_parameters.set_floor_as_origin = True
         self.frame_number = -1
         self.timestamp = 0
+        self.bundle_messages = 0
+        self.bundle_bytes = 0
+        self.preview_messages = 0
+        self.preview_bytes = 0
+        self.pose_messages = 0
+        self.pose_drop_count = 0
+        self.last_capture_duration_ms = 0.0
+        self.last_pose_state = "UNKNOWN"
+        self.last_bundle_frame = -1
+        self.last_preview_frame = -1
 
     async def init(self):
         status = self.zed.open(self.init_params)
@@ -69,12 +93,12 @@ class Node(RabbitNode):
         await self.publish_camera_intrinsics()
         await self.init_camera_settings()
         await self.watch_kv(self.CAMERA_SETTINGS_KEY, self.on_camera_settings_update)
-        await self.async_task(self.capture_loop)
+        self.preview_every_n_frames = max(
+            1, round(self.camera_fps / self.PREVIEW_FPS)
+        )
 
-        self.set_interval(self.publish_depth, 1 / self.camera_fps)
-        self.set_interval(self.publish_image, 1 / self.camera_fps)
-        self.set_interval(self.publish_pose, 1 / self.camera_fps)
-        self.set_interval(self.nc.flush, 1 / self.camera_fps)
+        self.set_interval(self.capture_and_publish, 1 / self.camera_fps, max_parallel=1)
+        self.set_interval(self.publish_health, 1, max_parallel=1)
 
     async def close(self):
         self.zed.close()
@@ -113,7 +137,47 @@ class Node(RabbitNode):
             settings = CameraSettings.model_validate_json(entry.value)
             self.set_camera_settings(settings)
 
-    async def capture_loop(self):
+    def _encode_depth_payload(self, depth_data: np.ndarray) -> bytes:
+        d = np.nan_to_num(depth_data, nan=0.0, posinf=0.0, neginf=0.0)
+        d = np.clip(d, 0.0, 16.0)
+        u16 = (d * 1000.0).astype(np.uint16)
+        return lz4.frame.compress(u16.tobytes())
+
+    def _encode_preview_frame(self, frame_rgb: np.ndarray) -> bytes:
+        success, buffer = cv2.imencode(
+            ".jpg",
+            frame_rgb,
+            [cv2.IMWRITE_JPEG_QUALITY, 50],
+        )
+        if not success:
+            raise RuntimeError("Failed to encode RGB image")
+        return buffer.tobytes()
+
+    async def publish_health(self):
+        payload = json.dumps(
+            {
+                "frame_number": self.frame_number,
+                "timestamp": self.timestamp,
+                "camera_fps": self.camera_fps,
+                "preview_every_n_frames": self.preview_every_n_frames,
+                "bundle_messages": self.bundle_messages,
+                "bundle_bytes": self.bundle_bytes,
+                "preview_messages": self.preview_messages,
+                "preview_bytes": self.preview_bytes,
+                "pose_messages": self.pose_messages,
+                "pose_drop_count": self.pose_drop_count,
+                "last_capture_duration_ms": self.last_capture_duration_ms,
+                "last_pose_state": self.last_pose_state,
+                "last_bundle_frame": self.last_bundle_frame,
+                "last_preview_frame": self.last_preview_frame,
+            }
+        ).encode()
+        await self.nc.publish(self.HEALTH_SUBJECT, payload)
+
+    async def capture_and_publish(self):
+        loop = asyncio.get_running_loop()
+        started = loop.time()
+
         status = self.zed.grab(self.runtime_params)
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"Failed to grab image from ZED camera: {status}")
@@ -123,53 +187,9 @@ class Node(RabbitNode):
             sl.TIME_REFERENCE.IMAGE
         ).get_nanoseconds()
 
-        status = self.zed.retrieve_image(self.image, sl.VIEW.LEFT)
-        if status != sl.ERROR_CODE.SUCCESS:
-            raise RuntimeError(f"Failed to retrieve RGB image: {status}")
-
-    async def publish_pose(self):
         state = self.zed.get_position(self.pose, sl.REFERENCE_FRAME.WORLD)
-        if state == sl.POSITIONAL_TRACKING_STATE.OK:
-            pose = Pose(
-                translation=self.pose.get_translation().get(),
-                orientation=self.pose.get_orientation().get(),
-                frame_number=self.frame_number,
-                timestamp=self.timestamp,
-            ).model_dump_json()
+        self.last_pose_state = str(state)
 
-            await self.nc.publish("rabbit.zed.pose", pose.encode())
-
-    async def publish_image(self):
-        frame_data = self.image.get_data()
-        frame_number = self.frame_number
-
-        async def encode_publish():
-            frame_rgb = np.ascontiguousarray(frame_data[:, :, :3])
-
-            success, buffer = await asyncio.to_thread(
-                cv2.imencode,
-                ".jpg",
-                frame_rgb,
-                [cv2.IMWRITE_JPEG_QUALITY, 50],
-            )
-            if not success:
-                raise RuntimeError("Failed to encode RGB image")
-
-            await self.nc.publish(
-                "rabbit.zed.frame",
-                buffer.tobytes(),
-                headers={
-                    "type": "image/jpeg",
-                    "width": str(frame_rgb.shape[1]),
-                    "height": str(frame_rgb.shape[0]),
-                    "frame_number": str(frame_number),
-                    "timestamp": str(self.timestamp),
-                },
-            )
-
-        await asyncio.create_task(encode_publish())
-
-    async def publish_depth(self):
         status = self.zed.retrieve_measure(
             self.depth,
             sl.MEASURE.DEPTH,
@@ -178,23 +198,91 @@ class Node(RabbitNode):
         if status != sl.ERROR_CODE.SUCCESS:
             raise RuntimeError(f"Failed to retrieve depth image: {status}")
 
-        depth_data = self.depth.get_data()
+        depth_data = np.array(self.depth.get_data(), copy=True)
+        should_publish_preview = self.frame_number % self.preview_every_n_frames == 0
+        preview_data: np.ndarray | None = None
+        if should_publish_preview:
+            status = self.zed.retrieve_image(self.image, sl.VIEW.LEFT)
+            if status != sl.ERROR_CODE.SUCCESS:
+                raise RuntimeError(f"Failed to retrieve RGB image: {status}")
+            preview_data = np.ascontiguousarray(self.image.get_data()[:, :, :3])
 
-        d = np.nan_to_num(depth_data, nan=0.0, posinf=0.0, neginf=0.0)
-        d = np.clip(d, 0.0, 16.0)
-        u16 = (d * 1000.0).astype(np.uint16)
-        compressed = lz4.frame.compress(u16.tobytes())
+        tasks = [asyncio.to_thread(self._encode_depth_payload, depth_data)]
+        if preview_data is not None:
+            tasks.append(asyncio.to_thread(self._encode_preview_frame, preview_data))
+        encoded = await asyncio.gather(*tasks)
 
-        await self.nc.publish(
-            "rabbit.zed.depth",
-            compressed,
-            headers={
-                "enc": "DEPTH_MM_U16_LZ4",
-                "w": "640",
-                "h": "480",
+        depth_payload = encoded[0]
+        preview_payload = encoded[1] if len(encoded) > 1 else None
+
+        if state == sl.POSITIONAL_TRACKING_STATE.OK:
+            translation = tuple(float(v) for v in self.pose.get_translation().get())
+            orientation = tuple(float(v) for v in self.pose.get_orientation().get())
+            pose = Pose(
+                translation=list(translation),
+                orientation=list(orientation),
+                frame_number=self.frame_number,
+                timestamp=self.timestamp,
+            ).model_dump_json()
+
+            bundle = SensorBundle(
+                frame_number=self.frame_number,
+                timestamp=self.timestamp,
+                translation=translation,
+                orientation=orientation,
+                depth_width=640,
+                depth_height=480,
+                depth_payload=depth_payload,
+                rgb_encoding=RGB_ENCODING_JPEG
+                if self.INCLUDE_RGB_IN_BUNDLE and preview_payload is not None
+                else 0,
+                rgb_width=preview_data.shape[1]
+                if self.INCLUDE_RGB_IN_BUNDLE and preview_data is not None
+                else 0,
+                rgb_height=preview_data.shape[0]
+                if self.INCLUDE_RGB_IN_BUNDLE and preview_data is not None
+                else 0,
+                rgb_payload=preview_payload
+                if self.INCLUDE_RGB_IN_BUNDLE and preview_payload is not None
+                else b"",
+            )
+            bundle_payload = serialize_sensor_bundle(bundle)
+
+            await self.nc.publish(
+                SENSOR_BUNDLE_SUBJECT,
+                bundle_payload,
+                headers={
+                    "frame_number": str(self.frame_number),
+                    "timestamp": str(self.timestamp),
+                    "depth_encoding": DEPTH_ENCODING_MM_U16_LZ4,
+                },
+            )
+            await self.nc.publish(self.POSE_SUBJECT, pose.encode())
+
+            self.bundle_messages += 1
+            self.bundle_bytes += len(bundle_payload)
+            self.pose_messages += 1
+            self.last_bundle_frame = self.frame_number
+        else:
+            self.pose_drop_count += 1
+
+        if preview_payload is not None and preview_data is not None:
+            headers = {
+                "type": "image/jpeg",
+                "width": str(preview_data.shape[1]),
+                "height": str(preview_data.shape[0]),
+                "frame_number": str(self.frame_number),
                 "timestamp": str(self.timestamp),
-            },
-        )
+            }
+            await self.nc.publish(self.PREVIEW_SUBJECT, preview_payload, headers=headers)
+            await self.nc.publish(
+                self.LEGACY_PREVIEW_SUBJECT, preview_payload, headers=headers
+            )
+            self.preview_messages += 1
+            self.preview_bytes += len(preview_payload) * 2
+            self.last_preview_frame = self.frame_number
+
+        self.last_capture_duration_ms = (loop.time() - started) * 1000.0
 
     def get_camera_settings(self) -> CameraSettings:
         settings = CameraSettings()

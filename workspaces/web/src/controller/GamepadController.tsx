@@ -17,9 +17,7 @@ export const GamepadController: React.FC = () => {
         });
     }, [gamepad, nc]);
 
-    if (!state) {
-        return null;
-    }
+    const zero: StickState = { x: 0, y: 0 };
 
     return (
         <div
@@ -29,8 +27,8 @@ export const GamepadController: React.FC = () => {
                 width: 100%;
                 justify-content: center;
             `}>
-            <Stick stick={state.sticks.left} />
-            <Stick stick={state.sticks.right} />
+            <Stick stick={state?.sticks.left ?? zero} />
+            <Stick stick={state?.sticks.right ?? zero} />
         </div>
     );
 };
