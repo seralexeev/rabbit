@@ -52,7 +52,7 @@ snap install chromium
 xhost +si:localuser:root
 
 # pull ZED Docker images
-docker pull stereolabs/zed:4.2-devel-jetson-jp6.0.0
+docker pull stereolabs/zed:5.2-tools-devel-jetson-jp6.1.0
 
 
 # Install VNC
