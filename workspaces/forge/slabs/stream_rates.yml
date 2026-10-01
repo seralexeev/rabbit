@@ -1,0 +1,52 @@
+title: Stream rates and gaps
+description: >-
+  Data-quality check per recorded stream: sample count, effective rate, the longest gap between
+  consecutive samples, and first and last sample time. Use it to find dropped data, a stalled
+  sensor or a node that stopped publishing.
+tags: [data quality, streams, rate, gaps, dropouts, health]
+prompts:
+  - Did we lose any data in the last run?
+  - Which sensors were recording and at what rate?
+guidelines: >-
+  Nominal rates: imu about 100 Hz, roboclaw, power and magnetometer 50 Hz, pose 30 Hz, barometer
+  25 Hz, steering 20 Hz, obstacle and nav_state 10 Hz, jetson, wifi and zed_health 1 Hz; joy (30 Hz)
+  and drive (20 Hz) only while driving manually or autonomously. A max_gap_ms far above the
+  nominal period is a dropout.
+dims: [stream]
+sql: |
+  SELECT
+    stream,
+    count() AS samples,
+    count() / greatest(dateDiff('millisecond', min(ts), max(ts)) / 1000, 1) AS rate_hz,
+    max(gap_ms) AS max_gap_ms,
+    min(ts) AS first_ts,
+    max(ts) AS last_ts
+  FROM (
+    SELECT stream, ts, dateDiff('millisecond', lagInFrame(ts, 1, ts) OVER w, ts) AS gap_ms
+    FROM (
+      SELECT 'roboclaw' AS stream, ts FROM roboclaw WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'power' AS stream, ts FROM power WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'steering' AS stream, ts FROM steering WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'imu' AS stream, ts FROM imu WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'pose' AS stream, ts FROM pose WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'magnetometer' AS stream, ts FROM magnetometer WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'barometer' AS stream, ts FROM barometer WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'jetson' AS stream, ts FROM jetson WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'zed_health' AS stream, ts FROM zed_health WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'wifi' AS stream, ts FROM wifi WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'joy' AS stream, ts FROM joy WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'drive' AS stream, ts FROM drive WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'nav_state' AS stream, ts FROM nav_state WHERE run_id = {run_id:String}
+      UNION ALL SELECT 'obstacle' AS stream, ts FROM obstacle WHERE run_id = {run_id:String}
+    )
+    WINDOW w AS (PARTITION BY stream ORDER BY ts ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+  )
+  GROUP BY stream
+  ORDER BY stream
+columns:
+  stream: { kind: category }
+  samples: { measure: event }
+  rate_hz: { measure: ratio, unit: Hz }
+  max_gap_ms: { measure: gauge, unit: ms }
+  first_ts: { kind: attribute }
+  last_ts: { kind: attribute }

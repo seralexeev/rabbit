@@ -1,0 +1,61 @@
+title: Trajectory and path length
+description: >-
+  The robot's path from ZED positional tracking: averaged position per time bucket, the distance
+  moved since the previous bucket, cumulative path length, and speed. Use it for where the robot
+  went, how far and how fast.
+tags: [pose, trajectory, path, distance, speed, position]
+prompts:
+  - Show the robot's trajectory
+  - How far did the robot travel and how fast?
+  - Where was the robot at each moment?
+guidelines: >-
+  Positions are in the ZED world frame in metres, which depends on where tracking started. Steps
+  faster than 2 m/s are tracking relocalization jumps and count as 0. Small
+  steps (a few millimetres per second) on a stationary robot are tracking noise.
+dims: [t]
+sql: |
+  SELECT
+    t,
+    x,
+    y,
+    z,
+    step_m,
+    sum(step_m) OVER (ORDER BY t ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS distance_m,
+    step_m / {bucket_s:UInt32} AS speed_mps
+  FROM (
+    SELECT
+      t,
+      x,
+      y,
+      z,
+      sqrt(pow(x - lagInFrame(x, 1, x) OVER w, 2) + pow(y - lagInFrame(y, 1, y) OVER w, 2) + pow(z - lagInFrame(z, 1, z) OVER w, 2)) AS raw_step,
+      if(raw_step > 2 * {bucket_s:UInt32}, 0, raw_step) AS step_m
+    FROM (
+      SELECT toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t, avg(x) AS x, avg(y) AS y, avg(z) AS z
+      FROM pose
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY t
+    )
+    WINDOW w AS (ORDER BY t ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+  )
+  ORDER BY t
+columns:
+  t: { kind: time }
+  x: { measure: gauge, unit: m }
+  y: { measure: gauge, unit: m }
+  z: { measure: gauge, unit: m }
+  step_m: { measure: event, unit: m }
+  distance_m:
+    {
+      measure: gauge,
+      unit: m,
+      description: Cumulative path length up to this bucket,
+    }
+  speed_mps: { measure: ratio, unit: m/s }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

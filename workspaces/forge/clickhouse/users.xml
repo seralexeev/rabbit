@@ -1,0 +1,38 @@
+<clickhouse>
+  <profiles>
+    <default>
+      <enable_full_text_index>1</enable_full_text_index>
+    </default>
+    <forge_reader>
+      <enable_full_text_index>1</enable_full_text_index>
+      <readonly>1</readonly>
+      <max_execution_time>30</max_execution_time>
+      <max_memory_usage>300000000</max_memory_usage>
+      <max_concurrent_queries_for_user>16</max_concurrent_queries_for_user>
+      <max_rows_to_read>200000000</max_rows_to_read>
+      <max_bytes_to_read>4000000000</max_bytes_to_read>
+      <max_result_rows>10000</max_result_rows>
+      <result_overflow_mode>break</result_overflow_mode>
+    </forge_reader>
+  </profiles>
+  <users>
+    <forge_writer>
+      <password>forge_writer</password>
+      <networks><ip>::/0</ip></networks>
+      <profile>default</profile>
+      <quota>default</quota>
+      <grants>
+        <query>GRANT ALL ON forge.*</query>
+      </grants>
+    </forge_writer>
+    <forge_reader>
+      <password>forge_reader</password>
+      <networks><ip>::/0</ip></networks>
+      <profile>forge_reader</profile>
+      <quota>default</quota>
+      <grants>
+        <query>GRANT SELECT ON forge.*</query>
+      </grants>
+    </forge_reader>
+  </users>
+</clickhouse>

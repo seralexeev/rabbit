@@ -1,0 +1,60 @@
+title: Navigation state transitions and safety stops
+description: >-
+  Every change of the navigation mode (idle, driving, maneuvering, blocked, arrived, fault), of
+  the safety fault (stall, collision, blocked, step timeout, operator link lost, control error,
+  manual override) and of the mission, with the speed command, free distance ahead and mission at
+  that moment. Use it to replay what navigation decided and why it stopped.
+tags: [navigation, faults, safety stop, mode, missions, transitions, state]
+prompts:
+  - Why did navigation stop?
+  - Were there any safety stops?
+  - When did the robot go into fault mode?
+guidelines: >-
+  kind is mode, fault, fault_cleared (a new mission started) or mission, and value is the new
+  value. A fault names the safety rule that tripped: stall
+  is high motor current with no ground speed for a second, collision an IMU jolt, blocked more
+  than 10 s without free distance, operator link lost more than 3 s without a HUD heartbeat.
+  Check the telemetry and logs_around at that time for the evidence.
+dims: [t]
+sql: |
+  WITH
+    states AS (
+      SELECT
+        run_id,
+        ts,
+        mode,
+        fault,
+        mission_id,
+        speed,
+        free_distance,
+        lagInFrame(mode, 1, '') OVER w AS previous_mode,
+        lagInFrame(fault, 1, '') OVER w AS previous_fault,
+        lagInFrame(mission_id, 1, '') OVER w AS previous_mission
+      FROM nav_state
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      WINDOW w AS (PARTITION BY run_id ORDER BY ts ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+    )
+  SELECT
+    ts AS t,
+    multiIf(fault != previous_fault AND fault = '', 'fault_cleared', fault != previous_fault, 'fault', mission_id != previous_mission, 'mission', 'mode') AS kind,
+    multiIf(fault != previous_fault, fault, mission_id != previous_mission, mission_id, mode) AS value,
+    multiIf(fault != previous_fault, previous_fault, mission_id != previous_mission, previous_mission, previous_mode) AS previous_value,
+    mode,
+    mission_id,
+    speed AS speed_command,
+    free_distance
+  FROM states
+  WHERE mode != previous_mode OR fault != previous_fault OR mission_id != previous_mission
+  ORDER BY t
+columns:
+  t: { kind: time }
+  kind:
+    { kind: attribute, description: "mode, fault, fault_cleared or mission" }
+  value: { kind: attribute, description: New value }
+  previous_value: { kind: attribute }
+  mode: { kind: attribute }
+  mission_id: { kind: attribute }
+  speed_command: { measure: gauge, unit: duty -1..1 }
+  free_distance: { measure: gauge, unit: m }

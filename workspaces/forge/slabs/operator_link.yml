@@ -1,0 +1,55 @@
+title: Operator HUD link
+description: >-
+  Health of the link between the operator HUD on the Mac and the robot, from the HUD heartbeats
+  that travel to the robot and back to Forge: heartbeats per second, round-trip time (median and
+  maximum) and the longest silence. Navigation stops a mission with operator link lost after 3 s
+  without a heartbeat, so this explains those safety stops.
+tags: [operator, hud, heartbeat, link, latency, safety stop, wifi]
+prompts:
+  - Was the operator link stable?
+  - Why did navigation stop with operator link lost?
+  - How laggy was the HUD connection?
+guidelines: >-
+  The HUD sends about two heartbeats per second while it is open. A silence above 3 s during a
+  mission trips the safety stop; no heartbeats at all for a long stretch usually means the HUD was
+  closed, which is not a fault. Round trips above a few hundred milliseconds point at the Wi-Fi,
+  so compare with wifi_health.
+dims: [t]
+sql: |
+  WITH beats AS (
+    SELECT
+      run_id,
+      ts,
+      round_trip_ms,
+      dateDiff('millisecond', lagInFrame(ts, 1, ts) OVER w, ts) / 1000 AS gap_s
+    FROM operator_heartbeat
+    WHERE run_id = {run_id:String}
+      AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+      AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    WINDOW w AS (PARTITION BY run_id ORDER BY ts ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+  )
+  SELECT
+    toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+    count() / {bucket_s:UInt32} AS heartbeats_per_s,
+    quantile(0.5)(round_trip_ms) AS round_trip_p50_ms,
+    max(round_trip_ms) AS round_trip_max_ms,
+    max(gap_s) AS longest_silence_s
+  FROM beats
+  GROUP BY t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  heartbeats_per_s: { measure: gauge, unit: 1/s }
+  round_trip_p50_ms: { measure: gauge, unit: ms }
+  round_trip_max_ms: { measure: gauge, unit: ms }
+  longest_silence_s:
+    {
+      measure: gauge,
+      unit: s,
+      description: "Longest time between two heartbeats ending in the bucket",
+    }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

@@ -1,0 +1,81 @@
+title: Compare two runs
+description: >-
+  Two runs side by side on the main health metrics: duration, battery voltage, current, energy,
+  motor current, peak motor current, Jetson temperature and power, camera fps and tracking loss,
+  distance driven. Use it to compare runs, before and after a change, or today against yesterday.
+tags: [compare, runs, regression, before after, summary]
+prompts:
+  - Compare the last two runs
+  - How does this run differ from the previous one?
+guidelines: >-
+  run_id defaults to the latest named run and other_run_id to the one before it. delta is run
+  minus other run.
+dims: [metric]
+sql: |
+  WITH
+    b AS (
+      SELECT run_id, dateDiff('millisecond', min(ts), max(ts)) / 1000 AS duration, avg(battery_voltage) AS v, min(battery_voltage) AS vmin, avg(battery_current) AS i, avg(battery_power) * dateDiff('millisecond', min(ts), max(ts)) / 3600000 AS wh
+      FROM power
+      WHERE run_id IN ({run_id:String}, {other_run_id:String})
+      GROUP BY run_id
+    ),
+    m AS (
+      SELECT run_id, toNullable(avg(abs(left_current) + abs(right_current))) AS mi, toNullable(max(abs(left_current) + abs(right_current))) AS mpeak
+      FROM roboclaw
+      WHERE run_id IN ({run_id:String}, {other_run_id:String})
+      GROUP BY run_id
+    ),
+    j AS (
+      SELECT run_id, toNullable(max(temp_tj)) AS tj, toNullable(avg(power_mw) / 1000) AS jw
+      FROM jetson
+      WHERE run_id IN ({run_id:String}, {other_run_id:String})
+      GROUP BY run_id
+    ),
+    z AS (
+      SELECT run_id, toNullable(avg(current_fps)) AS fps, toNullable(countIf(pose_state != 'OK') / count()) AS lost
+      FROM zed_health
+      WHERE run_id IN ({run_id:String}, {other_run_id:String})
+      GROUP BY run_id
+    ),
+    d AS (
+      SELECT run_id, toNullable(sumIf(step, step <= 2)) AS dist
+      FROM (
+        SELECT run_id, sqrt(pow(x - lagInFrame(x, 1, x) OVER w, 2) + pow(z - lagInFrame(z, 1, z) OVER w, 2)) AS step
+        FROM (
+          SELECT run_id, toStartOfSecond(ts) AS second, avg(x) AS x, avg(z) AS z
+          FROM pose
+          WHERE run_id IN ({run_id:String}, {other_run_id:String})
+          GROUP BY run_id, second
+        )
+        WINDOW w AS (PARTITION BY run_id ORDER BY second ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+      )
+      GROUP BY run_id
+    ),
+    metrics AS (
+      SELECT
+        b.run_id AS run_id,
+        ['duration', 'avg battery voltage', 'min battery voltage', 'avg battery current', 'battery energy', 'avg motor current', 'peak motor current', 'max Jetson junction temp', 'avg Jetson power', 'avg camera fps', 'tracking lost share', 'distance driven'] AS names,
+        ['s', 'V', 'V', 'A', 'Wh', 'A', 'A', 'C', 'W', 'fps', '0..1', 'm'] AS units,
+        [b.duration, b.v, b.vmin, b.i, b.wh, m.mi, m.mpeak, j.tj, j.jw, z.fps, z.lost, d.dist] AS vals
+      FROM b
+      LEFT JOIN m ON m.run_id = b.run_id
+      LEFT JOIN j ON j.run_id = b.run_id
+      LEFT JOIN z ON z.run_id = b.run_id
+      LEFT JOIN d ON d.run_id = b.run_id
+    )
+  SELECT
+    metric,
+    any(unit) AS unit,
+    anyIf(value, run_id = {run_id:String}) AS run_value,
+    anyIf(value, run_id = {other_run_id:String}) AS other_run_value,
+    run_value - other_run_value AS delta
+  FROM metrics
+  ARRAY JOIN names AS metric, units AS unit, vals AS value
+  GROUP BY metric
+  ORDER BY indexOf(['duration', 'avg battery voltage', 'min battery voltage', 'avg battery current', 'battery energy', 'avg motor current', 'peak motor current', 'max Jetson junction temp', 'avg Jetson power', 'avg camera fps', 'tracking lost share', 'distance driven'], metric)
+columns:
+  metric: { kind: category }
+  unit: { kind: attribute }
+  run_value: { measure: gauge }
+  other_run_value: { measure: gauge }
+  delta: { measure: gauge }

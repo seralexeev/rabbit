@@ -1,0 +1,64 @@
+title: Close obstacle events
+description: >-
+  Seconds in which an obstacle came closer than a clearance distance, ahead in the driving
+  corridor or anywhere around, with its bearing, the navigation mode and the ground speed at that
+  moment. Use it for near misses, collisions and when navigation was blocked.
+tags: [obstacle, collision, near miss, clearance, safety, navigation]
+prompts:
+  - Did the robot almost hit something?
+  - When was an obstacle too close?
+guidelines: >-
+  ahead is inside the driving corridor; nearest is in any direction. Navigation blocks below
+  0.35 m ahead. An obstacle ahead while ground_speed_mps is high is the dangerous case.
+dims: [t]
+sql: |
+  WITH
+    o AS (
+      SELECT
+        run_id,
+        toStartOfSecond(ts) AS t,
+        min(ahead_distance) AS ahead,
+        argMin(ahead_bearing_deg, ahead_distance) AS ahead_bearing,
+        min(nearest_distance) AS nearest
+      FROM obstacle
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+      HAVING ahead < {clearance_m:Float64} OR nearest < {clearance_m:Float64}
+    ),
+    n AS (
+      SELECT run_id, toStartOfSecond(ts) AS t, toNullable(argMax(mode, ts)) AS mode
+      FROM nav_state
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id, t
+    ),
+    p AS (
+      SELECT run_id, toStartOfSecond(ts) AS t, toNullable(avg(sqrt(vx * vx + vy * vy + vz * vz))) AS speed
+      FROM pose
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id, t
+    )
+  SELECT
+    o.t AS t,
+    o.ahead AS min_ahead_m,
+    o.ahead_bearing AS ahead_bearing_deg,
+    o.nearest AS min_nearest_m,
+    n.mode AS nav_mode,
+    p.speed AS ground_speed_mps
+  FROM o
+  LEFT JOIN n ON n.run_id = o.run_id AND n.t = o.t
+  LEFT JOIN p ON p.run_id = o.run_id AND p.t = o.t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  min_ahead_m: { measure: gauge, unit: m }
+  ahead_bearing_deg: { measure: gauge, unit: deg }
+  min_nearest_m: { measure: gauge, unit: m }
+  nav_mode: { kind: attribute }
+  ground_speed_mps: { measure: gauge, unit: m/s }
+subs:
+  clearance_m:
+    type: Float64
+    default: 0.5
+    description: Clearance threshold, m

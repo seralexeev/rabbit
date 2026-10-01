@@ -1,0 +1,55 @@
+title: Robot log summary per node and level
+description: >-
+  How much each robot node logged in a run or time range, per level: the number of records
+  (counting suppressed repeats), how many distinct kinds of message, the most frequent message,
+  the latest exception type, and the first and last time. Use it for whether anything went wrong
+  in the robot software, which node was noisy, and as the starting point before search_logs.
+tags: [logs, errors, warnings, exceptions, nodes, software, crashes]
+prompts:
+  - Were there any errors in the robot logs?
+  - Which node logged the most warnings?
+  - Did any node crash or restart?
+guidelines: >-
+  records counts each suppressed repeat, so a node stuck in an error loop shows a large count with
+  few kinds. Container lifecycle events (started, exited, ran out of memory) come from the
+  telemetry node with logger docker.events. A node only appears once it logged something; nodes
+  that are quiet are healthy, not missing. Read the actual messages with search_logs or
+  logs_around before naming a cause.
+dims: [node, severity]
+sql: |
+  SELECT
+    node,
+    toString(level) AS severity,
+    sum(1 + repeats) AS records,
+    uniqExact(fingerprint) AS kinds,
+    topK(1)(template)[1] AS top_message,
+    argMax(exception_type, ts) AS last_exception,
+    min(ts) AS first_at,
+    max(ts) AS last_at
+  FROM logs
+  WHERE run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    AND level >= {min_level:String}
+  GROUP BY node, severity, level
+  ORDER BY node, level DESC
+columns:
+  node: { kind: entity }
+  severity: { kind: category }
+  records: { measure: event }
+  kinds:
+    { measure: gauge, description: "Distinct message kinds, numbers ignored" }
+  top_message: { kind: attribute, description: Most frequent message template }
+  last_exception:
+    {
+      kind: attribute,
+      description: "Exception class of the latest record, empty without one",
+    }
+  first_at: { kind: attribute }
+  last_at: { kind: attribute }
+subs:
+  min_level:
+    type: String
+    default: info
+    enum: [debug, info, warning, error, critical]
+    description: Lowest level to include

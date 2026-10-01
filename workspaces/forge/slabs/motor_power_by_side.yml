@@ -1,0 +1,42 @@
+title: Motor current and power by side
+description: >-
+  Per drive motor (left M1, right M2) over the whole run: mean and peak current, mean absolute
+  PWM, mean electrical power and energy used. Use it to compare how hard each
+  side worked.
+tags: [motors, current, power, energy]
+prompts:
+  - Which motor drew more current?
+  - How much energy did the motors use?
+  - Compare left and right motor power
+guidelines: >-
+  Power is the 12 V supply voltage times absolute motor current as seen by the motor controller,
+  so it includes motor and driver losses but not the buck converter's.
+dims: [side]
+sql: |
+  SELECT
+    side,
+    avg(abs(current)) AS avg_current_a,
+    max(abs(current)) AS peak_current_a,
+    avg(abs(pwm)) AS avg_abs_pwm,
+    avg(supply_voltage * abs(current)) AS avg_power_w,
+    avg(supply_voltage * abs(current)) * dateDiff('millisecond', min(ts), max(ts)) / 3600000 AS energy_wh
+  FROM (
+    SELECT
+      ts,
+      supply_voltage,
+      side,
+      if(side = 'left', left_current, right_current) AS current,
+      if(side = 'left', left_pwm, right_pwm) AS pwm
+    FROM roboclaw
+    ARRAY JOIN ['left', 'right'] AS side
+    WHERE run_id = {run_id:String}
+  )
+  GROUP BY side
+  ORDER BY side
+columns:
+  side: { kind: category, description: "left is motor M1, right is motor M2" }
+  avg_current_a: { measure: gauge, unit: A }
+  peak_current_a: { measure: gauge, unit: A }
+  avg_abs_pwm: { measure: gauge, unit: duty 0..1 }
+  avg_power_w: { measure: gauge, unit: W }
+  energy_wh: { measure: event, unit: Wh }

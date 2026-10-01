@@ -1,0 +1,90 @@
+title: Battery voltage vs current over time
+description: >-
+  Battery sag timeline: per time bucket, the battery voltage, current, power and charge estimate,
+  the 12 V motor supply voltage and the summed motor current. Use it to see how far the battery
+  voltage drops when the motors draw current, and whether the drop tracks the current.
+tags: [battery, voltage, sag, current, power, motors]
+prompts:
+  - How much does the battery voltage sag under load?
+  - Plot battery voltage against motor current
+  - When was the battery voltage lowest?
+guidelines: >-
+  A healthy pack drops in proportion to battery_current_a. A voltage dip without a matching rise
+  in battery_current_a, or a dip much deeper than battery_resistance predicts, points to a weak
+  cell or a bad connection. The motors run from a 12 V buck converter, so motor_current_a is at
+  12 V and raises battery current by roughly its power divided by the battery voltage. The charge
+  estimate reads low while current is high.
+dims: [t]
+sql: |
+  WITH
+    m AS (
+      SELECT
+        run_id,
+        toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+        toNullable(avg(supply_voltage)) AS avg_supply_voltage,
+        toNullable(avg(abs(left_current) + abs(right_current))) AS motor_current_a,
+        toNullable(max(abs(left_current) + abs(right_current))) AS peak_motor_current_a
+      FROM roboclaw
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    ),
+    b AS (
+      SELECT
+        run_id,
+        toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+        avg(battery_voltage) AS avg_voltage,
+        min(battery_voltage) AS min_voltage,
+        avg(battery_current) AS avg_current,
+        avg(battery_power) AS avg_power,
+        avg(battery_charge_pct) AS avg_charge
+      FROM power
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    )
+  SELECT
+    b.t AS t,
+    b.avg_voltage AS battery_voltage,
+    b.min_voltage AS min_battery_voltage,
+    b.avg_current AS battery_current_a,
+    b.avg_power AS battery_power_w,
+    b.avg_charge AS charge_pct,
+    m.avg_supply_voltage AS supply_voltage,
+    m.motor_current_a AS motor_current_a,
+    m.peak_motor_current_a AS peak_motor_current_a
+  FROM b
+  LEFT JOIN m ON m.run_id = b.run_id AND m.t = b.t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  battery_voltage: { measure: gauge, unit: V }
+  min_battery_voltage: { measure: gauge, unit: V }
+  battery_current_a:
+    {
+      measure: gauge,
+      unit: A,
+      description: "Total battery current, motors plus electronics",
+    }
+  battery_power_w: { measure: gauge, unit: W }
+  charge_pct: { measure: gauge, unit: "%" }
+  supply_voltage:
+    {
+      measure: gauge,
+      unit: V,
+      description: 12 V buck output feeding the motor controller,
+    }
+  motor_current_a:
+    {
+      measure: gauge,
+      unit: A,
+      description: Mean of left plus right absolute motor current,
+    }
+  peak_motor_current_a: { measure: gauge, unit: A }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

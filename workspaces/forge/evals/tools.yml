@@ -1,0 +1,134 @@
+- id: investigate_reboot_1100
+  tool: investigate
+  input: { symptom: reboots, at: "11:00" }
+  top_chain_any: [imu_vibration, motor_current]
+  ruled_out_any: [junction_temp, jetson_power]
+- id: investigate_reboot_1048
+  tool: investigate
+  input: { symptom: reboots, at: "10:48" }
+  max_top_score: 0.3
+  ruled_out_any: [battery_voltage]
+- id: investigate_inrush
+  tool: investigate
+  input: { symptom: stalls, at: "11:04" }
+  top_chain_any: [drive_command, motor_pwm]
+- id: investigate_wall_push
+  tool: investigate
+  input:
+    {
+      symptom: motor_current,
+      at: "11:34",
+      from: "2026-10-01 11:30:00",
+      to: "2026-10-01 11:38:00",
+    }
+  top_chain_any: [drive_command, motor_pwm]
+  chain_any: [obstacle_clearance]
+- id: investigate_wifi_spike
+  tool: investigate
+  input:
+    {
+      symptom: wifi_rtt,
+      from: "2026-10-01 11:25:00",
+      to: "2026-10-01 11:40:00",
+    }
+  focus_within: ["2026-10-01 11:32:00", "2026-10-01 11:32:30"]
+- id: investigate_battery_sag
+  tool: investigate
+  input: { symptom: battery_voltage, run_id: 20261001-105200-autonomous-nav }
+  top_chain_any: [battery_current]
+- id: detect_inrush
+  tool: detect_anomalies
+  input:
+    {
+      signals: [battery_voltage, motor_current],
+      run_id: 20261001-105200-autonomous-nav,
+      from: "2026-10-01 11:02:30",
+      to: "2026-10-01 11:06:00",
+    }
+  truth:
+    - {
+        signal: motor_current,
+        from: "2026-10-01 11:04:12",
+        to: "2026-10-01 11:04:13",
+      }
+- id: detect_reboot_precursor
+  tool: detect_anomalies
+  input:
+    {
+      signals: [battery_voltage, motor_current, imu_vibration],
+      run_id: 20261001-105200-autonomous-nav,
+      from: "2026-10-01 10:56:00",
+      to: "2026-10-01 11:00:18",
+    }
+  truth:
+    - {
+        signal: motor_current,
+        from: "2026-10-01 11:00:13.5",
+        to: "2026-10-01 11:00:17.4",
+      }
+    - {
+        signal: imu_vibration,
+        from: "2026-10-01 11:00:13.5",
+        to: "2026-10-01 11:00:17.4",
+      }
+  joint_within: ["2026-10-01 11:00:13", "2026-10-01 11:00:18"]
+- id: detect_wall_push
+  tool: detect_anomalies
+  input:
+    {
+      signals: [motor_current, ground_speed],
+      run_id: 20261001-105200-autonomous-nav,
+      from: "2026-10-01 11:30:00",
+      to: "2026-10-01 11:38:00",
+    }
+  truth:
+    - {
+        signal: motor_current,
+        from: "2026-10-01 11:33:53",
+        to: "2026-10-01 11:34:06",
+      }
+    - {
+        signal: motor_current,
+        from: "2026-10-01 11:34:46",
+        to: "2026-10-01 11:34:49",
+      }
+- id: detect_wifi_spike
+  tool: detect_anomalies
+  input:
+    {
+      signals: [wifi_rtt, uplink_kbps],
+      run_id: 20261001-105200-autonomous-nav,
+      from: "2026-10-01 11:25:00",
+      to: "2026-10-01 11:45:00",
+    }
+  truth:
+    - {
+        signal: wifi_rtt,
+        from: "2026-10-01 11:31:52",
+        to: "2026-10-01 11:32:26",
+      }
+    - {
+        signal: wifi_rtt,
+        from: "2026-10-01 11:33:51",
+        to: "2026-10-01 11:34:03",
+      }
+    - {
+        signal: uplink_kbps,
+        from: "2026-10-01 11:37:08",
+        to: "2026-10-01 11:37:21",
+      }
+- id: detect_bench_voltage_step
+  tool: detect_anomalies
+  input:
+    {
+      signals: [battery_voltage, motor_current],
+      run_id: 20261001-100306-bench-idle,
+      from: "2026-10-01 10:05:00",
+      to: "2026-10-01 10:15:00",
+    }
+  truth:
+    - {
+        signal: battery_voltage,
+        from: "2026-10-01 10:05:27",
+        to: "2026-10-01 10:05:36",
+      }

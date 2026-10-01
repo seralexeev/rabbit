@@ -1,0 +1,58 @@
+title: Jetson thermal and clock throttling timeline
+description: >-
+  Per time bucket on the Jetson Orin: junction and CPU temperature, CPU load, the lowest and
+  highest CPU core clock, the GPU clock, board power and fan speed, and the share of samples whose
+  slowest core ran below the run's peak clock. Use it to see whether the computer throttled and
+  whether heat or load caused it.
+tags: [jetson, compute, thermal, throttling, cpu, temperature]
+prompts:
+  - Did the Jetson throttle?
+  - Show Jetson temperature and CPU clocks over time
+  - Jetson CPU frequency per minute
+guidelines: >-
+  A clock below peak at a low temperature is ordinary frequency scaling by the governor; call it
+  thermal throttling only when the clock drops while max_tj_c is high (above about 85 C).
+dims: [t]
+sql: |
+  WITH peak AS (
+    SELECT run_id, max(arrayMax(cpu_freq_mhz)) AS peak_mhz
+    FROM jetson
+    WHERE run_id = {run_id:String}
+      AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+      AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    GROUP BY run_id
+  )
+  SELECT
+    toStartOfInterval(j.ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+    max(j.temp_tj) AS max_tj_c,
+    avg(j.temp_cpu) AS avg_cpu_temp_c,
+    avg(arrayAvg(j.cpu_load)) AS avg_cpu_load_pct,
+    min(arrayMin(j.cpu_freq_mhz)) AS min_cpu_freq_mhz,
+    max(arrayMax(j.cpu_freq_mhz)) AS max_cpu_freq_mhz,
+    avg(j.gpu_freq_mhz) AS avg_gpu_freq_mhz,
+    avg(j.power_mw) / 1000 AS avg_power_w,
+    avg(j.fan_rpm) AS avg_fan_rpm,
+    countIf(arrayMin(j.cpu_freq_mhz) < p.peak_mhz) / count() AS below_peak_share
+  FROM jetson AS j
+  JOIN peak AS p ON p.run_id = j.run_id
+  WHERE j.run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+  GROUP BY t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  max_tj_c: { measure: gauge, unit: C }
+  avg_cpu_temp_c: { measure: gauge, unit: C }
+  avg_cpu_load_pct: { measure: gauge, unit: "%" }
+  min_cpu_freq_mhz: { measure: gauge, unit: MHz }
+  max_cpu_freq_mhz: { measure: gauge, unit: MHz }
+  avg_gpu_freq_mhz: { measure: gauge, unit: MHz }
+  avg_power_w: { measure: gauge, unit: W }
+  avg_fan_rpm: { measure: gauge, unit: rpm }
+  below_peak_share: { measure: ratio, unit: 0..1 }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

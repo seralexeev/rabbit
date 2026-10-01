@@ -1,0 +1,51 @@
+title: Wi-Fi link health
+description: >-
+  The robot's Wi-Fi link per time bucket: signal strength, ping round trip to the router (median,
+  95th percentile and maximum), lost pings, uplink and downlink throughput, dropped packets and
+  disconnections. Use it for lag, slow video or telemetry, dropouts and whether the robot was out
+  of range.
+tags: [wifi, network, latency, ping, signal, dropouts, bandwidth]
+prompts:
+  - Was the Wi-Fi link healthy?
+  - Why was the video or telemetry lagging?
+  - Was there high ping or packet loss?
+guidelines: >-
+  A healthy link has a router RTT of a few milliseconds and signal above -60 dBm. RTT spikes
+  around a second with a good signal point at power saving or interference rather than range;
+  lost pings together with a weak signal mean the robot was at the edge of coverage. Uplink
+  throughput is mostly camera preview and telemetry going to the Mac.
+dims: [t]
+sql: |
+  SELECT
+    toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+    min(signal_dbm) AS min_signal_dbm,
+    quantile(0.5)(gateway_rtt_ms) AS rtt_p50_ms,
+    quantile(0.95)(gateway_rtt_ms) AS rtt_p95_ms,
+    max(gateway_rtt_ms) AS rtt_max_ms,
+    countIf(gateway_rtt_ms IS NULL) AS lost_pings,
+    avg(tx_bytes_per_s) / 1024 AS uplink_kib_s,
+    avg(rx_bytes_per_s) / 1024 AS downlink_kib_s,
+    sum(tx_dropped_per_s + rx_dropped_per_s) AS dropped_packets,
+    countIf(NOT connected) AS disconnected_samples
+  FROM wifi
+  WHERE run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+  GROUP BY t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  min_signal_dbm: { measure: gauge, unit: dBm }
+  rtt_p50_ms: { measure: gauge, unit: ms }
+  rtt_p95_ms: { measure: gauge, unit: ms }
+  rtt_max_ms: { measure: gauge, unit: ms }
+  lost_pings: { measure: event }
+  uplink_kib_s: { measure: gauge, unit: KiB/s }
+  downlink_kib_s: { measure: gauge, unit: KiB/s }
+  dropped_packets: { measure: event }
+  disconnected_samples: { measure: event }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

@@ -1,0 +1,46 @@
+title: IMU shocks and vibration
+description: >-
+  Per time bucket from the ZED IMU: the peak deviation of total acceleration from 1 g, RMS
+  vibration, peak rotation rate, and how many samples exceeded a shock threshold. Use it to find
+  bumps, collisions, hard launches and rough terrain.
+tags: [imu, shock, vibration, bump, collision, acceleration]
+prompts:
+  - Were there any bumps or collisions?
+  - Find IMU shocks above 1 g
+  - How rough was the ride?
+guidelines: >-
+  A bucket with shock_samples above 0 is a shock event at threshold_g. A robot at rest shows
+  rms_vibration_g near 0.01 g from sensor noise.
+dims: [t]
+sql: |
+  SELECT
+    toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+    max(abs(g - 1)) AS peak_deviation_g,
+    sqrt(avg(pow(g - 1, 2))) AS rms_vibration_g,
+    max(sqrt(gyro_x * gyro_x + gyro_y * gyro_y + gyro_z * gyro_z)) AS peak_rotation_dps,
+    countIf(abs(g - 1) > {threshold_g:Float64}) AS shock_samples
+  FROM imu
+  WHERE run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+  GROUP BY t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  peak_deviation_g: { measure: gauge, unit: g }
+  rms_vibration_g: { measure: gauge, unit: g }
+  peak_rotation_dps: { measure: gauge, unit: deg/s }
+  shock_samples:
+    {
+      measure: event,
+      description: IMU samples whose acceleration deviated from 1 g by more than threshold_g,
+    }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows
+  threshold_g:
+    type: Float64
+    default: 0.5
+    description: Shock threshold, deviation from 1 g in g

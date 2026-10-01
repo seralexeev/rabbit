@@ -1,0 +1,41 @@
+title: Robot log warnings and errors over time per node
+description: >-
+  Warnings and errors per second for each robot node over time, counting suppressed repeats, with
+  the most frequent message in each bucket. Use it to line up software trouble with telemetry: an
+  error burst at the moment of a stall, a safety stop, a tracking loss or a reboot.
+tags: [logs, errors, warnings, error rate, timeline, nodes]
+prompts:
+  - When did the robot log errors?
+  - Was there an error burst around the stall?
+  - How often did the motor controller report serial errors?
+guidelines: >-
+  A bucket appears only when the node logged a warning or worse in it; missing buckets mean zero.
+  A steady rate over a long stretch is a node stuck in a loop (often a hardware link such as the
+  RoboClaw serial port); a short burst lines up with an event, so compare it with the telemetry
+  at the same time.
+dims: [t, node]
+sql: |
+  SELECT
+    toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+    node,
+    sumIf(1 + repeats, level = 'warning') / {bucket_s:UInt32} AS warnings_per_s,
+    sumIf(1 + repeats, level >= 'error') / {bucket_s:UInt32} AS errors_per_s,
+    topK(1)(template)[1] AS top_message
+  FROM logs
+  WHERE run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    AND level >= 'warning'
+  GROUP BY t, node
+  ORDER BY t, node
+columns:
+  t: { kind: time }
+  node: { kind: entity }
+  warnings_per_s: { measure: gauge, unit: 1/s }
+  errors_per_s: { measure: gauge, unit: 1/s }
+  top_message: { kind: attribute }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

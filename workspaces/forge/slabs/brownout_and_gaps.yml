@@ -1,0 +1,104 @@
+title: Data gaps, reboots and brownouts
+description: >-
+  Every gap in the robot's power-monitor stream longer than a threshold, with whether the Jetson
+  rebooted during it (its uptime restarted), when it booted, and the battery voltage and current
+  in the last sample before the gap. Use it to explain reboots, brownouts, power loss, Wi-Fi
+  dropouts and missing data.
+tags: [reboot, brownout, power loss, gaps, dropouts, wifi, data quality]
+prompts:
+  - Why did the robot reboot?
+  - Did the robot lose power?
+  - Were there Wi-Fi dropouts or missing data?
+  - Did we lose the connection to the robot?
+guidelines: >-
+  A gap with rebooted = 1 is a robot reboot; compare battery_v_before with the pack's normal
+  level (about 14.5 to 16.8 V) to tell a battery sag from a power cut or a fault downstream of the
+  battery. A gap without a reboot is a Wi-Fi dropout or a pause of the Forge writer itself; the
+  robot kept running. A high max_rtt_ms_before or a weak min_signal_dbm_before points at the
+  Wi-Fi link, normal Wi-Fi right before the gap at the writer or the Mac; the Wi-Fi columns are
+  empty before the robot published Wi-Fi telemetry. Data stops at the last sample, so a very fast brownout may leave no trace in
+  50 Hz samples.
+dims: [gap_start]
+sql: |
+  WITH
+    p AS (
+      SELECT
+        run_id,
+        ts,
+        lagInFrame(ts, 1, ts) OVER w AS prev_ts,
+        lagInFrame(battery_voltage, 1, battery_voltage) OVER w AS v_before,
+        lagInFrame(battery_current, 1, battery_current) OVER w AS i_before
+      FROM power
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      WINDOW w AS (PARTITION BY run_id ORDER BY ts ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+    ),
+    gaps AS (
+      SELECT run_id, prev_ts AS gap_start, ts AS gap_end, v_before, i_before
+      FROM p
+      WHERE dateDiff('millisecond', prev_ts, ts) > {min_gap_s:Float64} * 1000
+    ),
+    boots AS (
+      SELECT run_id, ts - toIntervalSecond(uptime_s) AS booted_at
+      FROM (
+        SELECT run_id, ts, uptime_s, lagInFrame(uptime_s, 1, uptime_s) OVER (PARTITION BY run_id ORDER BY ts ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS prev_uptime
+        FROM jetson
+        WHERE run_id = {run_id:String}
+      )
+      WHERE uptime_s < prev_uptime
+    ),
+    w AS (
+      SELECT
+        run_id,
+        ts,
+        max(gateway_rtt_ms) OVER recent AS rtt_30s,
+        min(toNullable(signal_dbm)) OVER recent AS signal_30s
+      FROM wifi
+      WHERE run_id = {run_id:String}
+      WINDOW recent AS (PARTITION BY run_id ORDER BY toUnixTimestamp(ts) RANGE BETWEEN 30 PRECEDING AND CURRENT ROW)
+    )
+  SELECT
+    g.gap_start AS gap_start,
+    g.gap_end AS gap_end,
+    dateDiff('millisecond', g.gap_start, g.gap_end) / 1000 AS gap_s,
+    b.booted_at >= g.gap_start AND b.booted_at <= g.gap_end AS rebooted,
+    if(rebooted, b.booted_at, NULL) AS booted_at,
+    g.v_before AS battery_v_before,
+    g.i_before AS battery_a_before,
+    if(w.ts >= g.gap_start - toIntervalSecond(30), w.rtt_30s, NULL) AS max_rtt_ms_before,
+    if(w.ts >= g.gap_start - toIntervalSecond(30), w.signal_30s, NULL) AS min_signal_dbm_before
+  FROM gaps AS g
+  ASOF LEFT JOIN boots AS b ON b.run_id = g.run_id AND g.gap_start <= b.booted_at
+  ASOF LEFT JOIN w ON w.run_id = g.run_id AND g.gap_start >= w.ts
+  ORDER BY gap_start
+columns:
+  gap_start: { kind: time, description: Last sample before the gap }
+  gap_end: { kind: attribute, description: First sample after the gap }
+  gap_s: { measure: gauge, unit: s }
+  rebooted:
+    { kind: attribute, description: 1 when the Jetson booted during the gap }
+  booted_at:
+    {
+      kind: attribute,
+      description: Jetson boot time when it rebooted during the gap,
+    }
+  battery_v_before: { measure: gauge, unit: V }
+  battery_a_before: { measure: gauge, unit: A }
+  max_rtt_ms_before:
+    {
+      measure: gauge,
+      unit: ms,
+      description: Worst router ping in the 30 s before the gap,
+    }
+  min_signal_dbm_before:
+    {
+      measure: gauge,
+      unit: dBm,
+      description: Weakest Wi-Fi signal in the 30 s before the gap,
+    }
+subs:
+  min_gap_s:
+    type: Float64
+    default: 1
+    description: Shortest gap to report, seconds

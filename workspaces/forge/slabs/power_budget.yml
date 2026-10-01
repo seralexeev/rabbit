@@ -1,0 +1,67 @@
+title: Power budget by subsystem
+description: >-
+  Where the battery's power goes: mean and peak watts and energy for the whole robot (battery),
+  the drive motors, the Jetson computer and the 6 V servo rail, plus the unaccounted rest
+  (camera, router, converters). Use it for battery life, consumption and which subsystem draws
+  the most.
+tags: [power, energy, battery, consumption, budget, subsystems]
+prompts:
+  - What uses the most power?
+  - How much power does the robot draw?
+  - How long will the battery last?
+guidelines: >-
+  Motor power is measured at the 12 V converter output and Jetson power at the board input, so
+  the rest includes converter losses, the camera and the network. The battery holds 99 Wh;
+  runtime at the mean draw is 99 / battery avg_w hours, before any reserve.
+dims: [subsystem]
+sql: |
+  WITH
+    b AS (
+      SELECT run_id, avg(battery_power) AS w, max(battery_power) AS peak, avg(rail_6v_power) AS servo_w, max(rail_6v_power) AS servo_peak, dateDiff('millisecond', min(ts), max(ts)) / 3600000 AS hours
+      FROM power
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id
+    ),
+    m AS (
+      SELECT run_id, toNullable(avg(supply_voltage * (abs(left_current) + abs(right_current)))) AS w, toNullable(max(supply_voltage * (abs(left_current) + abs(right_current)))) AS peak
+      FROM roboclaw
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id
+    ),
+    j AS (
+      SELECT run_id, toNullable(avg(power_mw) / 1000) AS w, toNullable(max(power_mw) / 1000) AS peak
+      FROM jetson
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id
+    ),
+    rows AS (
+      SELECT
+        ['battery', 'motors', 'jetson', 'servo rail', 'rest'] AS names,
+        [b.w, m.w, j.w, b.servo_w, b.w - m.w - j.w - b.servo_w] AS avgs,
+        [b.peak, m.peak, j.peak, b.servo_peak, NULL] AS peaks,
+        b.w AS total,
+        b.hours AS hours
+      FROM b
+      LEFT JOIN m ON m.run_id = b.run_id
+      LEFT JOIN j ON j.run_id = b.run_id
+    )
+  SELECT
+    subsystem,
+    avg_w,
+    peak_w,
+    avg_w * hours AS energy_wh,
+    avg_w / total AS share_of_battery
+  FROM rows
+  ARRAY JOIN names AS subsystem, avgs AS avg_w, peaks AS peak_w
+columns:
+  subsystem: { kind: category }
+  avg_w: { measure: gauge, unit: W }
+  peak_w: { measure: gauge, unit: W }
+  energy_wh: { measure: event, unit: Wh }
+  share_of_battery: { measure: ratio, unit: 0..1 }

@@ -1,0 +1,62 @@
+title: Thermal timeline
+description: >-
+  Temperatures of every hot part per time bucket: Jetson junction and GPU, ZED camera IMU and
+  sensor board, RoboClaw motor controller, plus fan speed and the slowest CPU clock. Use it for
+  overheating, thermal throttling and whether cooling keeps up.
+tags: [thermal, temperature, overheating, throttling, cooling, fan]
+prompts:
+  - Is anything overheating?
+  - How hot did the robot get?
+guidelines: >-
+  The Jetson throttles near a 90 to 100 C junction temperature; the ZED stops above about 80 C.
+  A falling min_cpu_freq_mhz while max_tj_c climbs is thermal throttling.
+dims: [t]
+sql: |
+  WITH
+    j AS (
+      SELECT run_id, toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t, max(temp_tj) AS tj, max(temp_gpu) AS gpu, avg(fan_rpm) AS fan, min(arrayMin(cpu_freq_mhz)) AS freq
+      FROM jetson
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    ),
+    z AS (
+      SELECT run_id, toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t, toNullable(max(temp_imu)) AS cam_imu, toNullable(max(greatest(temp_onboard_left, temp_onboard_right))) AS cam_board
+      FROM zed_health
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id, t
+    ),
+    r AS (
+      SELECT run_id, toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t, toNullable(max(temperature)) AS controller
+      FROM roboclaw
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id, t
+    )
+  SELECT
+    j.t AS t,
+    j.tj AS max_tj_c,
+    j.gpu AS max_gpu_c,
+    z.cam_imu AS camera_imu_c,
+    z.cam_board AS camera_board_c,
+    r.controller AS motor_controller_c,
+    j.fan AS avg_fan_rpm,
+    j.freq AS min_cpu_freq_mhz
+  FROM j
+  LEFT JOIN z ON z.run_id = j.run_id AND z.t = j.t
+  LEFT JOIN r ON r.run_id = j.run_id AND r.t = j.t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  max_tj_c: { measure: gauge, unit: C }
+  max_gpu_c: { measure: gauge, unit: C }
+  camera_imu_c: { measure: gauge, unit: C }
+  camera_board_c: { measure: gauge, unit: C }
+  motor_controller_c: { measure: gauge, unit: C }
+  avg_fan_rpm: { measure: gauge, unit: rpm }
+  min_cpu_freq_mhz: { measure: gauge, unit: MHz }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

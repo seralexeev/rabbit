@@ -1,0 +1,75 @@
+title: Camera tracking quality
+description: >-
+  ZED camera health per time bucket: lowest frame rate, frames dropped, share of time the pose was
+  lost, tracking mode, image-quality and lighting warnings, and the mean tracking confidence and
+  position uncertainty. Use it for tracking loss, localization problems, fps drops and bad
+  images.
+tags: [camera, zed, tracking, localization, fps, image quality, pose]
+prompts:
+  - Did the camera lose tracking?
+  - Were there fps drops?
+  - How good was localization?
+guidelines: >-
+  pose_lost_share above 0 means positional tracking was LOST for part of the bucket. A falling
+  confidence with growing position_std usually precedes a loss. Low-image or low-lighting
+  warnings explain losses caused by the scene.
+dims: [t]
+sql: |
+  WITH
+    h AS (
+      SELECT
+        run_id,
+        toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+        min(current_fps) AS min_fps,
+        max(frames_dropped) - min(frames_dropped) AS dropped,
+        countIf(pose_state != 'OK') / count() AS lost,
+        anyLast(tracking_state) AS mode,
+        countIf(low_image_quality OR low_lighting OR low_depth_reliability OR low_motion_sensors_reliability) AS warnings
+      FROM zed_health
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    ),
+    p AS (
+      SELECT
+        run_id,
+        toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+        toNullable(avg(confidence)) AS conf,
+        toNullable(avg(greatest(std_x, std_y, std_z))) AS std
+      FROM pose
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    )
+  SELECT
+    h.t AS t,
+    h.min_fps AS min_fps,
+    h.dropped AS frames_dropped,
+    h.lost AS pose_lost_share,
+    h.mode AS tracking_state,
+    h.warnings AS quality_warnings,
+    p.conf AS avg_confidence,
+    p.std AS max_position_std_m
+  FROM h
+  LEFT JOIN p ON p.run_id = h.run_id AND p.t = h.t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  min_fps: { measure: gauge, unit: fps }
+  frames_dropped: { measure: event }
+  pose_lost_share: { measure: ratio, unit: 0..1 }
+  tracking_state: { kind: attribute }
+  quality_warnings:
+    {
+      measure: event,
+      description: "Health samples with an image, lighting, depth or motion-sensor warning",
+    }
+  avg_confidence: { measure: gauge, unit: 0..100 }
+  max_position_std_m: { measure: gauge, unit: m }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows
