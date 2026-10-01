@@ -1,8 +1,10 @@
 import asyncio
-import json
+import logging
+import os
+import re
+import subprocess
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 import docker
 from jtop import jtop
@@ -86,21 +88,144 @@ class ContainerStatsCollector:
             self._stop.wait(CONTAINER_STATS_INTERVAL)
 
 
+class WifiCollector:
+    def __init__(self, interface: str):
+        self.interface = interface
+        self._stats: dict = {}
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._previous: tuple[float, dict[str, int]] | None = None
+
+    def start(self):
+        self._thread.start()
+
+    def stop(self):
+        self._stop.set()
+
+    def get(self) -> dict:
+        with self._lock:
+            return dict(self._stats)
+
+    def _run(self, *args: str) -> str:
+        return subprocess.run(args, capture_output=True, text=True, timeout=2).stdout
+
+    def _counters(self) -> dict[str, int]:
+        root = f"/sys/class/net/{self.interface}/statistics"
+        return {
+            name: int(open(f"{root}/{name}").read())
+            for name in ("tx_bytes", "rx_bytes", "tx_errors", "rx_errors", "tx_dropped", "rx_dropped")
+        }
+
+    def _gateway_rtt(self) -> float | None:
+        route = re.search(r"default via (\S+)", self._run("ip", "route"))
+        if route is None:
+            return None
+        reply = re.search(r"time=([\d.]+) ms", self._run("ping", "-c", "1", "-W", "1", route.group(1)))
+        return float(reply.group(1)) if reply else None
+
+    def _loop(self):
+        while not self._stop.is_set():
+            try:
+                link = self._run("iw", "dev", self.interface, "link")
+
+                def field(pattern: str) -> str | None:
+                    match = re.search(pattern, link)
+                    return match.group(1) if match else None
+
+                now = time.monotonic()
+                counters = self._counters()
+                rates = {}
+                if self._previous is not None:
+                    elapsed = now - self._previous[0]
+                    rates = {
+                        f"{name}_per_s": round((counters[name] - self._previous[1][name]) / elapsed, 1)
+                        for name in counters
+                    }
+                self._previous = (now, counters)
+                signal = field(r"signal: (-?\d+) dBm")
+                rx_bitrate = field(r"rx bitrate: ([\d.]+) MBit/s")
+                tx_bitrate = field(r"tx bitrate: ([\d.]+) MBit/s")
+                frequency = field(r"freq: ([\d.]+)")
+                stats = {
+                    "connected": "Connected to" in link,
+                    "ssid": field(r"SSID: (.+)"),
+                    "frequency_mhz": float(frequency) if frequency else None,
+                    "signal_dbm": int(signal) if signal else None,
+                    "rx_bitrate_mbps": float(rx_bitrate) if rx_bitrate else None,
+                    "tx_bitrate_mbps": float(tx_bitrate) if tx_bitrate else None,
+                    "gateway_rtt_ms": self._gateway_rtt(),
+                    **counters,
+                    **rates,
+                }
+                with self._lock:
+                    self._stats = stats
+            except (OSError, subprocess.SubprocessError, ValueError):
+                pass
+            self._stop.wait(1.0)
+
+
+class ContainerEventWatcher:
+    MESSAGES = {
+        "start": "Container started",
+        "die": "Container exited",
+        "kill": "Container killed",
+        "oom": "Container ran out of memory",
+        "restart": "Container restarted",
+    }
+
+    def __init__(self, client: docker.DockerClient):
+        self._client = client
+        self._logger = logging.getLogger("docker.events")
+        self._thread = threading.Thread(target=self._loop, name="docker-events", daemon=True)
+
+    def start(self):
+        self._thread.start()
+
+    def _loop(self):
+        while True:
+            try:
+                for event in self._client.events(decode=True, filters={"type": "container"}):
+                    self._record(event)
+            except Exception:
+                self._logger.exception("Docker event stream failed")
+            time.sleep(5.0)
+
+    def _record(self, event: dict):
+        action = event.get("Action", "")
+        attributes = event.get("Actor", {}).get("Attributes", {})
+        fields = {"container": attributes.get("name", ""), "action": action, "image": attributes.get("image", "")}
+        if action.startswith("health_status"):
+            health = action.split(":", 1)[-1].strip()
+            level = logging.WARNING if health == "unhealthy" else logging.INFO
+            self._logger.log(level, "Container health changed", extra={**fields, "health": health})
+            return
+        message = self.MESSAGES.get(action)
+        if message is None:
+            return
+        exit_code = attributes.get("exitCode")
+        failed = action == "oom" or (action == "die" and exit_code not in (None, "0"))
+        extra = fields if exit_code is None else {**fields, "exit_code": exit_code}
+        self._logger.log(logging.WARNING if failed else logging.INFO, message, extra=extra)
+
+
 class Node(RabbitNode):
     def __init__(self):
         super().__init__("telemetry")
         self.jetson = jtop()
-        self._container_stats = ContainerStatsCollector(
-            docker.DockerClient.from_env()
-        )
+        self._wifi = WifiCollector(os.environ.get("WIFI_INTERFACE", "wlP1p1s0"))
+        self._container_stats = ContainerStatsCollector(docker.DockerClient.from_env())
+        self._container_events = ContainerEventWatcher(docker.DockerClient.from_env())
 
     async def init(self):
         self.jetson.start()
         self._container_stats.start()
+        self._container_events.start()
+        self._wifi.start()
         self.set_interval(self.publish_telemetry, PUBLISH_INTERVAL)
 
     async def publish_telemetry(self):
-        if not self.jetson.ok():
+        if not await asyncio.to_thread(self.jetson.ok):
             return
 
         j = self.jetson
@@ -108,11 +233,14 @@ class Node(RabbitNode):
         # CPU: per-core usage = 100 - idle
         cpu_cores = j.cpu.get("cpu", [])
         cpu_usage = [round(100 - c.get("idle", 100)) for c in cpu_cores]
+        cpu_freq = [round(c.get("freq", {}).get("cur", 0) / 1000) for c in cpu_cores]
 
         # GPU
         gpu_load = 0
+        gpu_freq = 0
         try:
             gpu_load = round(j.gpu["gpu"]["status"]["load"])
+            gpu_freq = round(j.gpu["gpu"]["freq"]["cur"] / 1000)
         except (KeyError, TypeError):
             pass
 
@@ -135,9 +263,19 @@ class Node(RabbitNode):
 
         # Power in mW
         power_mw = 0
+        input_mv = 0
+        input_ma = 0
+        rails = {}
         try:
             tot = j.power["tot"]
-            power_mw = tot.get("avg", tot.get("power", 0))
+            power_mw = tot.get("power", 0)
+            input_mv = tot.get("volt", 0)
+            input_ma = tot.get("curr", 0)
+            rails = {
+                name: rail["power"]
+                for name, rail in j.power["rail"].items()
+                if rail.get("online", True)
+            }
         except (KeyError, TypeError):
             pass
 
@@ -180,26 +318,30 @@ class Node(RabbitNode):
 
         payload = {
             "cpu": cpu_usage,
+            "cpu_freq_mhz": cpu_freq,
             "gpu": gpu_load,
+            "gpu_freq_mhz": gpu_freq,
             "ram": {"used": ram_used, "total": ram_total},
             "swap": {"used": swap_used, "total": swap_total},
             "temp": temps,
             "power": power_mw,
+            "input_mv": input_mv,
+            "input_ma": input_ma,
+            "rails_mw": rails,
             "disk": {"used": disk_used, "total": disk_total},
             "uptime": uptime_str,
             "fan": fan_speed,
             "fan_rpm": fan_rpm,
             "containers": self._container_stats.get(),
+            "wifi": self._wifi.get(),
         }
 
-        await self.nc.publish(
-            TELEMETRY_SUBJECT,
-            json.dumps(payload).encode(),
-        )
+        await self.publish_json(TELEMETRY_SUBJECT, payload)
 
     async def close(self):
         await super().close()
         self._container_stats.stop()
+        self._wifi.stop()
         self.jetson.close()
 
 

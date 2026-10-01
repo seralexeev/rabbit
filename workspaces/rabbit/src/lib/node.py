@@ -1,15 +1,20 @@
 import asyncio
+import json
 import logging
+import math
+import os
 import signal
+import sys
 import time
-from typing import Any, Awaitable, Callable, Coroutine, Dict, Optional
+from typing import Any, Awaitable, Callable, Coroutine, Optional
 
 import nats
 from nats.aio.client import Client
 from nats.aio.msg import Msg
 from nats.js import JetStreamContext
 from nats.js.kv import KeyValue
-from nats.js.object_store import ObjectStore
+
+from lib.log import NatsLogHandler, install_crash_hooks, log_subject
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,7 +24,19 @@ logging.basicConfig(
 )
 
 
+def finite(value: Any) -> Any:
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {key: finite(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [finite(item) for item in value]
+    return value
+
+
 class RabbitNode:
+    LOG_PUBLISH_INTERVAL = 0.5
+
     def __init__(self, name: str):
         self.name = name
         self.__nc: Optional[Client] = None
@@ -28,6 +45,17 @@ class RabbitNode:
         self.tasks: list[asyncio.Task] = []
         self.kv_watchers: list[KeyValue.KeyWatcher] = []
         self.logger = logging.getLogger(name)
+        self.log_handler = NatsLogHandler(name)
+        logging.getLogger().addHandler(self.log_handler)
+        install_crash_hooks(self.logger)
+        self.crashed = False
+
+    def set_log_context(self, **values: str | None):
+        self.log_handler.context.update({key: value or "" for key, value in values.items()})
+
+    async def publish_logs(self, final: bool = False):
+        for payload in self.log_handler.drain(final):
+            await self.nc.publish(log_subject(self.name), json.dumps(finite(payload), default=str).encode())
 
     async def watch_kv(
         self, key: str, fn: Callable[[KeyValue.Entry], Awaitable[None]]
@@ -40,7 +68,7 @@ class RabbitNode:
             async for entry in watcher:
                 try:
                     await fn(entry)
-                except:
+                except Exception:
                     self.logger.exception(f"Error in watcher for key {key}")
 
         task.__name__ = fn.__name__
@@ -66,7 +94,7 @@ class RabbitNode:
                         self.logger.info(f"Async task {name}: {fps:.2f} tps")
 
                     await asyncio.sleep(0)
-                except:
+                except Exception:
                     self.logger.exception(f"Error in task {name}")
                     await asyncio.sleep(1)
 
@@ -76,7 +104,7 @@ class RabbitNode:
         async def safe_cb(msg: Msg):
             try:
                 await cb(msg)
-            except:
+            except Exception:
                 self.logger.exception(f"Error in subscriber for subject {subject}")
 
         await self.nc.subscribe(subject, cb=safe_cb)
@@ -99,20 +127,11 @@ class RabbitNode:
             raise RuntimeError("KeyValue store is not initialized")
         return self.__kv
 
-    @property
-    def object_store(self) -> ObjectStore:
-        if self.__object_store is None:
-            raise RuntimeError("Object store is not initialized")
-        return self.__object_store
-
-    def set_timeout(
-        self, callback: Callable[[], Coroutine[Any, Any, None]], delay: float
-    ) -> asyncio.Task[None]:
-        async def worker():
-            await callback()
-            await asyncio.sleep(delay)
-
-        return asyncio.create_task(worker())
+    async def publish_json(self, subject: str, payload: dict[str, Any]):
+        await self.nc.publish(
+            subject,
+            json.dumps(finite({"ts": time.time_ns(), **payload}), allow_nan=False).encode(),
+        )
 
     def set_interval(
         self,
@@ -150,31 +169,30 @@ class RabbitNode:
                     await asyncio.gather(*running, return_exceptions=True)
                 raise
 
-        return asyncio.create_task(runner())
+        task = asyncio.create_task(runner())
+        self.tasks.append(task)
+        return task
 
     async def close(self):
         pass
 
     async def __close(self):
-        await self.close()
-
-        if self.__nc:
-            await self.__nc.close()
+        for worker in self.tasks:
+            worker.cancel()
+        await asyncio.gather(*self.tasks, return_exceptions=True)
 
         for watcher in self.kv_watchers:
             await watcher.stop()
 
-        for worker in self.tasks:
-            if not worker.done():
-                worker.cancel()
-            try:
-                await worker
-            except asyncio.CancelledError:
-                pass
+        await self.close()
+
+        if self.__nc:
+            await self.publish_logs(final=True)
+            await self.__nc.drain()
 
     async def __run(self):
         self.__nc = await nats.connect(
-            "nats://nats:4222",
+            os.environ.get("NATS_URL", "nats://nats:4222"),
             name=self.name,
             ping_interval=20,
             max_outstanding_pings=5,
@@ -182,9 +200,10 @@ class RabbitNode:
             reconnect_time_wait=2,
         )
 
+        asyncio.get_running_loop().set_exception_handler(self.on_loop_exception)
+        self.set_interval(self.publish_logs, self.LOG_PUBLISH_INTERVAL, max_parallel=1)
         self.__js = self.nc.jetstream()
         self.__kv = await self.js.key_value("rabbit")
-        self.__object_store = await self.js.create_object_store("rabbit")
 
         self.logger.info(f"Node {self.name} initialized with NATS and JetStream")
         await self.init()
@@ -204,12 +223,24 @@ class RabbitNode:
             try:
                 await self.__run()
                 await stop.wait()
+            except Exception:
+                self.crashed = True
+                self.logger.critical("Node crashed", exc_info=True)
             finally:
                 self.logger.info("Shutting down node...")
                 await self.__close()
                 self.logger.info("Node closed successfully")
 
         asyncio.run(main())
+        if self.crashed:
+            sys.exit(1)
+
+    def on_loop_exception(self, loop: asyncio.AbstractEventLoop, context: dict[str, Any]):
+        self.logger.error(
+            "Unhandled asyncio exception",
+            exc_info=context.get("exception"),
+            extra={"asyncio_message": context.get("message", "")},
+        )
 
     async def init(self):
         pass

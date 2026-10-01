@@ -1,6 +1,16 @@
 :root {
-    --color-primary: #00ff41;
-    --color-danger: #ff0000;
+    --hud: #62e8ff;
+    --hud-dim: rgba(98, 232, 255, 0.6);
+    --hud-faint: rgba(98, 232, 255, 0.16);
+    --hud-glow: rgba(98, 232, 255, 0.35);
+    --hud-good: #3dff7a;
+    --hud-amber: #ffb547;
+    --hud-alert: #ff5a4a;
+    --hud-bg: #061218;
+    --hud-column: 272px;
+    --color-primary: var(--hud);
+    --color-warning: var(--hud-amber);
+    --color-danger: var(--hud-alert);
     --color-black: #000;
     --color-white: #fff;
 }
@@ -26,7 +36,7 @@ html {
     -moz-text-size-adjust: none;
     -webkit-text-size-adjust: none;
     text-size-adjust: none;
-    background-color: var(--color-black);
+    background-color: #0a0f14;
     color: var(--color-primary);
     padding: 0;
     margin: 0;

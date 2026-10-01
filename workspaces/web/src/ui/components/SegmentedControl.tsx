@@ -48,7 +48,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({ segments, va
                                   color: var(--color-primary);
 
                                   &:hover {
-                                      background: rgba(0, 255, 65, 0.1);
+                                      background: var(--hud-faint);
                                   }
                               `,
                     )}>

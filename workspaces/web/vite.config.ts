@@ -1,17 +1,17 @@
-import react from '@vitejs/plugin-react';
+import babel from '@rolldown/plugin-babel';
+import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import autoprefixer from 'autoprefixer';
 import dns from 'node:dns';
 import fs from 'node:fs/promises';
 import path from 'path';
 import { defineConfig } from 'vite';
-import svgr from 'vite-plugin-svgr';
 
 dns.setDefaultResultOrder('verbatim');
 
 // https://vitejs.dev/config/
 export default defineConfig({
     cacheDir: '../../node_modules/.vite',
-    plugins: [react(), svgr()],
+    plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
     css: {
         postcss: {
             plugins: [autoprefixer({})],
@@ -21,8 +21,8 @@ export default defineConfig({
         port: 3005,
         allowedHosts: ['dev.rabbit'],
         https: {
-            key: await fs.readFile(path.resolve(__dirname, '../../cert/key.pem')),
-            cert: await fs.readFile(path.resolve(__dirname, '../../cert/cert.pem')),
+            key: await fs.readFile(path.resolve(import.meta.dirname, '../../cert/key.pem')),
+            cert: await fs.readFile(path.resolve(import.meta.dirname, '../../cert/cert.pem')),
         },
     },
 });

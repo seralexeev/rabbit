@@ -52,7 +52,7 @@ docker run --rm -it \
 ### ZED SDK stubs
 
 ```
-curl -sL https://download.stereolabs.com/zedsdk/5.2/whl/linux_aarch64/pyzed-5.2-cp310-cp310-linux_aarch64.whl | bsdtar -xOf - pyzed/sl.pyi > workspaces/rabbit/src/pyzed/sl.pyi
+curl -sL https://download.stereolabs.com/zedsdk/5.5/whl/linux_aarch64/pyzed-5.5-cp310-cp310-linux_aarch64.whl | bsdtar -xOf - pyzed/sl.pyi > workspaces/rabbit/src/pyzed/sl.pyi
 ```
 
 # INA
@@ -69,34 +69,3 @@ $ i2cdetect -y -r 7
 70: -- -- -- -- -- -- -- --
 
 41 - INA4235
-
-# nvblox
-
-```
-cd /workspaces/nvblox
-rm -rf build
-mkdir build && cd build
-
-cmake .. \
-    -DBUILD_PYTORCH_WRAPPER=ON \
-    -DCMAKE_PREFIX_PATH=$(python3 -c 'import torch;print(torch.utils.cmake_prefix_path)')
-
-make -j$(nproc)
-
-cd ../nvblox_torch
-pip3 install --editable .
-
-
-INSTALLER  METADATA  RECORD  REQUESTED  WHEEL  direct_url.json  top_level.txt
-(venv) root@dffb35653686:/# cat nvblox_env.sh^C
-(venv) root@dffb35653686:/# ^C
-(venv) root@dffb35653686:/# cat /etc/nvblox_env.sh
-PATH=$PATH:/usr/local/cuda/bin
-export CMAKE_PREFIX_PATH=/opt/venv/lib/python3.10/site-packages/torch
-export CUDA_PATH=/usr/local/cuda
-source /opt/venv/bin/activate
-(venv) root@dffb35653686:/# 
-
-```
-
-

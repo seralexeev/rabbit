@@ -1,8 +1,9 @@
+import type { Msg } from '@nats-io/nats-core';
 import React from 'react';
 import z from 'zod';
 
 import { useNats } from '../app/NatsProvider.tsx';
-import { L } from '../terminal/LogProvider.tsx';
+import { L } from '../log.ts';
 import { util } from '../utils/index.ts';
 
 type Stats = {
@@ -22,8 +23,6 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
     const [stats, setStats] = React.useState<Stats | null>(null);
 
     React.useEffect(() => {
-        const img = new Image();
-
         let bytes = 0;
         let type = 'unknown';
 
@@ -55,43 +54,36 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
             };
         }, 500);
 
-        let frame_number = -1;
+        let pending: Msg | null = null;
+        let decoding = false;
+
+        const drawLatest = async () => {
+            decoding = true;
+            while (pending != null) {
+                const msg = pending;
+                pending = null;
+                try {
+                    type = await drawFrame(canvas, msg);
+                } catch (e) {
+                    console.error('Failed to decode camera frame', e);
+                }
+            }
+            decoding = false;
+        };
+
         const subscription = nc.subscribe(subject, {
             callback: (_, msg) => {
-                const ctx = canvas.current?.getContext('2d');
-                if (canvas.current == null || ctx == null) {
-                    return;
-                }
-
-                const headers = util.parseNatsHeaders(MessageHeader, msg);
-                if (headers.frame_number <= frame_number) {
-                    L.warn('Received out-of-order frame');
-                    return;
-                }
-
-                if (canvas.current.width !== headers.width || canvas.current.height !== headers.height) {
-                    canvas.current.width = headers.width;
-                    canvas.current.height = headers.height;
-                }
-
-                const blob = new Blob([msg.data], { type: headers.type });
-                const url = URL.createObjectURL(blob);
-
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0);
-                    URL.revokeObjectURL(url);
-                };
-
-                img.onerror = () => {
-                    URL.revokeObjectURL(url);
-                    console.error('Failed to load camera frame');
-                };
-
-                img.src = url;
-
                 tick.frames += 1;
                 tick.bytes += msg.data.length;
-                type = headers.type;
+
+                if (canvas.current == null) {
+                    return;
+                }
+
+                pending = msg;
+                if (!decoding) {
+                    void drawLatest();
+                }
             },
         });
 
@@ -103,14 +95,34 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
 
             L.info('Unsubscribed from NATS', { subject });
         };
-    }, [nc]);
+    }, [nc, subject]);
 
     return { canvas, stats };
 };
 
+const drawFrame = async (canvas: React.RefObject<HTMLCanvasElement | null>, msg: Msg) => {
+    const { type } = util.parseNatsHeaders(MessageHeader, msg);
+    const bitmap = await createImageBitmap(new Blob([msg.data as Uint8Array<ArrayBuffer>], { type }));
+
+    try {
+        const target = canvas.current;
+        const ctx = target?.getContext('2d');
+        if (target == null || ctx == null) {
+            return type;
+        }
+
+        if (target.width !== bitmap.width || target.height !== bitmap.height) {
+            target.width = bitmap.width;
+            target.height = bitmap.height;
+        }
+
+        ctx.drawImage(bitmap, 0, 0);
+        return type;
+    } finally {
+        bitmap.close();
+    }
+};
+
 const MessageHeader = z.object({
     type: z.string(),
-    width: z.coerce.number().int(),
-    height: z.coerce.number().int(),
-    frame_number: z.coerce.number().int(),
 });

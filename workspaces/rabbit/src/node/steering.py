@@ -1,20 +1,21 @@
-import json
 import time
-from typing import Optional
 
 import board
 import busio
 from adafruit_pca9685 import PCA9685
+from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, CommandArbiter
 from lib.node import RabbitNode
 from nats.aio.msg import Msg
+
+SUBJECT = "rabbit.steering"
 
 
 class Node(RabbitNode):
     MIN_PULSE = 1000
-    MID_PULSE = 1500
     MAX_PULSE = 2000
+    CENTER_PULSE = 1532
     TIMEOUT = 0.25
-    DECAY_RATE = 0.85
+    PUBLISH_INTERVAL = 0.05
 
     def __init__(self):
         super().__init__("steering")
@@ -22,49 +23,55 @@ class Node(RabbitNode):
         self.pca = PCA9685(i2c, address=0x40)
         self.pca.frequency = 50
         self.channel = 0
-        self.last_command_at: Optional[float] = None
+        self.last_command_at: float | None = None
         self.current_angle = 0.0
+        self.pulse_us = float(self.CENTER_PULSE)
+        self.arbiter = CommandArbiter()
+        self.errors = 0
 
     async def init(self):
-        await self.subscribe("rabbit.cmd.joy", self.joy_handler)
-        await self.set_interval(self.kill_switch, 0.05)
+        await self.subscribe(JOY_SUBJECT, self.on_command)
+        await self.subscribe(DRIVE_SUBJECT, self.on_command)
+        self.set_angle(0.0)
+        self.set_interval(self.kill_switch, 0.05)
+        self.set_interval(self.publish_state, self.PUBLISH_INTERVAL)
+
+    async def close(self):
+        self.set_angle(0.0)
+
+    async def publish_state(self):
+        await self.publish_json(
+            SUBJECT, {"angle": self.current_angle, "pulse_us": self.pulse_us, "errors": self.errors}
+        )
 
     async def kill_switch(self):
-        if not self.last_command_at:
+        if self.last_command_at is None or time.monotonic() - self.last_command_at <= self.TIMEOUT:
             return
-        if time.time() - self.last_command_at <= self.TIMEOUT:
-            return
+        self.last_command_at = None
+        self.set_angle(0.0)
 
-        if abs(self.current_angle) < 0.01:
-            self.current_angle = 0.0
-            self.set_angle(0.0)
-            self.last_command_at = None
-            self.logger.debug("Kill switch activated: no control input")
-            return
-
-        self.current_angle *= self.DECAY_RATE
-        self.set_angle(self.current_angle)
-
-    def map_angle(self, angle):
+    def pulse_for(self, angle: float) -> float:
         if angle < 0:
-            return self.MID_PULSE + angle * (self.MID_PULSE - self.MIN_PULSE)
-        else:
-            return self.MID_PULSE + angle * (self.MAX_PULSE - self.MID_PULSE)
+            return self.CENTER_PULSE + angle * (self.CENTER_PULSE - self.MIN_PULSE)
+        return self.CENTER_PULSE + angle * (self.MAX_PULSE - self.CENTER_PULSE)
 
-    async def joy_handler(self, msg: Msg):
-        self.last_command_at = time.time()
-
-        data = msg.data.decode()
-        json_data = json.loads(data)
-        left_stick_x = json_data.get("sticks", {}).get("left", {}).get("x", 0)
-        self.current_angle = max(min(left_stick_x, 1), -1)
-        self.set_angle(self.current_angle)
+    async def on_command(self, msg: Msg):
+        command = self.arbiter.resolve(msg)
+        if command is None:
+            return
+        self.last_command_at = time.monotonic()
+        self.set_angle(command[1])
 
     def set_angle(self, angle: float):
-        value = self.map_angle(angle)
-        pulse_length_s = value / 1_000_000
-        duty_cycle = int(pulse_length_s * self.pca.frequency * 65536)
-        self.pca.channels[self.channel].duty_cycle = duty_cycle
+        try:
+            pulse = self.pulse_for(angle)
+            self.pca.channels[self.channel].duty_cycle = int(pulse / 1_000_000 * self.pca.frequency * 65536)
+        except OSError as e:
+            self.errors += 1
+            self.logger.error(f"Steering write failed: {e}")
+            return
+        self.current_angle = angle
+        self.pulse_us = pulse
 
 
 if __name__ == "__main__":

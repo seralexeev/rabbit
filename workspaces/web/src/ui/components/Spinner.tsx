@@ -19,16 +19,7 @@ export const Spinner: React.FC<SpinnerProps> = ({ children, height = 32, width =
                 gap: 4px;
             `}>
             <div style={{ width, height }}>
-                <div
-                    className={css`
-                        background-image: url(${spinner});
-                        background-repeat: no-repeat;
-                        background-position: center;
-                        background-size: contain;
-                        width: 100%;
-                        height: 100%;
-                    `}
-                />
+                <div className={spinnerCss} />
             </div>
             {children}
         </div>
@@ -56,3 +47,12 @@ export const SplashSpinner: React.FC<SpinnerProps> = React.memo(({ children, hei
         </div>
     );
 });
+
+const spinnerCss = css`
+    background-image: url(${spinner});
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    width: 100%;
+    height: 100%;
+`;

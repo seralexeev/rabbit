@@ -5,9 +5,9 @@
     "tsBuildInfoFile": "${configDir}/dist/.tsbuildinfo",
     "incremental": true,
     "lib": ["ESNext"],
+    "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "baseUrl": ".",
 
     "forceConsistentCasingInFileNames": true,
     "strict": true,

@@ -13,7 +13,6 @@ dependencies = [
     "opencv-python",
     "numpy>=2.0,<3.0.0",
     "pydantic",
-    "lz4",
     "jetson-stats",
     "docker",
 ]

@@ -1,111 +1,163 @@
 import asyncio
-import json
+import os
+import threading
 import time
-from typing import Optional
 
+from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, CommandArbiter
+from lib.geometry import wheel_speeds
 from lib.node import RabbitNode
-from lib.roboclaw import RoboClaw
+from lib.roboclaw import SERIAL_ERRORS, RoboClaw, RoboClawError
 from nats.aio.msg import Msg
+
+SUBJECT = "rabbit.roboclaw"
+USB_PORT = "/dev/serial/by-id/usb-Basicmicro_Inc._USB_Roboclaw_2x30A-if00"
+UART_PORT = "/dev/ttyTHS1"
+
+
+def roboclaw_port() -> str:
+    if port := os.environ.get("ROBOCLAW_PORT"):
+        return port
+    return USB_PORT if os.path.exists(USB_PORT) else UART_PORT
 
 
 class Node(RabbitNode):
-    rc = RoboClaw(port="/dev/ttyTHS1", baudrate=115200, address=0x80)
     TIMEOUT = 0.25
-    DECAY_RATE = 0.8
+    IO_PERIOD = 0.02
+    BOARD_EVERY = 50
+    COMMAND_REFRESH = 0.1
+    HARDWARE_TIMEOUT = 0.5
+    RECONNECT_DELAY = 1.0
+    CURRENT_OFFSET_SMOOTHING = 0.05
 
     def __init__(self):
         super().__init__("roboclaw")
-        self.last_command_at: Optional[float] = None
-        self.current_left = 0.0
-        self.current_right = 0.0
-        self._rc_lock = asyncio.Lock()
+        self.rc: RoboClaw | None = None
+        self.port: str | None = None
+        self.firmware: str | None = None
+        self.target = (0.0, 0.0)
+        self.last_command_at: float | None = None
+        self.latest: tuple[int, dict] | None = None
+        self.published_ts = 0
+        self.board: dict = {}
+        self.errors = 0
+        self.reconnects = 0
+        self.current_offset = {"left": 0.0, "right": 0.0}
+        self.arbiter = CommandArbiter()
+        self._stop = threading.Event()
+        self._io = threading.Thread(target=self._io_loop, daemon=True)
 
     async def init(self):
-        self.rc.open()
-        await self.subscribe("rabbit.cmd.joy", self.joy_handler)
-        await self.async_task(self.publish_metrics)
-        await self.set_interval(self.kill_switch, 0.05)
+        await self.subscribe(JOY_SUBJECT, self.on_command)
+        await self.subscribe(DRIVE_SUBJECT, self.on_command)
+        self._io.start()
+        self.set_interval(self.publish_motion, self.IO_PERIOD, max_parallel=1)
 
-    async def kill_switch(self):
-        if not self.last_command_at:
-            return
-        if time.time() - self.last_command_at <= self.TIMEOUT:
-            return
+    async def close(self):
+        self.target = (0.0, 0.0)
+        self._stop.set()
+        await asyncio.to_thread(self._io.join)
 
-        if abs(self.current_left) < 0.01 and abs(self.current_right) < 0.01:
-            self.current_left = 0.0
-            self.current_right = 0.0
-            async with self._rc_lock:
-                self.rc.move(0, 0)
-            self.last_command_at = None
-            self.logger.debug("Kill switch activated: no control input")
-            return
-
-        self.current_left *= self.DECAY_RATE
-        self.current_right *= self.DECAY_RATE
-        async with self._rc_lock:
-            self.rc.move(self.current_left, self.current_right)
-
-    async def publish_metrics(self):
-        speed_m1 = dir_m1 = speed_m2 = dir_m2 = 0
-        enc_m1 = enc_m2 = 0
-
-        while True:
-            async with self._rc_lock:
-                try:
-                    speed_m1, dir_m1 = self.rc.read_raw_speed_m1()
-                    speed_m2, dir_m2 = self.rc.read_raw_speed_m2()
-                    self.logger.debug(f"Speed: m1={speed_m1} dir={dir_m1}, m2={speed_m2} dir={dir_m2}")
-                except Exception as e:
-                    self.logger.error(f"Error reading speed: {e}")
-                try:
-                    enc_m1, _ = self.rc.read_encoder_m1()
-                    enc_m2, _ = self.rc.read_encoder_m2()
-                    self.logger.debug(f"Encoders: m1={enc_m1}, m2={enc_m2}")
-                except Exception as e:
-                    self.logger.error(f"Error reading encoders: {e}")
-
-            payload = json.dumps({
-                "m1": {
-                    "speed": speed_m1 if dir_m1 == 0 else -speed_m1,
-                    "encoder": enc_m1,
-                },
-                "m2": {
-                    "speed": speed_m2 if dir_m2 == 0 else -speed_m2,
-                    "encoder": enc_m2,
-                },
-            }).encode()
-            self.logger.debug(f"Publishing: {payload.decode()}")
-            await self.nc.publish("rabbit.roboclaw", payload)
-            await asyncio.sleep(0.1)
-
-    async def joy_handler(self, msg: Msg):
-        data = msg.data.decode()
-        json_data = json.loads(data)
-        r2 = json_data.get("buttons", {}).get("r2", {}).get("value", 0)
-        l2 = json_data.get("buttons", {}).get("l2", {}).get("value", 0)
-        speed = r2 - l2
-
-        left_stick_x = json_data.get("sticks", {}).get("left", {}).get("x", 0)
-        angle = max(min(left_stick_x, 1), -1)
-
-        turn_factor = 0.6
-        left_speed = speed
-        right_speed = speed
-
-        if angle < 0:
-            left_speed = speed * (1 + angle * turn_factor)
-        elif angle > 0:
-            right_speed = speed * (1 - angle * turn_factor)
-
-        self.current_left = left_speed
-        self.current_right = right_speed
+    def _connect(self) -> bool:
+        self.port = roboclaw_port()
+        rc = RoboClaw(self.port)
         try:
-            async with self._rc_lock:
-                self.rc.move(left_speed, right_speed)
-        except RuntimeError as e:
-            self.logger.error(f"Error sending motor command: {e}")
-        self.last_command_at = time.time()
+            self.firmware = rc.open()
+            rc.set_serial_timeout(self.HARDWARE_TIMEOUT)
+        except (RoboClawError, *SERIAL_ERRORS) as e:
+            self.errors += 1
+            self.logger.error(f"RoboClaw connect on {self.port} failed: {e}")
+            rc.close()
+            return False
+        self.rc = rc
+        self.logger.info(f"RoboClaw {self.firmware} on {self.port}")
+        return True
+
+    def _disconnect(self):
+        if self.rc is not None:
+            self.rc.close()
+        self.rc = None
+        self.reconnects += 1
+
+    def _io_loop(self):
+        sent: tuple[float, float] | None = None
+        sent_at = 0.0
+        tick = 0
+        while not self._stop.is_set():
+            started = time.monotonic()
+            if self.rc is None and not self._connect():
+                self._stop.wait(self.RECONNECT_DELAY)
+                continue
+            assert self.rc is not None
+            try:
+                if self.last_command_at is None or started - self.last_command_at > self.TIMEOUT:
+                    self.target = (0.0, 0.0)
+                target = self.target
+                if target != sent or started - sent_at > self.COMMAND_REFRESH:
+                    self.rc.drive(*target)
+                    sent, sent_at = target, started
+                motion = self.rc.read_motion()
+                if tick % self.BOARD_EVERY == 0:
+                    self.board = self.rc.read_board()
+                    self.rc.set_serial_timeout(self.HARDWARE_TIMEOUT)
+                self.latest = (time.time_ns(), motion)
+                tick += 1
+            except RoboClawError as e:
+                self.errors += 1
+                self.logger.warning(f"RoboClaw transient error: {e}")
+            except SERIAL_ERRORS as e:
+                self.errors += 1
+                self.logger.error(f"RoboClaw port lost: {e}")
+                self._disconnect()
+                sent = None
+            except Exception:
+                self.errors += 1
+                self.logger.exception("Unexpected RoboClaw I/O failure")
+                sent = None
+            self._stop.wait(max(0.0, self.IO_PERIOD - (time.monotonic() - started)))
+
+        if self.rc is not None:
+            try:
+                self.rc.drive(0.0, 0.0)
+            except (RoboClawError, *SERIAL_ERRORS):
+                pass
+            self.rc.close()
+
+    async def publish_motion(self):
+        latest = self.latest
+        if latest is None or latest[0] == self.published_ts:
+            return
+        ts, motion = latest
+        self.published_ts = ts
+
+        for side, command in zip(("left", "right"), self.target):
+            wheel = motion[side]
+            wheel["command"] = command
+            if wheel["pwm"] == 0:
+                self.current_offset[side] += self.CURRENT_OFFSET_SMOOTHING * (
+                    wheel["current"] - self.current_offset[side]
+                )
+            wheel["current"] = round(wheel["current"] - self.current_offset[side], 3)
+
+        await self.publish_json(
+            SUBJECT,
+            {
+                "ts": ts,
+                **motion,
+                **self.board,
+                "port": self.port,
+                "errors": self.errors,
+                "retries": self.rc.retried if self.rc is not None else 0,
+                "reconnects": self.reconnects,
+            },
+        )
+
+    async def on_command(self, msg: Msg):
+        command = self.arbiter.resolve(msg)
+        if command is None:
+            return
+        left, right = wheel_speeds(*command)
+        self.target = (left, right)
+        self.last_command_at = time.monotonic()
 
 
 if __name__ == "__main__":

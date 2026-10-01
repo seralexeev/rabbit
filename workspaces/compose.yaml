@@ -1,5 +1,12 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: '3'
+
 services:
   nats:
+    logging: *logging
     image: nats:latest
     container_name: nats
     command: -c /etc/nats/nats-server.conf
@@ -20,6 +27,7 @@ services:
       start_period: 10s
 
   nats-init:
+    logging: *logging
     image: bitnami/natscli
     depends_on:
       - nats
@@ -29,15 +37,18 @@ services:
     restart: 'no'
 
   rabbit-zed:
+    logging: *logging
     build:
       context: ./rabbit
       dockerfile: ./docker/Dockerfile.zed
     container_name: rabbit-zed
+    stop_grace_period: 30s
     privileged: true
     working_dir: /rabbit
     runtime: nvidia
     volumes:
       - ./rabbit:/rabbit
+      - /dev:/dev
       - /tmp/argus_socket:/tmp/argus_socket
       - ../../zed/settings:/usr/local/zed/settings
       - ../../zed/resources:/usr/local/zed/resources
@@ -49,39 +60,8 @@ services:
     depends_on:
       - nats-init
 
-  # rabbit-nvblox:
-  #   build:
-  #     context: ./rabbit
-  #     dockerfile: ./docker/Dockerfile.nvblox
-  #   container_name: rabbit-nvblox
-  #   privileged: true
-  #   working_dir: /rabbit
-  #   runtime: nvidia
-  #   volumes:
-  #     - ./rabbit:/rabbit
-  #   environment:
-  #     - NVIDIA_VISIBLE_DEVICES=all
-  #     - NVIDIA_DRIVER_CAPABILITIES=all
-  #   restart: unless-stopped
-  #   command: python3 src/node/nvblox.py
-  #   depends_on:
-  #     - nats-init
-
-  rabbit-perception:
-    build:
-      context: ./rabbit
-      dockerfile: ./docker/Dockerfile.zed
-    container_name: rabbit-perception
-    privileged: true
-    working_dir: /rabbit
-    volumes:
-      - ./rabbit:/rabbit
-    restart: unless-stopped
-    command: uv run src/node/perception.py
-    depends_on:
-      - nats-init
-
   rabbit-roboclaw:
+    logging: *logging
     build:
       context: ./rabbit
       dockerfile: ./docker/Dockerfile.zed
@@ -90,10 +70,12 @@ services:
     working_dir: /rabbit
     volumes:
       - ./rabbit:/rabbit
+      - /dev:/dev
     restart: unless-stopped
     command: uv run src/node/roboclaw.py
 
   rabbit-steering:
+    logging: *logging
     build:
       context: ./rabbit
       dockerfile: ./docker/Dockerfile.zed
@@ -105,12 +87,45 @@ services:
     restart: unless-stopped
     command: uv run src/node/steering.py
 
+  rabbit-nav:
+    logging: *logging
+    build:
+      context: ./rabbit
+      dockerfile: ./docker/Dockerfile.zed
+    container_name: rabbit-nav
+    working_dir: /rabbit
+    volumes:
+      - ./rabbit:/rabbit
+    restart: unless-stopped
+    command: uv run src/node/nav.py
+    depends_on:
+      - nats-init
+
+  rabbit-explore:
+    logging: *logging
+    build:
+      context: ./rabbit
+      dockerfile: ./docker/Dockerfile.zed
+    container_name: rabbit-explore
+    working_dir: /rabbit
+    volumes:
+      - ./rabbit:/rabbit
+    restart: unless-stopped
+    command: uv run src/node/explore.py
+    depends_on:
+      - nats-init
+
   rabbit-telemetry:
+    logging: *logging
     build:
       context: ./rabbit
       dockerfile: ./docker/Dockerfile.zed
     container_name: rabbit-telemetry
     privileged: true
+    network_mode: host
+    environment:
+      - NATS_URL=nats://127.0.0.1:4222
+      - WIFI_INTERFACE=wlP1p1s0
     working_dir: /rabbit
     volumes:
       - ./rabbit:/rabbit
@@ -122,6 +137,7 @@ services:
       - nats-init
 
   rabbit-ina:
+    logging: *logging
     build:
       context: ./rabbit
       dockerfile: ./docker/Dockerfile.zed
@@ -136,6 +152,7 @@ services:
       - nats-init
 
   nats-dashboard:
+    logging: *logging
     image: mdawar/nats-dashboard
     container_name: nats-dashboard
     environment:
@@ -144,80 +161,3 @@ services:
       - '8000:80'
     depends_on:
       - nats
-
-  # nats-exporter:
-  #   image: natsio/prometheus-nats-exporter:latest
-  #   container_name: nats-exporter
-  #   command: '-connz_detailed -healthz -routez -subz -varz http://nats:8222'
-  #   ports:
-  #     - '7777:7777'
-  #   depends_on:
-  #     - nats
-
-  # influxdb:
-  #   image: influxdb
-  #   ports:
-  #     - '8086:8086'
-  #   environment:
-  #     - DOCKER_INFLUXDB_INIT_MODE=setup
-  #     - DOCKER_INFLUXDB_INIT_USERNAME=admin
-  #     - DOCKER_INFLUXDB_INIT_PASSWORD=robot_rabbit
-  #     - DOCKER_INFLUXDB_INIT_ORG=rabbit
-  #     - DOCKER_INFLUXDB_INIT_BUCKET=rabbit
-  #     - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=rabbit
-
-  # telegraf:
-  #   image: telegraf
-  #   container_name: telegraf
-  #   depends_on:
-  #     - influxdb
-  #   privileged: true
-  #   volumes:
-  #     - ./monitoring/telegraf.conf:/etc/telegraf/telegraf.conf:ro
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
-  #     - /proc:/host/proc:ro
-  #     - /sys:/host/sys:ro
-  #     - /:/host:ro
-  #   environment:
-  #     - HOST_ETC=/host/etc
-  #     - HOST_PROC=/host/proc
-  #     - HOST_SYS=/host/sys
-  #     - HOST_VAR=/host/var
-  #     - HOST_RUN=/host/run
-  #     - HOST_MOUNT_PREFIX=/host
-
-  # loki:
-  #   image: grafana/loki
-  #   container_name: loki
-  #   command: -config.file=/etc/loki/loki-config.yaml
-  #   volumes:
-  #     - ./monitoring/loki-config.yaml:/etc/loki/loki-config.yaml:ro
-  #   ports:
-  #     - '3100:3100'
-  #   restart: unless-stopped
-
-  # promtail:
-  #   image: grafana/promtail
-  #   container_name: promtail
-  #   command: -config.file=/etc/promtail/promtail-config.yaml
-  #   volumes:
-  #     - ./monitoring/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
-  #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #   depends_on: [loki]
-  #   restart: unless-stopped
-
-  # grafana:
-  #   image: grafana/grafana-oss
-  #   container_name: grafana
-  #   environment:
-  #     - GF_PROVISIONING_CONFIG_ENABLE=1
-  #     - GF_AUTH_ANONYMOUS_ENABLED=true
-  #     - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-  #     - GF_AUTH_BASIC_ENABLED=false
-  #     - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
-  #   volumes:
-  #     - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-  #   ports:
-  #     - '3000:3000'
-  #   restart: unless-stopped

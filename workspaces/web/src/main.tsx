@@ -1,6 +1,5 @@
 // sort-imports-ignore
 /// <reference types="vite/client" />
-/// <reference types="vite-plugin-svgr/client" />
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';

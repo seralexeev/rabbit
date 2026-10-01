@@ -1,204 +1,139 @@
-import { type JetStreamClient, jetstream } from '@nats-io/jetstream';
-import { type KV, type KvEntry, type KvWatchEntry, Kvm } from '@nats-io/kv';
-import { type Msg, type NatsConnection, type SubscriptionOptions, wsconnect } from '@nats-io/nats-core';
-import { type ObjectResult, type ObjectStore, type ObjectWatchInfo, Objm } from '@nats-io/obj';
-import { useQuery } from '@tanstack/react-query';
-import { createNanoEvents } from 'nanoevents';
+import { css } from '@emotion/css';
+import { type KV, Kvm } from '@nats-io/kv';
+import { type Msg, type NatsConnection, wsconnect } from '@nats-io/nats-core';
 import React from 'react';
 
 import { useEvent } from '../hooks.ts';
-import { L } from '../terminal/LogProvider.tsx';
+import { L } from '../log.ts';
 import { ui } from '../ui/index.ts';
 
-const NatsContext = React.createContext<{
+const KV_BUCKET = 'rabbit';
+const SERVER = 'wss://jetson.rabbit:9222';
+const HEARTBEAT_SUBJECT = 'rabbit.operator.heartbeat';
+const HEARTBEAT_MS = 500;
+const DISPLAY_INTERVAL_MS = 100;
+
+export type LinkState = 'connected' | 'reconnecting' | 'disconnected';
+
+type NatsContextValue = {
     nc: NatsConnection;
-    js: JetStreamClient;
     kv: KV;
-    obj: ObjectStore;
-} | null>(null);
-
-export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const query = useQuery({
-        queryKey: ['nats'],
-        queryFn: connect,
-    });
-
-    React.useEffect(() => {
-        let heartbeatInterval: number | null = null;
-
-        if (query.isError) {
-            L.error('Failed to connect to NATS server', query.error);
-        } else if (query.isSuccess) {
-            L.info('Connected to NATS server');
-            const { kv } = query.data;
-
-            heartbeatInterval = window.setInterval(() => {
-                void kv
-                    .put('rabbit.operator.heartbeat', JSON.stringify(true), { ttl: '5s' })
-                    .catch((error) => L.error('Failed to send heartbeat', error));
-            }, 1_000);
-        }
-
-        return () => {
-            if (heartbeatInterval != null) {
-                window.clearInterval(heartbeatInterval);
-            }
-        };
-    }, [query]);
-
-    if (query.data == null) {
-        return <ui.SplashSpinner children='Connecting to NATS server...' />;
-    }
-
-    return <NatsContext.Provider value={query.data}>{children}</NatsContext.Provider>;
+    link: () => LinkState;
+    onLink: (fn: (state: LinkState) => void) => () => void;
 };
 
-export const useSubscribe = (
-    subject: string,
-    options: Omit<SubscriptionOptions, 'callback'> & { callback: (msg: Msg) => unknown },
-) => {
-    const { nc } = useNats();
+const NatsContext = React.createContext<NatsContextValue | null>(null);
 
-    const callback = useEvent(options.callback);
+type Connection = { state: 'connecting' } | { state: 'error'; message: string } | { state: 'ready'; value: NatsContextValue };
 
-    React.useEffect(() => {
-        const sub = nc.subscribe(subject, {
-            ...options,
-            callback: (err, msg) => {
-                if (err) {
-                    L.error(`Error in subscription to subject ${subject}`, err);
-                    return;
-                }
-
-                (async () => {
-                    try {
-                        await callback(msg);
-                    } catch (e) {
-                        L.error(`Failed to parse message from subject ${subject}`, e);
-                    }
-                })();
-            },
-        });
-
-        L.info('Subscribed to subject', { subject });
-
-        return () => {
-            sub.unsubscribe();
-            L.info('Unsubscribed from subject', { subject });
-        };
-    }, [nc, subject]);
-};
-
-export const useWatchKV = <T,>(options: { key: string; parse: (data: KvWatchEntry) => Promise<T> | T }) => {
-    const { kv } = useNats();
-    const fn = useEvent(options.parse);
-    const [value, setValue] = React.useState<T | null>(null);
-
-    React.useEffect(() => {
-        const watcher = kv.watch(options);
-
-        (async () => {
-            for await (const entry of await watcher) {
-                try {
-                    const result = await fn(entry);
-                    setValue(result);
-                } catch (e) {
-                    L.error('Failed to parse entry from NATS', e);
-                }
-            }
-        })().catch((e) => L.error('Failed to watch NATS', e));
-
-        return () => {
-            void watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close NATS watcher', e));
-        };
-    }, []);
-
-    const updateValue = (fn: (prev: T | null) => T | null) => {
-        const newValue = fn(value);
-        setValue(newValue);
-        return kv.put(options.key, JSON.stringify(newValue));
-    };
-
-    return [value, updateValue] as const;
-};
-
-export const useObjectStoreSubscribe = () => {
-    const { obj } = useNats();
-    const [emitter] = React.useState(() => createNanoEvents<{ onChange: (info: ObjectWatchInfo) => Promise<void> }>());
-
-    const subscribe = useEvent((name: string, fn: (value: ObjectResult | null) => Promise<void> | void) =>
-        emitter.on('onChange', async (info) => {
-            if (info?.name === name) {
-                const result = await obj.get(info.name);
-                fn(result);
-            }
-        }),
-    );
-
-    React.useEffect(() => {
-        const watcher = obj.watch();
-
-        (async () => {
-            for await (const info of await watcher) {
-                try {
-                    L.info('Received update for object', { name: info.name, revision: info.revision });
-                    emitter.emit('onChange', info);
-                } catch (e) {
-                    L.error('Failed to parse entry from NATS Object Store', e);
-                }
-            }
-        })().catch((e) => L.error('Failed to watch NATS Object Store', e));
-
-        return () => {
-            void watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close NATS Object Store watcher', e));
-        };
-    }, []);
-
-    return subscribe;
-};
-
-export const useKVSubscribe = () => {
-    const { kv } = useNats();
-
-    const subscribe = useEvent((key: string, fn: (value: KvEntry | null) => Promise<void> | void) => {
-        const watcher = kv.watch({ key });
-
-        (async () => {
-            for await (const info of await watcher) {
-                try {
-                    await fn(info);
-                } catch (e) {
-                    L.error('Failed to parse KV entry from NATS', e);
-                }
-            }
-        })().catch((e) => L.error('Failed to watch NATS KV Store', e));
-
-        return {
-            unsubscribe: () => watcher.then((w) => w.stop()).catch((e) => L.error('Failed to close NATS watcher', e)),
-        };
-    });
-
-    return subscribe;
-};
-
-const connect = async () => {
+const connect = async (): Promise<{ nc: NatsConnection; kv: KV }> => {
     L.info('Connecting to NATS server...');
-
     const nc = await wsconnect({
-        servers: ['wss://jetson.rabbit:9222'],
+        servers: [SERVER],
         reconnect: true,
         maxReconnectAttempts: -1,
-        waitOnFirstConnect: true,
         name: 'rabbit-web',
     });
+    try {
+        const kv = await new Kvm(nc).open(KV_BUCKET);
+        return { nc, kv };
+    } catch (error) {
+        await nc.close();
+        throw error;
+    }
+};
 
-    const kvm = new Kvm(nc);
-    const objm = new Objm(nc);
-    const js = jetstream(nc);
-    const kv = await kvm.open('rabbit');
-    const obj = await objm.open('rabbit');
+const createLink = (nc: NatsConnection) => {
+    let state: LinkState = 'connected';
+    const listeners = new Set<(state: LinkState) => void>();
+    const set = (next: LinkState) => {
+        if (next === state) return;
+        state = next;
+        for (const fn of listeners) fn(next);
+    };
+    void (async () => {
+        for await (const status of nc.status()) {
+            if (status.type === 'disconnect') set('disconnected');
+            else if (status.type === 'reconnecting') set('reconnecting');
+            else if (status.type === 'reconnect') set('connected');
+            else if (status.type === 'close') set('disconnected');
+        }
+    })().catch((error) => L.error('NATS status monitor failed', error));
+    return {
+        link: () => state,
+        onLink: (fn: (state: LinkState) => void) => {
+            listeners.add(fn);
+            return () => {
+                listeners.delete(fn);
+            };
+        },
+    };
+};
 
-    return { nc, kv, js, obj };
+export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [connection, setConnection] = React.useState<Connection>({ state: 'connecting' });
+    const [attempt, setAttempt] = React.useState(0);
+
+    React.useEffect(() => {
+        let cancelled = false;
+        let opened: NatsConnection | null = null;
+        setConnection({ state: 'connecting' });
+        connect()
+            .then(({ nc, kv }) => {
+                opened = nc;
+                if (cancelled) {
+                    void nc.close();
+                    return;
+                }
+                L.info('Connected to NATS server');
+                setConnection({ state: 'ready', value: { nc, kv, ...createLink(nc) } });
+            })
+            .catch((error: unknown) => {
+                L.error('Failed to connect to NATS server', error);
+                if (!cancelled)
+                    setConnection({ state: 'error', message: error instanceof Error ? error.message : String(error) });
+            });
+        return () => {
+            cancelled = true;
+            void opened?.close();
+        };
+    }, [attempt]);
+
+    if (connection.state === 'connecting') {
+        return <ui.SplashSpinner children='Connecting to NATS server...' />;
+    }
+    if (connection.state === 'error') {
+        return (
+            <div className={errorCss}>
+                <div>NATS LINK FAILED</div>
+                <div className={errorDetailCss}>{connection.message}</div>
+                <button className={retryCss} onClick={() => setAttempt((value) => value + 1)}>
+                    RETRY
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <NatsContext.Provider value={connection.value}>
+            <Heartbeat />
+            {children}
+        </NatsContext.Provider>
+    );
+};
+
+const Heartbeat: React.FC = () => {
+    const { nc, link } = useNats();
+
+    React.useEffect(() => {
+        const timer = window.setInterval(() => {
+            if (link() !== 'connected' || document.visibilityState !== 'visible') return;
+            nc.publish(HEARTBEAT_SUBJECT, JSON.stringify({ ts: Date.now() }));
+        }, HEARTBEAT_MS);
+        return () => window.clearInterval(timer);
+    }, [nc, link]);
+
+    return null;
 };
 
 export const useNats = () => {
@@ -206,6 +141,92 @@ export const useNats = () => {
     if (context == null) {
         throw new Error('useNats must be used within a NatsProvider');
     }
-
     return context;
 };
+
+export const useLinkState = () => {
+    const { link, onLink } = useNats();
+    const [state, setState] = React.useState(link);
+    React.useEffect(() => {
+        setState(link());
+        return onLink(setState);
+    }, [link, onLink]);
+    return state;
+};
+
+export const useSubjectState = <T,>(subject: string, parse: (msg: Msg) => T, intervalMs = DISPLAY_INTERVAL_MS) => {
+    const { nc } = useNats();
+    const parseEvent = useEvent(parse);
+    const [value, setValue] = React.useState<T | null>(null);
+
+    React.useEffect(() => {
+        let latest: Msg | null = null;
+        let timer: number | null = null;
+
+        const flush = () => {
+            timer = null;
+            if (latest == null) {
+                return;
+            }
+
+            const msg = latest;
+            latest = null;
+
+            try {
+                setValue(parseEvent(msg));
+            } catch (e) {
+                L.error(`Failed to parse message from subject ${subject}`, e);
+            }
+        };
+
+        const sub = nc.subscribe(subject, {
+            callback: (err, msg) => {
+                if (err) {
+                    L.error(`Error in subscription to subject ${subject}`, err);
+                    return;
+                }
+
+                latest = msg;
+                if (timer == null) {
+                    timer = window.setTimeout(flush, intervalMs);
+                }
+            },
+        });
+
+        return () => {
+            sub.unsubscribe();
+            if (timer != null) {
+                window.clearTimeout(timer);
+            }
+        };
+    }, [nc, subject, intervalMs]);
+
+    return value;
+};
+
+const errorCss = css`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    color: var(--hud-alert);
+    letter-spacing: 0.12em;
+`;
+
+const errorDetailCss = css`
+    color: var(--hud-dim);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+`;
+
+const retryCss = css`
+    padding: 4px 14px;
+    border: 1px solid var(--hud);
+    background: none;
+    color: var(--hud);
+    font: inherit;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+`;
