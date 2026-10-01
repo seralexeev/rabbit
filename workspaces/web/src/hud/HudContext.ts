@@ -63,7 +63,6 @@ type HudContextValue = {
     layout: HudLayout;
     toggle: (id: PanelId) => void;
     swap: (id: PanelId) => void;
-    raise: (id: PanelId) => void;
 };
 
 export const HudContext = React.createContext<HudContextValue | null>(null);

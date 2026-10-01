@@ -18,10 +18,6 @@ export const HudProvider: React.FC<{
 }> = ({ engine, store, floorPlan, history, connected, stopRobot, children }) => {
     const [layout, update] = useLocalState<HudLayout>('rabbit.ui.hud', normalize, DEFAULT_LAYOUT);
 
-    React.useEffect(() => {
-        engine.setColumns(layout.left, layout.right);
-    }, [engine, layout]);
-
     const toggle = (id: PanelId) =>
         update((prev) => ({
             ...prev,
@@ -39,19 +35,8 @@ export const HudProvider: React.FC<{
             return fromLeft ? { ...prev, left: nextFrom, right: nextTo } : { ...prev, left: nextTo, right: nextFrom };
         });
 
-    const raise = (id: PanelId) =>
-        update((prev) => {
-            const key = prev.left.includes(id) ? 'left' : 'right';
-            const list = [...prev[key]];
-            const index = list.indexOf(id);
-            if (index <= 0) return prev;
-            list.splice(index, 1);
-            list.splice(index - 1, 0, id);
-            return { ...prev, [key]: list };
-        });
-
     return (
-        <HudContext.Provider value={{ engine, store, floorPlan, history, connected, stopRobot, layout, toggle, swap, raise }}>
+        <HudContext.Provider value={{ engine, store, floorPlan, history, connected, stopRobot, layout, toggle, swap }}>
             {children}
         </HudContext.Provider>
     );

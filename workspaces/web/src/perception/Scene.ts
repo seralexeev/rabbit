@@ -417,7 +417,7 @@ export const createScene = ({
         tagContact(nearestTag, nearest, 'CONTACT');
         tagContact(aheadTag, ahead, 'AHEAD');
 
-        engine.frame(dt, now);
+        engine.frame(now);
     };
 
     let lastErrorLog = -Infinity;

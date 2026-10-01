@@ -18,17 +18,11 @@ type HudPanelProps = {
 
 export const HudPanel: React.FC<HudPanelProps> = ({ id, code, title, source, live, detail, children }) => {
     const [expanded, setExpanded] = React.useState(false);
-    const { engine, store, layout, toggle, swap, raise } = useHud();
+    const { store, layout, toggle, swap } = useHud();
     const ref = React.useRef<HTMLElement | null>(null);
     const linkRef = React.useRef<HTMLSpanElement | null>(null);
     const collapsed = layout.collapsed.includes(id);
     const side = layout.left.includes(id) ? 'left' : 'right';
-
-    React.useLayoutEffect(() => {
-        const element = ref.current;
-        if (element == null) return;
-        return engine.register(id, element);
-    }, [engine, id]);
 
     useHudTick((now) => {
         const link = linkRef.current;
@@ -54,9 +48,6 @@ export const HudPanel: React.FC<HudPanelProps> = ({ id, code, title, source, liv
                 </span>
                 <button className={iconButtonCss} onClick={() => setExpanded(true)} title='Expand'>
                     ⤢
-                </button>
-                <button className={iconButtonCss} onClick={() => raise(id)} title='Move up'>
-                    ▲
                 </button>
                 <button className={iconButtonCss} onClick={() => swap(id)} title={side === 'left' ? 'Move right' : 'Move left'}>
                     {side === 'left' ? '▶' : '◀'}
@@ -85,21 +76,8 @@ const blink = keyframes`
 const panelCss = cx(
     frameCss,
     css`
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: var(--hud-column);
+        flex: none;
         pointer-events: auto;
-        visibility: hidden;
-        will-change: transform;
-
-        &[data-placed='true'] {
-            visibility: visible;
-        }
-
-        &[data-compact='true'] > .hud-body {
-            display: none;
-        }
 
         &[data-lost='true'] > .hud-body > :not(button, :has(button)) {
             opacity: 0.45;

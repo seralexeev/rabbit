@@ -8,6 +8,7 @@ import { useGamepadPublisher } from '../controller/useGamepadPublisher.ts';
 import { useEvent, useLocalState } from '../hooks.ts';
 import { Compass } from '../hud/Compass.tsx';
 import { createHudEngine } from '../hud/Hud.ts';
+import { HudColumns } from '../hud/HudColumns.tsx';
 import { HudProvider } from '../hud/HudProvider.tsx';
 import { KeyboardIndicator } from '../hud/KeyboardIndicator.tsx';
 import { LinkIndicator } from '../hud/LinkIndicator.tsx';
@@ -112,12 +113,6 @@ export const PerceptionView: React.FC = () => {
     React.useEffect(() => history.start(), [history]);
     React.useEffect(() => floorPlan.start(), [floorPlan]);
 
-    React.useLayoutEffect(() => {
-        const container = containerRef.current;
-        if (container == null) return;
-        return engine.attach(container);
-    }, [engine]);
-
     React.useEffect(() => {
         const settings = { viewMode, topOrientation, mapVisible, goArmed };
         settingsRef.current = settings;
@@ -205,19 +200,23 @@ export const PerceptionView: React.FC = () => {
                     />
                 </div>
 
-                <MinimapPanel armed={goArmed} onGoal={publishGoal} />
-                <NavPanel />
-                <RoutePanel armed={goArmed} onArm={() => setGoArmed((armed) => !armed)} onCancel={stopRobot} />
-                <ExplorePanel />
-                <SystemPanel />
-                <ZedPanel />
-                <PowerPanel />
-                <WifiPanel />
-                <DrivePanel side='left' />
-                <DrivePanel side='right' />
-                <SteeringPanel />
-                <RoboclawPanel />
-                <GamepadPanel />
+                <HudColumns
+                    panels={{
+                        minimap: <MinimapPanel armed={goArmed} onGoal={publishGoal} />,
+                        nav: <NavPanel />,
+                        route: <RoutePanel armed={goArmed} onArm={() => setGoArmed((armed) => !armed)} onCancel={stopRobot} />,
+                        explore: <ExplorePanel />,
+                        system: <SystemPanel />,
+                        zed: <ZedPanel />,
+                        power: <PowerPanel />,
+                        wifi: <WifiPanel />,
+                        'drive-left': <DrivePanel side='left' />,
+                        'drive-right': <DrivePanel side='right' />,
+                        steering: <SteeringPanel />,
+                        roboclaw: <RoboclawPanel />,
+                        gamepad: <GamepadPanel />,
+                    }}
+                />
                 <ChatPanel />
             </div>
         </HudProvider>
