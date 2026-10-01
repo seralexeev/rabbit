@@ -160,6 +160,7 @@ class Node(RabbitNode):
         self.preview_skipped = 0
         self.pose_messages = 0
         self.pose_drop_count = 0
+        self.corrupted_frames = 0
         self.map_messages = 0
         self.map_bytes = 0
         self.map_chunk_count = 0
@@ -298,6 +299,7 @@ class Node(RabbitNode):
                 "preview_skipped": self.preview_skipped,
                 "pose_messages": self.pose_messages,
                 "pose_drop_count": self.pose_drop_count,
+                "corrupted_frames": self.corrupted_frames,
                 "last_capture_duration_ms": self.last_capture_duration_ms,
                 "last_pose_state": self.last_pose_state,
                 "last_preview_frame": self.last_preview_frame,
@@ -315,9 +317,12 @@ class Node(RabbitNode):
             },
         )
 
-    def _grab(self) -> CapturedFrame:
+    def _grab(self) -> CapturedFrame | None:
         with self._camera_lock:
             status = self.zed.grab(self.runtime_params)
+            if status == sl.ERROR_CODE.CORRUPTED_FRAME:
+                self.corrupted_frames += 1
+                return None
             if status != sl.ERROR_CODE.SUCCESS:
                 raise RuntimeError(f"Failed to grab image from ZED camera: {status}")
 
@@ -714,6 +719,8 @@ class Node(RabbitNode):
 
     async def capture(self):
         frame = await asyncio.to_thread(self._grab)
+        if frame is None:
+            return
 
         if frame.pose is None:
             self.pose_drop_count += 1

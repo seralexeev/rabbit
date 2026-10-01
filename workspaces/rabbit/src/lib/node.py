@@ -11,7 +11,9 @@ from typing import Any, Awaitable, Callable, Coroutine, Optional
 import nats
 from nats.aio.client import Client
 from nats.aio.msg import Msg
+from nats.errors import NoServersError
 from nats.js import JetStreamContext
+from nats.js.errors import BucketNotFoundError
 from nats.js.kv import KeyValue
 
 from lib.log import NatsLogHandler, install_crash_hooks, log_subject
@@ -36,6 +38,7 @@ def finite(value: Any) -> Any:
 
 class RabbitNode:
     LOG_PUBLISH_INTERVAL = 0.5
+    CONNECT_RETRY_S = 1.0
 
     def __init__(self, name: str):
         self.name = name
@@ -190,20 +193,34 @@ class RabbitNode:
             await self.publish_logs(final=True)
             await self.__nc.drain()
 
+    async def __connect(self):
+        waiting = False
+        while True:
+            nc: Client | None = None
+            try:
+                nc = await nats.connect(
+                    os.environ.get("NATS_URL", "nats://nats:4222"),
+                    name=self.name,
+                    ping_interval=20,
+                    max_outstanding_pings=5,
+                    max_reconnect_attempts=-1,
+                    reconnect_time_wait=2,
+                )
+                js = nc.jetstream()
+                return nc, js, await js.key_value("rabbit")
+            except (OSError, asyncio.TimeoutError, NoServersError, BucketNotFoundError) as e:
+                if nc is not None:
+                    await nc.close()
+                if not waiting:
+                    self.logger.warning(f"Waiting for NATS: {e!r}")
+                    waiting = True
+                await asyncio.sleep(self.CONNECT_RETRY_S)
+
     async def __run(self):
-        self.__nc = await nats.connect(
-            os.environ.get("NATS_URL", "nats://nats:4222"),
-            name=self.name,
-            ping_interval=20,
-            max_outstanding_pings=5,
-            max_reconnect_attempts=-1,
-            reconnect_time_wait=2,
-        )
+        self.__nc, self.__js, self.__kv = await self.__connect()
 
         asyncio.get_running_loop().set_exception_handler(self.on_loop_exception)
         self.set_interval(self.publish_logs, self.LOG_PUBLISH_INTERVAL, max_parallel=1)
-        self.__js = self.nc.jetstream()
-        self.__kv = await self.js.key_value("rabbit")
 
         self.logger.info(f"Node {self.name} initialized with NATS and JetStream")
         await self.init()
