@@ -213,7 +213,8 @@ class Node(RabbitNode):
 
     def _shutdown_camera(self):
         self._sensors_stop.set()
-        self._sensors_thread.join()
+        if self._sensors_thread.is_alive():
+            self._sensors_thread.join()
         with self._camera_lock:
             if self.map_worker is not None:
                 self.map_worker.join()
@@ -714,11 +715,6 @@ class Node(RabbitNode):
     async def capture(self):
         frame = await asyncio.to_thread(self._grab)
 
-        if frame.obstacle is not None:
-            await self.publish_json(
-                self.OBSTACLE_SUBJECT, {"ts": frame.timestamp + self.clock_offset_ns, **frame.obstacle}
-            )
-
         if frame.pose is None:
             self.pose_drop_count += 1
             self.last_pose_state = "LOST"
@@ -734,6 +730,11 @@ class Node(RabbitNode):
                 },
             )
             self.pose_messages += 1
+
+        if frame.obstacle is not None:
+            await self.publish_json(
+                self.OBSTACLE_SUBJECT, {"ts": frame.timestamp + self.clock_offset_ns, **frame.obstacle}
+            )
 
         if frame.map_update is not None:
             await self.nc.publish(
