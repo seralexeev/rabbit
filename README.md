@@ -14,7 +14,7 @@ Rabbit (NATS 192.168.1.53:4222)
   │  rabbit.health.zed, rabbit.telemetry
   │  JetStream: LOGS (rabbit.log.>, durable, 7 days on the robot), KV_rabbit (camera settings and other config)
   ▼
-writer (node, on the Mac) ── one INSERT per table per second, deduplicated ──► ClickHouse (docker, forge db)
+writer (docker)          ── one INSERT per table per second, deduplicated ──► ClickHouse (docker, forge db)
        logs: durable pull consumer, acked after the insert
                                                                           ▲ forge_reader (read-only)
 CLI ─┬─ run start / stop / list                                           │
@@ -28,7 +28,7 @@ detect_anomalies ── resample in ClickHouse ──► tsfm.ai (Chronos-2, joi
 investigate ── graph/metrics.yml upstream walk ──► per-link anomaly, co-movement and lead-lag scores ──► ranked causal chains
 ```
 
-The writer runs as a plain Node process rather than in Compose: it needs the robot's LAN, restarts in a second while iterating, and keeps the repo to one language with no image build. Compose holds only ClickHouse.
+Compose runs three services with `restart: unless-stopped`, so recording survives closed terminals, crashes and Docker restarts: `clickhouse`, `writer` (`forge-writer`) and `chat` (`forge-chat`, the chat API). The writer and chat share one image (`Dockerfile`: Node from `.nvmrc`, pnpm, production dependencies installed from the lockfile, no secrets) and start once ClickHouse is healthy. They read `.env` through `env_file` and reach ClickHouse at `http://clickhouse:8123`; the robot's NATS is reached over the LAN from inside Docker.
 
 ## Run it
 
@@ -36,8 +36,11 @@ Requires Node 26 (`.nvmrc`), pnpm and Docker.
 
 ```sh
 pnpm install
-docker compose up -d --wait          # ClickHouse on 127.0.0.1:18123 (HTTP) and :19000 (native)
-pnpm forge writer                    # applies clickhouse/schema.sql, then ingests until Ctrl-C
+docker compose up -d --build --wait  # ClickHouse (127.0.0.1:18123 HTTP, :19000 native), writer, chat on 127.0.0.1:18080
+docker compose ps                    # all three healthy
+docker compose logs -f writer        # rows/s every 10 s, with the NATS state (connecting, connected, disconnected)
+docker compose stop writer chat      # stop recording and chat; `docker compose start writer chat` resumes
+docker compose up -d --build writer chat   # deploy code changes
 pnpm forge run start --name hard-launch --note "five full-throttle starts"
 pnpm forge run stop
 pnpm forge run list
@@ -49,11 +52,15 @@ pnpm forge investigate reboots --param at=11:00
 pnpm forge ask "What was the average battery voltage and total motor current in the last run?"
 ```
 
-`ask`, `write-query` and `serve` need `OPEN_AI_KEY` in `.env`, `serve` also needs `CHAT_TOKEN` (any long random string), and `detect` needs `TSFM_KEY` (see `.env.example`). Forge reads keys only from that file, never from the shell environment. The agent uses OpenAI `gpt-6-luna` with low reasoning effort through the Vercel AI SDK.
+The writer starts without the robot: it applies `clickhouse/schema.sql`, then keeps reconnecting to NATS every 2 s until the robot is up, and reconnects indefinitely after a drop. Its healthcheck is a heartbeat file the writer touches every 10 s; the chat healthcheck asks `/api/health` for a working ClickHouse connection. Rows that cannot be stored land in `dead_letters/`, bind-mounted from the repo.
+
+For local development run `pnpm forge writer` or `pnpm forge serve` on the host after stopping the matching container (`docker compose stop writer` or `docker compose stop chat`): two writers would record every message twice, and two chat servers cannot share port 18080. `docker compose start writer chat` brings the services back.
+
+`ask`, `write-query` and `serve` need `OPEN_AI_KEY` in `.env`, `serve` also needs `CHAT_TOKEN` (any long random string), and `detect` needs `TSFM_KEY` (see `.env.example`). When `.env` exists Forge reads every setting from that file only, never from the shell environment; without it (the containers, which receive `.env` through `env_file`) it reads the process environment. Two settings exist for the containers: `FORGE_CLICKHOUSE_URL` (default `http://127.0.0.1:18123`) and `FORGE_CHAT_LISTEN_HOST` (default `127.0.0.1`; the chat container listens on `0.0.0.0` and Compose publishes it on `127.0.0.1:18080` only). The agent uses OpenAI `gpt-6-luna` with low reasoning effort through the Vercel AI SDK.
 
 ClickHouse users: `forge_writer` owns the `forge` database; `forge_reader` is read-only (`readonly=1`; 30 s, 300 MB, 16 concurrent queries, 200 M rows or 4 GB read and 10k result rows per query) and is the only user that runs slabs, ad-hoc queries and agent SQL. `clickhouse/config.xml` sizes the server for a laptop: system log tables off except a one-day `query_log`, two merge threads, a 1.5 GB memory cap.
 
-Ingest: the writer subscribes once per subject and parses each message once. Every batch carries an `insert_deduplication_token` (tables keep a 1000-insert deduplication window), so retries never duplicate rows. Transient ClickHouse or network errors retry the same batch with exponential backoff up to 30 s. A batch ClickHouse rejects is split in half until the bad rows are isolated; those rows, buffer overflow, and anything unsent 10 s into shutdown go to `dead_letters/<table>.jsonl`.
+Ingest: the writer subscribes once per subject and parses each message once. Every batch carries an `insert_deduplication_token` (tables, `logs` included, keep a 1000-insert deduplication window), so retries never duplicate rows. Transient ClickHouse or network errors, and a missing table or database, retry the same batch with exponential backoff up to 30 s; the first failure of a batch is logged. A batch ClickHouse rejects is split in half until the bad rows are isolated. Those rows, anything unsent 10 s into shutdown, and buffer overflow go to `dead_letters/<table>.jsonl`: at most 1 M rows (about 330 MB, roughly 35 minutes of telemetry) wait in memory across all tables, and beyond that the oldest tenth of the cap is taken from the largest table at once.
 
 ## Runs
 
@@ -207,7 +214,7 @@ Every ad-hoc or generated query passes `src/sql/validate_sql.ts` (parsed with `@
 - exactly one `SELECT` / `WITH` / `UNION` statement;
 - only Forge tables, CTEs of the query and subqueries; no other database, table function, `FINAL` or `SETTINGS`;
 - no `FORMAT`, `INTO OUTFILE`, `GLOBAL IN` or references to `system` / `information_schema`;
-- functions come from an allowlist (aggregates and their combinators, window, math, date and time, string, array, JSON and conditional functions), so anything reading server state or other data is rejected;
+- functions come from an allowlist (aggregates and their combinators, window, math, date and time, string, array, JSON and conditional functions), including those named in `* APPLY(fn)`, so anything reading server state or other data is rejected;
 - every `JOIN` matches qualified `run_id` columns of its two sides with AND only (no `OR`), plus a time or sequence key from both sides (a shared bucket, or `ASOF ... a.ts >= b.ts`) unless one side is aggregated to one row per run; no comma joins. Two runs never pair up, and no join multiplies every row of a run with every other.
 
 A test runs every slab through the gate, so a rule that is too strict fails CI rather than a slab.
@@ -220,14 +227,14 @@ A rejection returns a stable error plus a repair hint for the model (the columns
 
 ## Chat API
 
-`pnpm forge serve` listens on `http://127.0.0.1:18080` for the rabbit web HUD:
+The `chat` service (`pnpm forge serve` on the host) listens on `http://127.0.0.1:18080` for the rabbit web HUD, which calls it directly from the browser (`VITE_CHAT_URL`, default `http://127.0.0.1:18080`, in `rabbit/workspaces/web/src/chat/session.ts`) with CORS rather than through a Vite proxy:
 
-- `POST /api/chat` takes `{ messages: UIMessage[] }` (stateless, the client sends the history) and streams the AI SDK UI message stream. It requires an allowed `Origin` (`https://localhost:*`, `https://dev.rabbit:*`), `content-type: application/json` and the `x-forge-token` header.
+- `POST /api/chat` takes `{ messages: UIMessage[] }` (stateless, the client sends the history; only `user` and `assistant` messages) and streams the AI SDK UI message stream. A client that disconnects aborts the agent run. It requires an allowed `Origin` (`https://localhost:*`, `https://dev.rabbit:*`), `content-type: application/json` and the `x-forge-token` header.
 - `GET /api/session` returns `{ token, header }` to an allowed origin, so the HUD can fetch the token on load.
 - Only the `Host` values `127.0.0.1:18080` and `localhost:18080` are served, which blocks DNS rebinding.
 - `GET /api/health` returns `{ ok, model, clickhouse, latest_data_age_s, run }`.
 
-The chat agent is `ask` with more tools: the data tools, `write_query`, `chart` (plots a slab or SQL result; the server converts times to epoch ms and downsamples to 2000 rows), and the robot tools `robot_status`, `run_mission`, `stop`, `save_map`, `start_run` and `stop_run`. `run_mission` publishes `rabbit.nav.mission {steps}` (turn, move, goto, queued on the robot) and needs the operator's approval: tools declare `requiresApproval`, chat turns that into AI SDK tool approval signed per server process, and execution consumes a single-use approval that expires after 60 s (MCP never registers such tools). Before publishing, the server re-checks that the pose is fresher than 3 s, tracking is OK and the first move is clear of the obstacle ahead, and enforces at most 3 m per move, 5 m per goto, 10 steps and 10 m per mission. `stop` publishes `rabbit.nav.cancel` and a zero `rabbit.cmd.drive` independently, without approval, and reports each; the robot NATS connection reconnects indefinitely and every publish waits at most 3 s for the server. Chat never publishes a non-zero drive command. Tools return `{kind: 'table'}`, `{kind: 'chart'}` (optional `layout: 'stacked'`, `series.panel` and `dashed`, range markers with `x_end` and `series`, bands per series, and an `id`), `{kind: 'graph'}` or `{kind: 'status'}`; the model sees a summary of charts and graphs instead of their rows. The chat prompt asks for a TL;DR, key numbers, findings with status chips and evidence, and next steps, written with inline tokens the HUD renders: `ok:`, `info:`, `warn:`, `alert:` (status chips), `kpi:Label=value` (key numbers), `spark:v1,v2,...` (sparklines), `ref:kind:target?key=value` (evidence chips that re-run a slab, detection or investigation, or scroll to a chart or graph by id) and `next:question` (follow-ups).
+The chat agent is `ask` with more tools: the data tools, `write_query`, `chart` (plots a slab or SQL result; the server converts times to epoch ms and downsamples to 2000 rows), and the robot tools `robot_status`, `run_mission`, `stop`, `save_map`, `start_run` and `stop_run`. `run_mission` publishes `rabbit.nav.mission {id, steps}` (turn, move, goto, queued on the robot) and needs the operator's approval: tools declare `requiresApproval`, chat turns that into AI SDK tool approval signed per server process, and execution consumes a single-use approval that expires after 60 s (MCP never registers such tools). Before publishing, the server re-checks that the pose, camera tracking and obstacle readings are fresher than 3 s, tracking is OK and the first leg that moves is clear of the obstacle ahead (when it starts within 10 degrees of the current heading), and enforces at most 3 m per move, 5 m per goto, 10 steps and 10 m per mission, dead-reckoning the steps so each goto is measured from where the earlier steps leave the robot. The mission carries its own `id` (`forge-<uuid>`); the tool waits up to 3 s for `rabbit.nav.state` to report that `mission_id` (`accepted`), fails with nav's reason when nav sets a new `rejected: ...` fault, and otherwise returns `accepted: false`. `nav_state.mission_id` keeps the last mission after it ends, so whether a mission is running comes from `mode`. `stop` publishes `rabbit.nav.cancel` and a zero `rabbit.cmd.drive` independently, without approval, and reports each; the robot NATS connection reconnects indefinitely and every publish waits at most 3 s for the server. Chat never publishes a non-zero drive command. Tools return `{kind: 'table'}`, `{kind: 'chart'}` (optional `layout: 'stacked'`, `series.panel` and `dashed`, range markers with `x_end` and `series`, bands per series, and an `id`), `{kind: 'graph'}` or `{kind: 'status'}`; the model sees a summary of charts and graphs instead of their rows. The chat prompt asks for a TL;DR, key numbers, findings with status chips and evidence, and next steps, written with inline tokens the HUD renders: `ok:`, `info:`, `warn:`, `alert:` (status chips), `kpi:Label=value` (key numbers), `spark:v1,v2,...` (sparklines), `ref:kind:target?key=value` (evidence chips that re-run a slab, detection or investigation, or scroll to a chart or graph by id) and `next:question` (follow-ups).
 
 ## MCP
 
@@ -247,7 +254,7 @@ npx @modelcontextprotocol/inspector --cli node src/cli.ts mcp --method tools/lis
 pnpm check    # oxfmt --check, tsc, oxlint (type-aware), vitest
 ```
 
-Tests cover the SQL gate, slab search ranking for Russian and English questions, the metric graph loader and traversal, the graph statistics, grid filling (gaps and zero-filled rates), joint events, the anomaly reference, the run a record belongs to by its timestamp, and the mapping of robot log records to rows. The robot's log handler (repeat suppression, payload fields) is tested in `rabbit/workspaces/rabbit/tests/test_log.py`.
+Tests cover the SQL gate, the writer's batching (bisection, retries, the buffer cap), mission planning and acceptance, approvals, slab search ranking for Russian and English questions, the metric graph loader and traversal, the graph statistics, grid filling (gaps and zero-filled rates), joint events, the anomaly reference, the run a record belongs to by its timestamp, and the mapping of robot log records to rows. The robot's log handler (repeat suppression, payload fields) is tested in `rabbit/workspaces/rabbit/tests/test_log.py`.
 
 `pnpm forge eval [<case>]` runs the chat agent on `evals/chat.yml` (questions with the tool calls, approvals and facts each answer must contain) against live ClickHouse and the model, with robot actions as dry runs and a fixed `robot_status`. It has 25 cases, including investigations (reboot at 11:00, battery sag, wall push), the metric graph (neighbourhood and path), multi-metric anomalies, a camera node crash read from the logs and container events, and who sent a stop command; with the final prompt it passes 25 of 25. `pnpm forge eval tools` is the deterministic check for `investigate` and `detect_anomalies` (see Anomaly detection). Schema changes during development: edit `schema.sql` and apply the matching `ALTER` once, or reset with `docker compose down -v`.
 

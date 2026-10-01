@@ -73,4 +73,24 @@ describe('Batcher', () => {
     expect(tokens[1]).toBe(tokens[0]);
     expect(batcher.inserted.get('power')).toBe(3);
   });
+
+  it('caps the rows buffered across all tables by dead-lettering the oldest rows of the largest table', async () => {
+    const dead = new Map<string, Row[]>();
+    const batcher = new Batcher(
+      async () => {
+        await Promise.resolve();
+      },
+      (table, batch) => {
+        dead.set(table, [...(dead.get(table) ?? []), ...batch]);
+      },
+      { batchRows: 10, maxBufferedRows: 100 },
+    );
+    batcher.push('runs', rows(5));
+    for (let i = 0; i < 100; i++) {
+      batcher.push('imu', [{ ts: `${i}` }]);
+    }
+    expect(batcher.pending()).toBeLessThanOrEqual(100);
+    expect(dead.has('runs')).toBe(false);
+    expect(dead.get('imu')?.at(0)).toEqual({ ts: '0' });
+  });
 });

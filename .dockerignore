@@ -1,0 +1,8 @@
+*
+!package.json
+!pnpm-lock.yaml
+!.npmrc
+!src
+!clickhouse
+!slabs
+!graph

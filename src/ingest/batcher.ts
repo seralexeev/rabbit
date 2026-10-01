@@ -1,6 +1,8 @@
 import { ClickHouseError } from '@clickhouse/client';
 import { randomUUID } from 'node:crypto';
 
+import { errorMessage } from '../errors.ts';
+import { log } from '../log.ts';
 import type { Row } from '../streams.ts';
 
 export type Insert = (
@@ -12,6 +14,8 @@ export type Insert = (
 export type DeadLetter = (table: string, rows: Row[], reason: string) => void;
 
 const TRANSIENT_CODES = new Set([
+  '60',
+  '81',
   '159',
   '202',
   '203',
@@ -31,6 +35,7 @@ export const isTransient = (error: unknown) =>
   !(error instanceof ClickHouseError) || TRANSIENT_CODES.has(error.code);
 
 const MAX_BACKOFF_MS = 30_000;
+const OVERFLOW_CHUNK_DIVISOR = 10;
 
 type Job = { rows: Row[]; token: string; attempts: number };
 
@@ -45,6 +50,7 @@ export class Batcher {
   private readonly jobs = new Map<string, Job[]>();
   private readonly inFlight = new Set<string>();
   private readonly retryAt = new Map<string, number>();
+  private buffered = 0;
   public readonly inserted = new Map<string, number>();
   public readonly deadLettered = new Map<string, number>();
   private readonly insert: Insert;
@@ -60,11 +66,28 @@ export class Batcher {
   public push(table: string, rows: Row[]) {
     const buffer = this.buffers.get(table) ?? [];
     buffer.push(...rows);
-    const overflow = buffer.length - this.options.maxBufferedRows;
-    if (overflow > 0) {
-      this.drop(table, buffer.splice(0, overflow), 'buffer overflow');
-    }
     this.buffers.set(table, buffer);
+    this.buffered += rows.length;
+    const overflow = this.buffered - this.options.maxBufferedRows;
+    if (overflow > 0) {
+      const [largest, largestRows] = [...this.buffers].reduce((a, b) =>
+        b[1].length > a[1].length ? b : a,
+      );
+      const chunk = Math.max(
+        overflow,
+        Math.ceil(this.options.maxBufferedRows / OVERFLOW_CHUNK_DIVISOR),
+      );
+      this.drop(
+        largest,
+        this.take(largestRows, Math.min(chunk, largestRows.length)),
+        'buffer overflow',
+      );
+    }
+  }
+
+  private take(buffer: Row[], count: number) {
+    this.buffered -= count;
+    return buffer.splice(0, count);
   }
 
   public async flush() {
@@ -103,6 +126,7 @@ export class Batcher {
     }
     this.jobs.clear();
     this.buffers.clear();
+    this.buffered = 0;
   }
 
   private nextJob(table: string): Job | null {
@@ -110,8 +134,11 @@ export class Batcher {
     if (queued != null) {
       return queued;
     }
-    const rows =
-      this.buffers.get(table)?.splice(0, this.options.batchRows) ?? [];
+    const buffer = this.buffers.get(table) ?? [];
+    const rows = this.take(
+      buffer,
+      Math.min(this.options.batchRows, buffer.length),
+    );
     return rows.length === 0
       ? null
       : { rows, token: randomUUID(), attempts: 0 };
@@ -143,6 +170,13 @@ export class Batcher {
     } catch (error) {
       if (isTransient(error)) {
         const attempts = job.attempts + 1;
+        if (attempts === 1) {
+          log('Insert failed, retrying', {
+            table,
+            rows: job.rows.length,
+            error: errorMessage(error).slice(0, 300),
+          });
+        }
         this.retryAt.set(
           table,
           this.options.now() +
@@ -150,11 +184,7 @@ export class Batcher {
         );
         this.requeue(table, { ...job, attempts });
       } else if (job.rows.length === 1) {
-        this.drop(
-          table,
-          job.rows,
-          error instanceof Error ? error.message.slice(0, 300) : String(error),
-        );
+        this.drop(table, job.rows, errorMessage(error).slice(0, 300));
       } else {
         const half = Math.ceil(job.rows.length / 2);
         this.requeue(

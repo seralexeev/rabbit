@@ -1,5 +1,7 @@
-import { connect } from '@nats-io/transport-node';
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { type NatsConnection, connect } from '@nats-io/transport-node';
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { writer } from './clickhouse.ts';
 import { ROOT, config } from './config.ts';
@@ -27,7 +29,7 @@ const IDLE_MS = 60_000;
 const LIVE_MS = 10_000;
 const RUN_HISTORY_DAYS = 8;
 const BATCH_ROWS = 20_000;
-const MAX_BUFFERED_ROWS = 500_000;
+const MAX_BUFFERED_ROWS = 1_000_000;
 const SHUTDOWN_FLUSH_MS = 10_000;
 
 type Current = { runId: string; name: string; kind: RunKind };
@@ -126,12 +128,21 @@ class RunTracker {
 const DEAD_LETTERS = new URL('dead_letters/', ROOT);
 
 const deadLetter = (table: string, rows: Row[], reason: string) => {
-  mkdirSync(DEAD_LETTERS, { recursive: true });
-  appendFileSync(
-    new URL(`${table}.jsonl`, DEAD_LETTERS),
-    rows.map((row) => JSON.stringify({ reason, row })).join('\n') + '\n',
-  );
-  log('Dead-lettered rows', { table, rows: rows.length, reason });
+  try {
+    mkdirSync(DEAD_LETTERS, { recursive: true });
+    appendFileSync(
+      new URL(`${table}.jsonl`, DEAD_LETTERS),
+      rows.map((row) => JSON.stringify({ reason, row })).join('\n') + '\n',
+    );
+    log('Dead-lettered rows', { table, rows: rows.length, reason });
+  } catch (error) {
+    log('Lost rows that could not be dead-lettered', {
+      table,
+      rows: rows.length,
+      reason,
+      error: errorMessage(error),
+    });
+  }
 };
 
 const insert = async (table: string, rows: Row[], token: string) => {
@@ -143,28 +154,14 @@ const insert = async (table: string, rows: Row[], token: string) => {
   });
 };
 
-export const runWriter = async () => {
-  await migrate();
-  const buffers = new Batcher(insert, deadLetter, {
-    batchRows: BATCH_ROWS,
-    maxBufferedRows: MAX_BUFFERED_ROWS,
-  });
-  const tracker = new RunTracker((event) => {
-    buffers.push('run_events', [event]);
-  });
-  await tracker.closeStaleAutoRuns();
-  await tracker.poll();
+const WRITER_HEARTBEAT = join(tmpdir(), 'forge-writer.heartbeat');
 
-  const nc = await connect({
-    servers: config.natsUrl,
-    name: 'forge-writer',
-    maxReconnectAttempts: -1,
-    reconnectTimeWait: 2000,
-    waitOnFirstConnect: true,
-  });
-  log('Connected to NATS', { server: config.natsUrl });
-
-  const parseErrors = new Map<string, number>();
+const subscribeStreams = (
+  nc: NatsConnection,
+  tracker: RunTracker,
+  buffers: Batcher,
+  parseErrors: Map<string, number>,
+) => {
   const subjects = Map.groupBy(STREAMS, (stream) => stream.subject);
   for (const [subject, streams] of subjects) {
     const subscription = nc.subscribe(subject);
@@ -194,31 +191,27 @@ export const runWriter = async () => {
       }
     })();
   }
+};
 
-  const recordedAt = (ts: string) => tracker.runIdAt(ts, Date.now());
-  const logs = consumeLogs(
-    nc,
-    recordedAt,
-    async (table, rows) => {
-      await insert(
-        table,
-        rows,
-        `${table}:${String(rows[0]?.seq)}-${String(rows.at(-1)?.seq)}`,
-      );
-    },
-    deadLetter,
-  );
-  const kv = consumeKv(nc, recordedAt, (table, rows) => {
-    buffers.push(table, rows);
+export const runWriter = async () => {
+  await migrate();
+  const buffers = new Batcher(insert, deadLetter, {
+    batchRows: BATCH_ROWS,
+    maxBufferedRows: MAX_BUFFERED_ROWS,
   });
+  const tracker = new RunTracker((event) => {
+    buffers.push('run_events', [event]);
+  });
+  await tracker.closeStaleAutoRuns();
+  await tracker.poll();
 
-  void (async () => {
-    for await (const status of nc.status()) {
-      if (status.type === 'disconnect' || status.type === 'reconnect') {
-        log(`NATS ${status.type}`, { server: status.server });
-      }
-    }
-  })();
+  const parseErrors = new Map<string, number>();
+  let natsState = 'connecting';
+  let robot: {
+    nc: NatsConnection;
+    logs: ReturnType<typeof consumeLogs>;
+    kv: ReturnType<typeof consumeKv>;
+  } | null = null;
 
   const flushTimer = setInterval(() => {
     void buffers.flush();
@@ -231,7 +224,15 @@ export const runWriter = async () => {
 
   let previous = new Map<string, number>();
   const reportTimer = setInterval(() => {
-    const totals = new Map([...buffers.inserted, ['logs', logs.inserted()]]);
+    try {
+      writeFileSync(WRITER_HEARTBEAT, String(Date.now()));
+    } catch (error) {
+      log('Heartbeat write failed', { error: errorMessage(error) });
+    }
+    const totals = new Map([
+      ...buffers.inserted,
+      ['logs', robot?.logs.inserted() ?? 0],
+    ]);
     const rates = Object.fromEntries(
       [...totals].map(([table, total]) => [
         table,
@@ -241,6 +242,7 @@ export const runWriter = async () => {
     previous = totals;
     log('rows/s', {
       ...rates,
+      nats: natsState,
       pending: buffers.pending(),
       ...(buffers.deadLettered.size > 0
         ? { dead_lettered: Object.fromEntries(buffers.deadLettered) }
@@ -255,8 +257,10 @@ export const runWriter = async () => {
     log('Shutting down');
     clearInterval(pollTimer);
     clearInterval(reportTimer);
-    await Promise.all([logs.stop(), kv.stop()]);
-    await nc.close();
+    if (robot != null) {
+      await Promise.all([robot.logs.stop(), robot.kv.stop()]);
+      await robot.nc.close();
+    }
     tracker.stopAuto();
     clearInterval(flushTimer);
     const deadline = Date.now() + SHUTDOWN_FLUSH_MS;
@@ -274,4 +278,45 @@ export const runWriter = async () => {
   };
   process.once('SIGINT', () => void shutdown());
   process.once('SIGTERM', () => void shutdown());
+
+  log('Connecting to NATS', { server: config.natsUrl });
+  const nc = await connect({
+    servers: config.natsUrl,
+    name: 'forge-writer',
+    maxReconnectAttempts: -1,
+    reconnectTimeWait: 2000,
+    waitOnFirstConnect: true,
+  });
+  natsState = 'connected';
+  log('Connected to NATS', { server: config.natsUrl });
+
+  void (async () => {
+    for await (const status of nc.status()) {
+      if (status.type === 'disconnect' || status.type === 'reconnect') {
+        natsState = status.type === 'reconnect' ? 'connected' : 'disconnected';
+        log(`NATS ${status.type}`, { server: status.server });
+      }
+    }
+  })();
+
+  subscribeStreams(nc, tracker, buffers, parseErrors);
+  const recordedAt = (ts: string) => tracker.runIdAt(ts, Date.now());
+  robot = {
+    nc,
+    logs: consumeLogs(
+      nc,
+      recordedAt,
+      async (table, rows) => {
+        await insert(
+          table,
+          rows,
+          `${table}:${String(rows[0]?.seq)}-${String(rows.at(-1)?.seq)}`,
+        );
+      },
+      deadLetter,
+    ),
+    kv: consumeKv(nc, recordedAt, (table, rows) => {
+      buffers.push(table, rows);
+    }),
+  };
 };
