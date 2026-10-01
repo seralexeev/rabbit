@@ -11,7 +11,8 @@ import { createGroundFx } from './GroundFx.ts';
 import { MAX_WAYPOINTS, type NavFxFrame, createNavFx, sameContact } from './NavFx.ts';
 import { createRobotModel } from './RobotModel.ts';
 import { createRoomMap } from './RoomMap.ts';
-import type { Contact, TelemetryStore } from './Telemetry.ts';
+import { type SteerFxFrame, createSteerFx } from './SteerFx.ts';
+import { type Contact, type TelemetryStore, isLive } from './Telemetry.ts';
 import { predictWaypoints, remainingMission } from './mission.ts';
 
 const MAP_CHUNKS_SUBJECT = 'rabbit.map.chunks';
@@ -32,6 +33,11 @@ const CONTACT_TIMEOUT_MS = 1000;
 const NAV_TIMEOUT_MS = 2000;
 const EXPLORE_TIMEOUT_MS = 3000;
 const ERROR_LOG_MS = 5000;
+const REVERSE_COMMAND = -0.02;
+const MOVING_COMMAND = 0.02;
+const MISSION_MODES = new Set(['driving', 'maneuvering', 'blocked']);
+const MISSION_EMPHASIS = 0.45;
+const IDLE_EMPHASIS = 0.7;
 
 type ScreenPoint = { x: number; y: number; visible: boolean };
 
@@ -107,6 +113,8 @@ export const createScene = ({
     scene.add(groundFx.group);
     const navFx = createNavFx();
     scene.add(navFx.group);
+    const steerFx = createSteerFx();
+    scene.add(steerFx.group);
 
     const nearestTag = createWorldTag(tags, false);
     const aheadTag = createWorldTag(tags, true);
@@ -175,6 +183,16 @@ export const createScene = ({
         waypoints,
         waypointCount: 0,
         target: null,
+    };
+    const steerFrame: SteerFxFrame = {
+        origin: rearAxle,
+        yaw: 0,
+        steer: null,
+        direction: 1,
+        emphasis: 1,
+        scan: null,
+        scanVersion: 0,
+        dt: 0,
     };
     let navVersion = 0;
     let poseVersion = 0;
@@ -345,7 +363,7 @@ export const createScene = ({
             .add(robot.wheels.rr.getWorldPosition(scratch))
             .multiplyScalar(0.5)
             .setY(FLOOR_Y);
-        groundFx.update(time, ground, rearAxle, Math.atan2(-forward.x, -forward.z));
+        groundFx.update(ground, rearAxle, derived.heading);
         derived.odometer = groundFx.distance();
         rig.update(dt, now, robotFrame);
         robot.group.visible = camera.position.distanceToSquared(robot.group.position) > EYE_CLEARANCE ** 2;
@@ -376,6 +394,18 @@ export const createScene = ({
         fxFrame.waypointCount = waypointCount;
         fxFrame.target = explore?.target ?? null;
         navFx.update(fxFrame);
+
+        const roboclaw = isLive(store.roboclaw, now) ? store.roboclaw.value : null;
+        const command = roboclaw == null ? 0 : ((roboclaw.left.command ?? 0) + (roboclaw.right.command ?? 0)) / 2;
+        const mission = nav != null && MISSION_MODES.has(nav.mode);
+        steerFrame.yaw = Math.atan2(-forward.x, -forward.z);
+        steerFrame.steer = isLive(store.steering, now) ? (store.steering.value?.angle ?? null) : null;
+        steerFrame.direction = command < REVERSE_COMMAND ? -1 : 1;
+        steerFrame.emphasis = mission ? MISSION_EMPHASIS : Math.abs(command) > MOVING_COMMAND ? 1 : IDLE_EMPHASIS;
+        steerFrame.scan = obstacle?.scan ?? null;
+        steerFrame.scanVersion = store.obstacle.version;
+        steerFrame.dt = dt;
+        steerFx.update(steerFrame);
 
         roomMap.flush();
         roomMap.setRobot(robot.group.position);
@@ -425,6 +455,7 @@ export const createScene = ({
             aheadTag.dispose();
             groundFx.dispose();
             navFx.dispose();
+            steerFx.dispose();
             robot.dispose();
             roomMap.dispose();
             renderer.dispose();

@@ -4,15 +4,15 @@ import { HUD_COLOR } from '../hud/Hud.ts';
 
 const GRID_SIZE = 40;
 const GRID_SNAP = 4;
-const RETICLE_SIZE = 0.56;
 const TRAIL_POINTS = 600;
 const TRAIL_STEP = 0.04;
 const TRAIL_RESET_DISTANCE = 1.5;
 const TRAIL_LIFT = 0.004;
+export const FLOOR_DEPTH_BIAS = 0.04;
 
 export type GroundFx = {
     group: THREE.Group;
-    update: (time: number, ground: THREE.Vector3, track: THREE.Vector3, azimuth: number) => void;
+    update: (ground: THREE.Vector3, track: THREE.Vector3, headingDeg: number) => void;
     distance: () => number;
     dispose: () => void;
 };
@@ -57,46 +57,105 @@ const gridMaterial = () =>
         `,
     });
 
-const reticleMaterial = () =>
+const COMPASS_SIZE = 1.0;
+const COMPASS_TEXTURE = 512;
+const RING_RADIUS = 0.34;
+const LETTER_RADIUS = 0.44;
+const CARDINALS = [
+    ['N', 0],
+    ['E', 90],
+    ['S', 180],
+    ['W', 270],
+] as const;
+
+const drawLetters = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = COMPASS_TEXTURE;
+    canvas.height = COMPASS_TEXTURE;
+    const ctx = canvas.getContext('2d')!;
+    const scale = COMPASS_TEXTURE / COMPASS_SIZE;
+    ctx.translate(COMPASS_TEXTURE / 2, COMPASS_TEXTURE / 2);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const [label, deg] of CARDINALS) {
+        ctx.save();
+        ctx.rotate((deg * Math.PI) / 180);
+        ctx.translate(0, -LETTER_RADIUS);
+        ctx.globalAlpha = label === 'N' ? 1 : 0.7;
+        ctx.font = `700 ${label === 'N' ? 0.07 : 0.06}px "JetBrains Mono", monospace`;
+        ctx.fillText(label, 0, 0);
+        ctx.restore();
+    }
+    return canvas;
+};
+
+const compassMaterial = (letters: THREE.Texture) =>
     new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
         uniforms: {
             uColor: { value: new THREE.Color(HUD_COLOR) },
-            uTime: { value: 0 },
+            uLetters: { value: letters },
+            uHeading: { value: 0 },
         },
         vertexShader: `
             varying vec2 vUv;
             void main() {
                 vUv = uv;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                vec4 view = modelViewMatrix * vec4(position, 1.0);
+                view.xyz -= normalize(view.xyz) * ${FLOOR_DEPTH_BIAS.toFixed(3)};
+                gl_Position = projectionMatrix * view;
             }
         `,
         fragmentShader: `
             uniform vec3 uColor;
-            uniform float uTime;
+            uniform sampler2D uLetters;
+            uniform float uHeading;
             varying vec2 vUv;
-            const float TAU = 6.2831853;
-            float band(float d, float w) {
-                return 1.0 - smoothstep(w, w + fwidth(d) * 1.5, abs(d));
+            const float HALF = ${(COMPASS_SIZE / 2).toFixed(4)};
+            const float RING = ${RING_RADIUS.toFixed(4)};
+            float pixel;
+            float stroke(float d, float halfWidth) {
+                float w = max(halfWidth, pixel * 0.6);
+                return clamp((w - abs(d)) / pixel + 0.5, 0.0, 1.0) * min(1.0, halfWidth / w * 1.5);
+            }
+            float inside(float d) {
+                return clamp(d / pixel + 0.5, 0.0, 1.0);
             }
             void main() {
-                vec2 p = (vUv - 0.5) * 2.0;
+                vec2 p = (vUv - 0.5) * 2.0 * HALF;
+                pixel = length(fwidth(p)) * 0.7;
                 float r = length(p);
-                float a = atan(p.x, p.y);
-                float outer = band(r - 0.94, 0.006);
-                float dashes = band(r - 0.82, 0.014) * step(0.45, fract((a / TAU) * 48.0 + uTime * 0.12));
-                float inner = band(r - 0.58, 0.004);
-                float cardinal = abs(fract(a / (TAU * 0.25) + 0.5) - 0.5) * TAU * 0.25 * r;
-                float ticks = band(cardinal, 0.008) * step(0.86, r) * step(r, 1.0);
-                float chevron = band(abs(p.x) * 0.9 + p.y - 0.76, 0.012) * step(abs(p.x), 0.15) * step(0.5, p.y);
-                float sweep = pow(fract((a / TAU) - uTime * 0.18), 10.0) * step(r, 0.82) * 0.22;
-                float pulse = 0.7 + 0.3 * sin(uTime * 2.2);
-                float alpha = outer * 0.55 + dashes * 0.45 * pulse + inner * 0.35 + ticks * 0.8 + chevron * 0.9 + sweep;
-                alpha *= 1.0 - smoothstep(0.97, 1.0, r);
+
+                float deg = degrees(atan(p.x, p.y));
+                float index = floor(deg / 5.0 + 0.5);
+                float arc = radians(deg - index * 5.0) * r;
+                float step90 = 1.0 - step(0.5, abs(mod(index, 18.0)));
+                float step45 = 1.0 - step(0.5, abs(mod(index, 9.0)));
+                float step15 = 1.0 - step(0.5, abs(mod(index, 3.0)));
+                float len = step90 > 0.5 ? 0.05 : step45 > 0.5 ? 0.036 : step15 > 0.5 ? 0.024 : 0.012;
+                float weight = step90 > 0.5 ? 0.95 : step45 > 0.5 ? 0.7 : step15 > 0.5 ? 0.5 : 0.3;
+                float width = step90 > 0.5 ? 0.003 : 0.0018;
+                float tick = stroke(arc, width) * inside(RING - r) * inside(r - RING + len) * weight;
+
+                float ring = stroke(r - RING, 0.0022) * 0.6 + stroke(r - RING + 0.065, 0.001) * 0.2;
+                float letters = texture2D(uLetters, vUv).a * 0.85;
+
+                float s = sin(uHeading);
+                float c = cos(uHeading);
+                vec2 q = vec2(p.x * c - p.y * s, p.x * s + p.y * c);
+                float off = abs(atan(q.x, q.y));
+                float glow = stroke(r - RING, 0.003) * (1.0 - smoothstep(0.06, 0.16, off));
+                float tip = RING + 0.006;
+                float depth = 0.04;
+                float marker = inside((q.y - tip) / depth * 0.024 - abs(q.x)) * inside(q.y - tip) * inside(tip + depth - q.y);
+                float lubber = stroke(q.x, 0.0015) * inside(q.y - RING + 0.065) * inside(RING - q.y) * 0.7;
+
+                float alpha = max(max(tick, ring), max(letters, max(glow, max(marker, lubber))));
                 if (alpha < 0.003) discard;
-                gl_FragColor = vec4(uColor * alpha, alpha);
+                gl_FragColor = vec4(uColor, alpha);
             }
         `,
     });
@@ -111,11 +170,13 @@ export const createGroundFx = (): GroundFx => {
     grid.frustumCulled = false;
     group.add(grid);
 
-    const reticleMat = reticleMaterial();
-    const reticleGeo = new THREE.PlaneGeometry(RETICLE_SIZE, RETICLE_SIZE).rotateX(-Math.PI / 2);
-    const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-    reticle.renderOrder = -1;
-    group.add(reticle);
+    const letters = new THREE.CanvasTexture(drawLetters());
+    letters.anisotropy = 8;
+    const compassMat = compassMaterial(letters);
+    const compassGeo = new THREE.PlaneGeometry(COMPASS_SIZE, COMPASS_SIZE).rotateX(-Math.PI / 2);
+    const compass = new THREE.Mesh(compassGeo, compassMat);
+    compass.renderOrder = 1;
+    group.add(compass);
 
     const positions = new Float32Array(TRAIL_POINTS * 3);
     const colors = new Float32Array(TRAIL_POINTS * 4);
@@ -160,7 +221,7 @@ export const createGroundFx = (): GroundFx => {
         last.copy(point);
     };
 
-    const update: GroundFx['update'] = (time, ground, track, azimuth) => {
+    const update: GroundFx['update'] = (ground, track, headingDeg) => {
         grid.position.set(
             Math.round(ground.x / GRID_SNAP) * GRID_SNAP,
             ground.y - 0.001,
@@ -168,9 +229,8 @@ export const createGroundFx = (): GroundFx => {
         );
         gridMat.uniforms['uCenter']!.value.set(ground.x, ground.z);
 
-        reticle.position.copy(ground).y += 0.002;
-        reticle.rotation.y = azimuth;
-        reticleMat.uniforms['uTime']!.value = time;
+        compass.position.copy(ground).y += 0.002;
+        compassMat.uniforms['uHeading']!.value = THREE.MathUtils.degToRad(headingDeg);
 
         if (count === 0) {
             push(track);
@@ -193,8 +253,9 @@ export const createGroundFx = (): GroundFx => {
         dispose: () => {
             gridGeo.dispose();
             gridMat.dispose();
-            reticleGeo.dispose();
-            reticleMat.dispose();
+            compassGeo.dispose();
+            compassMat.dispose();
+            letters.dispose();
             trailGeo.dispose();
             trailMat.dispose();
         },

@@ -73,7 +73,14 @@ export type SystemTelemetry = {
 };
 
 export type Contact = { distance: number; point: Vec3; bearing_deg: number };
-type Obstacle = { nearest: Contact | null; ahead: Contact | null };
+export type Scan = {
+    angle_min_deg: number;
+    angle_step_deg: number;
+    ranges: (number | null)[];
+    blind_fraction: number;
+    blind: boolean;
+};
+type Obstacle = { nearest: Contact | null; ahead: Contact | null; scan?: Scan };
 type NavMode = 'idle' | 'driving' | 'maneuvering' | 'blocked' | 'arrived' | 'fault';
 export type NavState = {
     mode: NavMode;
