@@ -1,0 +1,44 @@
+title: Motor current by steering lock
+description: >-
+  Motor current while driving, grouped by how far the steering was turned: samples, mean, 95th
+  percentile and peak of the summed motor current, and the mean drive command. Use it to see
+  whether full-lock turns load the motors, the cause of current spikes in tight turns.
+tags: [motors, current, steering, turns, spikes]
+prompts:
+  - Do tight turns cause motor current spikes?
+  - Compare motor current in straight driving and full-lock turns
+guidelines: >-
+  Only samples with a drive command above min_command count, so idle time does not dilute the
+  averages. Compare buckets with similar avg_abs_command.
+dims: [steer_lock]
+sql: |
+  SELECT
+    multiIf(abs(s.angle) < 0.25, '0-25%', abs(s.angle) < 0.5, '25-50%', abs(s.angle) < 0.75, '50-75%', '75-100%') AS steer_lock,
+    count() AS samples,
+    avg(abs(c.left_current) + abs(c.right_current)) AS avg_motor_current_a,
+    quantile(0.95)(abs(c.left_current) + abs(c.right_current)) AS p95_motor_current_a,
+    max(abs(c.left_current) + abs(c.right_current)) AS peak_motor_current_a,
+    avg(abs(c.left_command + c.right_command) / 2) AS avg_abs_command
+  FROM roboclaw AS c
+  ASOF JOIN (
+    SELECT run_id, ts, angle FROM steering WHERE run_id = {run_id:String}
+  ) AS s ON s.run_id = c.run_id AND c.ts >= s.ts
+  WHERE c.run_id = {run_id:String} AND abs(c.left_command + c.right_command) / 2 > {min_command:Float64}
+  GROUP BY steer_lock
+  ORDER BY steer_lock
+columns:
+  steer_lock:
+    {
+      kind: ordinal,
+      description: Absolute steering angle as a share of full lock,
+    }
+  samples: { measure: event }
+  avg_motor_current_a: { measure: gauge, unit: A }
+  p95_motor_current_a: { measure: gauge, unit: A }
+  peak_motor_current_a: { measure: gauge, unit: A }
+  avg_abs_command: { measure: gauge, unit: duty 0..1 }
+subs:
+  min_command:
+    type: Float64
+    default: 0.1
+    description: Minimum absolute drive command for a sample to count as driving

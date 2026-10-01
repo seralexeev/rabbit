@@ -1,0 +1,42 @@
+title: Robot container starts, exits and crashes
+description: >-
+  Lifecycle events of the robot's Docker containers (one per node, plus NATS): started, exited
+  with its exit code, killed, restarted, ran out of memory, and health changes. Use it for node
+  crashes and restarts, and to tell a crashed node from a quiet one.
+tags: [containers, docker, crashes, restarts, exit code, oom, nodes]
+prompts:
+  - Did any node crash?
+  - Which containers restarted?
+  - Did anything run out of memory?
+guidelines: >-
+  An exit with a non-zero code or an out-of-memory event is a crash (level warning); exit code 0
+  after a kill is a normal stop or restart, for example a deployment. The robot restarts crashed
+  containers on its own, so a crash shows as exited then started a second later. Look at the
+  node's logs just before the exit with logs_around.
+dims: [t]
+sql: |
+  SELECT
+    ts AS t,
+    fields['container'] AS container,
+    fields['action'] AS action,
+    message,
+    fields['exit_code'] AS exit_code,
+    toString(level) AS severity
+  FROM logs
+  WHERE run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    AND logger = 'docker.events'
+  ORDER BY t
+columns:
+  t: { kind: time }
+  container: { kind: attribute }
+  action:
+    {
+      kind: attribute,
+      description: "start, die, kill, restart, oom or health_status: ...",
+    }
+  message: { kind: attribute }
+  exit_code:
+    { kind: attribute, description: "Exit code for exits, empty otherwise" }
+  severity: { kind: attribute }

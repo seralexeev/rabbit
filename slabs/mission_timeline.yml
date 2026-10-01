@@ -1,0 +1,72 @@
+title: Mission timeline
+description: >-
+  Second-by-second timeline of autonomous navigation: mode (driving, maneuvering, blocked,
+  arrived), current mission step, distance to goal, heading error, commanded speed and steering,
+  ground speed and the nearest obstacle ahead. Use it to replay what happened during a mission
+  and why it took long or failed.
+tags: [navigation, mission, timeline, autonomy, steps, blocked]
+prompts:
+  - What happened during the last mission?
+  - Why did the mission take so long?
+guidelines: >-
+  Only seconds with an active mission (mode not idle) are listed. blocked means an obstacle was
+  closer than 0.35 m ahead; the robot resumes when it clears.
+dims: [t]
+sql: |
+  WITH
+    n AS (
+      SELECT
+        run_id,
+        toStartOfSecond(ts) AS t,
+        argMax(mode, ts) AS mode,
+        argMax(step_index, ts) AS step_index,
+        argMax(step_type, ts) AS step_type,
+        argMax(distance_to_goal, ts) AS distance_to_goal,
+        argMax(heading_error_deg, ts) AS heading_error_deg,
+        avg(speed) AS speed_cmd,
+        avg(steer) AS steer_cmd
+      FROM nav_state
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+      HAVING mode != 'idle'
+    ),
+    p AS (
+      SELECT run_id, toStartOfSecond(ts) AS t, toNullable(avg(sqrt(vx * vx + vy * vy + vz * vz))) AS speed
+      FROM pose
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id, t
+    ),
+    o AS (
+      SELECT run_id, toStartOfSecond(ts) AS t, min(ahead_distance) AS ahead
+      FROM obstacle
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id, t
+    )
+  SELECT
+    n.t AS t,
+    n.mode AS mode,
+    n.step_index AS step_index,
+    n.step_type AS step_type,
+    n.distance_to_goal AS distance_to_goal_m,
+    n.heading_error_deg AS heading_error_deg,
+    n.speed_cmd AS speed_command,
+    n.steer_cmd AS steer_command,
+    p.speed AS ground_speed_mps,
+    o.ahead AS obstacle_ahead_m
+  FROM n
+  LEFT JOIN p ON p.run_id = n.run_id AND p.t = n.t
+  LEFT JOIN o ON o.run_id = n.run_id AND o.t = n.t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  mode: { kind: attribute }
+  step_index: { kind: attribute }
+  step_type: { kind: attribute }
+  distance_to_goal_m: { measure: gauge, unit: m }
+  heading_error_deg: { measure: gauge, unit: deg }
+  speed_command: { measure: gauge, unit: duty -1..1 }
+  steer_command: { measure: gauge, unit: -1..1 }
+  ground_speed_mps: { measure: gauge, unit: m/s }
+  obstacle_ahead_m: { measure: gauge, unit: m }

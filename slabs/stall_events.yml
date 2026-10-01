@@ -1,0 +1,73 @@
+title: Motor stall and overcurrent events
+description: >-
+  Seconds in which a drive motor drew more than a current threshold, with the commanded duty,
+  applied PWM and the robot's ground speed from the camera. High current at a modest command with
+  no ground speed is a stall: a blocked wheel, a jammed gearbox or the robot pushing against an
+  obstacle.
+tags: [motors, stall, overcurrent, blocked wheel, current spikes, safety]
+prompts:
+  - Did the motors stall?
+  - Were there any current spikes?
+  - Was a wheel blocked?
+guidelines: >-
+  Normal driving draws well under 1 A per motor. A single sample above the threshold
+  (seconds_over about 0.02) at the moment a command starts is inrush; a stall keeps the current
+  high for a large part of the second at a steady PWM.
+  ground_speed_mps is NULL when the camera was not tracking at that moment, so motion cannot be
+  confirmed either way; say so instead of assuming the robot stood still.
+dims: [t]
+sql: |
+  WITH
+    m AS (
+      SELECT
+        run_id,
+        toStartOfSecond(ts) AS t,
+        max(abs(left_current)) AS left_peak,
+        max(abs(right_current)) AS right_peak,
+        argMax((abs(left_pwm) + abs(right_pwm)) / 2, abs(left_current) + abs(right_current)) AS pwm,
+        countIf(greatest(abs(left_current), abs(right_current)) > {current_a:Float64}) AS samples_over,
+        avg(abs(left_pwm) + abs(right_pwm)) / 2 AS mean_pwm
+      FROM roboclaw
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+      HAVING greatest(left_peak, right_peak) > {current_a:Float64}
+    ),
+    p AS (
+      SELECT run_id, toStartOfSecond(ts) AS t, toNullable(avg(sqrt(vx * vx + vy * vy + vz * vz))) AS speed
+      FROM pose
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    )
+  SELECT
+    m.t AS t,
+    m.left_peak AS left_peak_a,
+    m.right_peak AS right_peak_a,
+    m.pwm AS pwm_at_peak,
+    m.mean_pwm AS mean_abs_pwm,
+    m.samples_over * 0.02 AS seconds_over,
+    p.speed AS ground_speed_mps
+  FROM m
+  LEFT JOIN p ON p.run_id = m.run_id AND p.t = m.t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  left_peak_a: { measure: gauge, unit: A }
+  right_peak_a: { measure: gauge, unit: A }
+  pwm_at_peak: { measure: gauge, unit: duty 0..1 }
+  mean_abs_pwm: { measure: gauge, unit: duty 0..1 }
+  seconds_over:
+    {
+      measure: event,
+      unit: s,
+      description: Time above the threshold within the second at 50 Hz,
+    }
+  ground_speed_mps: { measure: gauge, unit: m/s }
+subs:
+  current_a:
+    type: Float64
+    default: 3
+    description: Current threshold per motor, A

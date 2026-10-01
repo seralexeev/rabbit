@@ -1,0 +1,27 @@
+title: Jetson container CPU and memory
+description: >-
+  Per Docker container on the Jetson (rabbit-zed, rabbit-roboclaw, nats and others): mean and
+  peak CPU and memory over the run. Use it to find which process loads the computer.
+tags: [jetson, containers, cpu, memory, processes, compute]
+prompts:
+  - Which container uses the most CPU?
+  - How much memory does the ZED node use?
+guidelines: CPU is a percentage of one core, so a busy multi-threaded container can exceed 100.
+dims: [container]
+sql: |
+  SELECT
+    name AS container,
+    avg(cpu) AS avg_cpu_pct,
+    max(cpu) AS peak_cpu_pct,
+    avg(mem_bytes) / 1048576 AS avg_mem_mb,
+    max(mem_bytes) / 1048576 AS peak_mem_mb
+  FROM jetson_containers
+  WHERE run_id = {run_id:String}
+  GROUP BY name
+  ORDER BY avg_cpu_pct DESC
+columns:
+  container: { kind: entity }
+  avg_cpu_pct: { measure: gauge, unit: "% of one core" }
+  peak_cpu_pct: { measure: gauge, unit: "% of one core" }
+  avg_mem_mb: { measure: gauge, unit: MiB }
+  peak_mem_mb: { measure: gauge, unit: MiB }

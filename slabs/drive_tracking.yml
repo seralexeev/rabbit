@@ -1,0 +1,91 @@
+title: Commanded drive vs ground speed
+description: >-
+  Per time bucket: the motor command sent to the drive motors, the autonomous navigation speed
+  command, the robot's ground speed from ZED visual-inertial tracking, the summed motor current,
+  and ground speed per unit of command. Use it to find stalls and slipping, where the motors are
+  commanded and draw current but the robot does not move.
+tags: [motors, speed, stall, drive, navigation, current]
+prompts:
+  - Did the robot stall?
+  - Compare commanded speed with actual speed
+  - Was the robot moving when the motors were driven?
+guidelines: >-
+  Wheel encoders are not connected, so ground speed comes from the camera's pose velocity. A
+  bucket with abs(motor_command) above about 0.15, ground_speed_mps near 0 and rising
+  motor_current_a is a stall. nav_speed is NULL while driving manually; ground_speed_mps is NULL
+  while tracking is lost. speed_per_command is NULL when the motors were not commanded.
+dims: [t]
+sql: |
+  WITH
+    m AS (
+      SELECT
+        run_id,
+        toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+        avg((left_command + right_command) / 2) AS command,
+        avg(abs(left_current) + abs(right_current)) AS current
+      FROM roboclaw
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    ),
+    p AS (
+      SELECT
+        run_id,
+        toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+        toNullable(avg(sqrt(vx * vx + vy * vy + vz * vz))) AS ground_speed
+      FROM pose
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    ),
+    d AS (
+      SELECT
+        run_id,
+        toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+        toNullable(avg(speed)) AS nav_command
+      FROM drive
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    )
+  SELECT
+    m.t AS t,
+    m.command AS motor_command,
+    d.nav_command AS nav_speed,
+    p.ground_speed AS ground_speed_mps,
+    m.current AS motor_current_a,
+    if(abs(m.command) > 0.1, p.ground_speed / abs(m.command), NULL) AS speed_per_command
+  FROM m
+  LEFT JOIN p ON p.run_id = m.run_id AND p.t = m.t
+  LEFT JOIN d ON d.run_id = m.run_id AND d.t = m.t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  motor_command:
+    {
+      measure: gauge,
+      unit: duty -1..1,
+      description: Mean of the left and right motor commands,
+    }
+  nav_speed:
+    {
+      measure: gauge,
+      unit: duty -1..1,
+      description: Speed commanded by autonomous navigation,
+    }
+  ground_speed_mps: { measure: gauge, unit: m/s }
+  motor_current_a:
+    {
+      measure: gauge,
+      unit: A,
+      description: Left plus right absolute motor current,
+    }
+  speed_per_command: { measure: ratio, unit: m/s per unit duty }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

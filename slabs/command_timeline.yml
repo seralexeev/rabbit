@@ -1,0 +1,86 @@
+title: Robot commands over time by source
+description: >-
+  Every command sent to the robot per time bucket: gamepad throttle and steering, the speed and
+  steering on the drive topic from autonomous navigation, stop commands from the HUD and Forge,
+  navigation goals, missions and cancels and who sent them (operator HUD, Forge chat or the
+  explore node), exploration starts and map saves, and HUD heartbeats. Use it to see what the
+  robot was told to do around a moment, and who told it.
+tags:
+  [
+    commands,
+    gamepad,
+    joystick,
+    drive,
+    missions,
+    goals,
+    cancel,
+    operator,
+    control,
+  ]
+prompts:
+  - What commands did the robot get around 11:04?
+  - Who stopped the robot?
+  - Was the operator driving or was navigation in control?
+guidelines: >-
+  The gamepad overrides navigation for a second after any stick or trigger input, and the motor
+  controller applies its throttle at half scale. nav_speed_command is the speed navigation sent
+  after its safety governor; zero while a mission runs means the governor held the robot.
+  Commands from the HUD carry the time Forge received them, the rest the time they were sent.
+  heartbeats drops to zero when the HUD is closed or the link to it is lost.
+dims: [t]
+sql: |
+  SELECT
+    t,
+    max(joy_throttle) AS joy_throttle_max,
+    max(joy_steer) AS joy_steer_max,
+    avg(nav_speed) AS nav_speed_command,
+    avg(nav_steer) AS nav_steer_command,
+    sum(stop) AS stop_commands,
+    arrayStringConcat(groupUniqArray(command), ', ') AS commands,
+    sum(heartbeat) AS heartbeats
+  FROM
+  (
+    SELECT toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t, abs(throttle) AS joy_throttle, abs(steer) AS joy_steer,
+      NULL AS nav_speed, NULL AS nav_steer, 0 AS stop, NULL AS command, 0 AS heartbeat
+    FROM joy
+    WHERE run_id = {run_id:String} AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC') AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    UNION ALL
+    SELECT toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})), NULL, NULL,
+      if(source = 'nav', speed, NULL), if(source = 'nav', steer, NULL), if(source != 'nav' AND speed = 0, 1, 0), NULL, 0
+    FROM drive
+    WHERE run_id = {run_id:String} AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC') AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    UNION ALL
+    SELECT toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})), NULL, NULL, NULL, NULL, 0,
+      concat(toString(event), ' from ', if(source = '', 'unknown', source)), 0
+    FROM nav_events
+    WHERE run_id = {run_id:String} AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC') AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    UNION ALL
+    SELECT toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})), NULL, NULL, NULL, NULL, 0,
+      concat(replaceOne(subject, 'rabbit.', ''), ' from ', source), 0
+    FROM command_events
+    WHERE run_id = {run_id:String} AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC') AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    UNION ALL
+    SELECT toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})), NULL, NULL, NULL, NULL, 0, NULL, 1
+    FROM operator_heartbeat
+    WHERE run_id = {run_id:String} AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC') AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+  )
+  GROUP BY t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  joy_throttle_max: { measure: gauge, unit: "-1..1" }
+  joy_steer_max: { measure: gauge, unit: "-1..1" }
+  nav_speed_command: { measure: gauge, unit: duty -1..1 }
+  nav_steer_command: { measure: gauge, unit: "-1..1" }
+  stop_commands: { measure: event }
+  commands:
+    {
+      kind: attribute,
+      description: "Navigation and other commands in the bucket, with their sender",
+    }
+  heartbeats: { measure: event }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

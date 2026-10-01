@@ -1,0 +1,47 @@
+title: Obstacle clearance
+description: >-
+  Per time bucket from the ZED depth map: the distance to the nearest obstacle in any direction,
+  the distance to the nearest obstacle inside the driving corridor ahead, and how many camera
+  frames had something ahead closer than a clearance threshold. Use it for close calls, near
+  collisions and how much room the robot had.
+tags: [obstacle, clearance, collision, navigation, safety, depth]
+prompts:
+  - How close did the robot get to obstacles?
+  - Were there any near collisions?
+  - When was the path ahead blocked?
+guidelines: >-
+  Distances are NULL when nothing was in range. close_frames counts frames at about 10 Hz, so
+  ten close frames are roughly one second with an obstacle inside the clearance.
+dims: [t]
+sql: |
+  SELECT
+    toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+    min(nearest_distance) AS min_nearest_m,
+    min(ahead_distance) AS min_ahead_m,
+    countIf(ahead_distance < {clearance_m:Float64}) AS close_frames,
+    count() AS frames
+  FROM obstacle
+  WHERE run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+  GROUP BY t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  min_nearest_m: { measure: gauge, unit: m }
+  min_ahead_m: { measure: gauge, unit: m }
+  close_frames:
+    {
+      measure: event,
+      description: Frames with an obstacle ahead closer than clearance_m,
+    }
+  frames: { measure: event }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows
+  clearance_m:
+    type: Float64
+    default: 0.5
+    description: Clearance threshold ahead, m

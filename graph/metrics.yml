@@ -1,0 +1,1039 @@
+nodes:
+  battery_voltage:
+    label: Battery voltage
+    group: power
+    unit: V
+    description: Pack voltage at the INA4235; it sags with total current and falls slowly with charge.
+    source:
+      table: power
+      expr: "battery_voltage"
+    hz: 50
+    floor: 0.005
+    slabs: [battery_sag, battery_resistance, run_summary, brownout_and_gaps]
+  battery_current:
+    label: Battery current
+    group: power
+    unit: A
+    description: Total current out of the pack, motors through the 12 V buck plus Jetson, camera and servos.
+    source:
+      table: power
+      expr: "battery_current"
+    hz: 50
+    floor: 0.01
+    slabs: [battery_sag, power_budget]
+  battery_power:
+    label: Battery power
+    group: power
+    unit: W
+    description: Total power drawn from the pack.
+    source:
+      table: power
+      expr: "battery_power"
+    hz: 50
+    floor: 0.1
+    slabs: [power_budget, power_rails, battery_sag]
+  battery_charge:
+    label: Charge estimate
+    group: power
+    unit: "%"
+    description: State of charge from the voltage curve; it reads low under load.
+    source:
+      table: power
+      expr: "battery_charge_pct"
+    hz: 50
+    floor: 0.5
+    slabs: [battery_sag, run_summary]
+  servo_power:
+    label: Servo rail power
+    group: power
+    unit: W
+    description: Power on the 6 V steering servo rail.
+    source:
+      table: power
+      expr: "rail_6v_power"
+    hz: 50
+    floor: 0.05
+    slabs: [power_rails, power_budget]
+  supply_voltage:
+    label: 12 V motor supply
+    group: power
+    unit: V
+    description: Buck converter output feeding the motor controller, not the battery.
+    source:
+      table: roboclaw
+      expr: "supply_voltage"
+    hz: 50
+    floor: 0.1
+    slabs: [battery_sag]
+  motor_current:
+    label: Motor current
+    group: motors
+    unit: A
+    description: Left plus right absolute motor current at 12 V.
+    source:
+      table: roboclaw
+      expr: "abs(left_current) + abs(right_current)"
+    hz: 50
+    floor: 0.01
+    slabs:
+      [
+        drive_tracking,
+        stall_events,
+        motor_power_by_side,
+        turn_current,
+        battery_sag,
+      ]
+  motor_current_left:
+    label: Left motor current
+    group: motors
+    unit: A
+    description: Absolute current of the left motor (M1).
+    source:
+      table: roboclaw
+      expr: "abs(left_current)"
+    hz: 50
+    floor: 0.01
+    slabs: [motor_power_by_side, stall_events]
+  motor_current_right:
+    label: Right motor current
+    group: motors
+    unit: A
+    description: Absolute current of the right motor (M2).
+    source:
+      table: roboclaw
+      expr: "abs(right_current)"
+    hz: 50
+    floor: 0.01
+    slabs: [motor_power_by_side, stall_events]
+  motor_power:
+    label: Motor power
+    group: motors
+    unit: W
+    description: Electrical power into both motors, 12 V supply times summed motor current.
+    source:
+      {
+        table: roboclaw,
+        expr: supply_voltage * (abs(left_current) + abs(right_current)),
+      }
+    hz: 50
+    floor: 0.1
+    slabs: [motor_power_by_side, power_budget]
+  drive_command:
+    label: Drive command
+    group: motion
+    unit: duty 0..1
+    description: Mean absolute duty commanded to the two motors, from the gamepad or navigation.
+    source:
+      { table: roboclaw, expr: (abs(left_command) + abs(right_command)) / 2 }
+    hz: 50
+    floor: 0.01
+    slabs: [drive_tracking, mission_timeline]
+  motor_pwm:
+    label: Applied PWM
+    group: motion
+    unit: duty 0..1
+    description: Mean absolute PWM duty the controller actually applied after ramping.
+    source:
+      table: roboclaw
+      expr: "(abs(left_pwm) + abs(right_pwm)) / 2"
+    hz: 50
+    floor: 0.01
+    slabs: [stall_events, motor_power_by_side]
+  nav_speed_command:
+    label: Navigation speed command
+    group: navigation
+    unit: duty 0..1
+    description: Absolute speed commanded by autonomous navigation.
+    source:
+      table: nav_state
+      expr: "abs(speed)"
+    hz: 10
+    floor: 0.01
+    slabs: [mission_timeline, drive_tracking]
+  ground_speed:
+    label: Ground speed
+    group: motion
+    unit: m/s
+    description: Speed from the ZED pose velocity; the wheel encoders are not connected.
+    source:
+      table: pose
+      expr: "sqrt(vx * vx + vy * vy + vz * vz)"
+    hz: 30
+    floor: 0.005
+    slabs: [drive_tracking, trajectory, stall_events]
+  steering_angle:
+    label: Steering lock
+    group: motion
+    unit: -1..1
+    description: Absolute applied steering angle, 1 is full lock.
+    source:
+      table: steering
+      expr: "abs(angle)"
+    hz: 20
+    floor: 0.01
+    slabs: [steering_response, turn_current]
+  yaw_rate:
+    label: Yaw rate
+    group: motion
+    unit: deg/s
+    description: Absolute turn rate from the IMU gyro.
+    source:
+      table: imu
+      expr: "abs(gyro_y)"
+    hz: 100
+    floor: 0.2
+    slabs: [steering_response]
+  imu_vibration:
+    label: IMU vibration
+    group: motion
+    unit: g
+    description: Deviation of the total acceleration from 1 g; bumps, knocks and jolts.
+    source:
+      table: imu
+      expr: "abs(g - 1)"
+    hz: 100
+    floor: 0.002
+    slabs: [imu_shocks]
+  cpu_load:
+    label: Jetson CPU load
+    group: compute
+    unit: "%"
+    description: Mean load across the six CPU cores.
+    source:
+      table: jetson
+      expr: "arrayAvg(cpu_load)"
+    hz: 1
+    floor: 0.5
+    slabs: [jetson_throttling, container_load]
+  gpu_load:
+    label: Jetson GPU load
+    group: compute
+    unit: "%"
+    description: GPU load, mostly depth and tracking on the camera pipeline.
+    source:
+      table: jetson
+      expr: "gpu_load"
+    hz: 1
+    floor: 0.5
+    slabs: [jetson_throttling]
+  jetson_power:
+    label: Jetson power
+    group: compute
+    unit: W
+    description: Total Jetson board power.
+    source:
+      table: jetson
+      expr: "power_mw / 1000"
+    hz: 1
+    floor: 0.05
+    slabs: [jetson_throttling, power_budget]
+  cpu_temp:
+    label: Jetson CPU temperature
+    group: compute
+    unit: C
+    description: CPU cluster temperature.
+    source:
+      table: jetson
+      expr: "temp_cpu"
+    hz: 1
+    floor: 0.1
+    slabs: [thermal_timeline, jetson_throttling]
+  junction_temp:
+    label: Jetson junction temperature
+    group: compute
+    unit: C
+    description: Hottest junction; the throttling reference.
+    source:
+      table: jetson
+      expr: "temp_tj"
+    hz: 1
+    floor: 0.1
+    slabs: [thermal_timeline, jetson_throttling, run_summary]
+  cpu_freq:
+    label: Slowest CPU clock
+    group: compute
+    unit: MHz
+    description: Clock of the slowest CPU core; a drop below the usual maximum is throttling.
+    source:
+      table: jetson
+      expr: "arrayMin(cpu_freq_mhz)"
+    hz: 1
+    floor: 1
+    slabs: [jetson_throttling, thermal_timeline]
+  fan_rpm:
+    label: Fan speed
+    group: compute
+    unit: rpm
+    description: Jetson fan speed.
+    source:
+      table: jetson
+      expr: "fan_rpm"
+    hz: 1
+    floor: 10
+    slabs: [thermal_timeline]
+  controller_temp:
+    label: Motor controller temperature
+    group: motors
+    unit: C
+    description: RoboClaw board temperature.
+    source:
+      table: roboclaw
+      expr: "temperature"
+    hz: 50
+    floor: 0.1
+    slabs: [thermal_timeline]
+  zed_fps:
+    label: Camera frame rate
+    group: perception
+    unit: fps
+    description: Measured ZED grab rate.
+    source:
+      table: zed_health
+      expr: "current_fps"
+    hz: 1
+    floor: 0.1
+    slabs: [tracking_quality]
+  zed_capture_ms:
+    label: Camera grab time
+    group: perception
+    unit: ms
+    description: Duration of the last grab and processing.
+    source:
+      table: zed_health
+      expr: "capture_ms"
+    hz: 1
+    floor: 0.5
+    slabs: [tracking_quality]
+  pose_lost:
+    label: Pose lost share
+    group: perception
+    unit: 0..1
+    description: Share of camera health samples with the pose state not OK.
+    source:
+      table: zed_health
+      expr: "pose_state != 'OK'"
+    hz: 1
+    floor: 0.01
+    slabs: [tracking_quality]
+  tracking_confidence:
+    label: Tracking confidence
+    group: perception
+    unit: 0..100
+    description: ZED positional tracking confidence.
+    source:
+      table: pose
+      expr: "confidence"
+    hz: 30
+    floor: 1
+    slabs: [tracking_quality]
+  position_std:
+    label: Position uncertainty
+    group: perception
+    unit: m
+    description: Largest position standard deviation of the pose estimate.
+    source:
+      table: pose
+      expr: "greatest(std_x, std_y, std_z)"
+    hz: 30
+    floor: 0.001
+    slabs: [tracking_quality]
+  wifi_rtt:
+    label: Wi-Fi ping
+    group: network
+    unit: ms
+    description: Round trip to the router; lost pings are left out.
+    source:
+      table: wifi
+      expr: "gateway_rtt_ms"
+    hz: 1
+    floor: 0.5
+    slabs: [wifi_health, brownout_and_gaps]
+  wifi_signal:
+    label: Wi-Fi signal
+    group: network
+    unit: dBm
+    description: Received signal strength; above -60 is good, below -75 is poor.
+    source:
+      table: wifi
+      expr: "signal_dbm"
+    hz: 1
+    floor: 1
+    slabs: [wifi_health, brownout_and_gaps]
+  wifi_lost_pings:
+    label: Lost pings
+    group: network
+    unit: 0..1
+    description: Share of router pings lost.
+    source:
+      table: wifi
+      expr: "isNull(gateway_rtt_ms)"
+    hz: 1
+    floor: 0.01
+    slabs: [wifi_health]
+  uplink_kbps:
+    label: Uplink throughput
+    group: network
+    unit: kbit/s
+    description: Throughput from the robot to the Mac, mostly the camera preview and telemetry.
+    source:
+      table: wifi
+      expr: "tx_bytes_per_s * 8 / 1000"
+    hz: 1
+    floor: 10
+    slabs: [wifi_health]
+  obstacle_clearance:
+    label: Clearance ahead
+    group: navigation
+    unit: m
+    description: Distance to the nearest point in the driving corridor, capped at 5 m; empty when the corridor is clear or the obstacle is inside the camera's minimum range, so the last reading holds.
+    source:
+      table: obstacle
+      expr: "least(ahead_distance, 5)"
+    hz: 10
+    floor: 0.01
+    slabs: [obstacle_clearance, obstacle_events, mission_timeline]
+  nav_blocked:
+    label: Navigation blocked
+    group: navigation
+    unit: 0..1
+    description: Share of navigation samples in the blocked mode.
+    source:
+      table: nav_state
+      expr: "mode = 'blocked'"
+    hz: 10
+    floor: 0.01
+    slabs: [nav_missions, mission_timeline, obstacle_events]
+  heading_error:
+    label: Heading error
+    group: navigation
+    unit: deg
+    description: Absolute angle between the heading and the goal direction.
+    source:
+      table: nav_state
+      expr: "abs(heading_error_deg)"
+    hz: 10
+    floor: 0.5
+    slabs: [mission_timeline]
+  reboots:
+    label: Reboots
+    group: events
+    description: Jetson reboots, a data gap during which the Jetson uptime restarted.
+    events:
+      {
+        slab: brownout_and_gaps,
+        time: gap_start,
+        end: gap_end,
+        where: { rebooted: 1 },
+      }
+    slabs: [brownout_and_gaps]
+  data_gaps:
+    label: Data gaps
+    group: events
+    description: Gaps in telemetry without a reboot, Wi-Fi dropouts or writer pauses.
+    events:
+      {
+        slab: brownout_and_gaps,
+        time: gap_start,
+        end: gap_end,
+        where: { rebooted: 0 },
+      }
+    slabs: [brownout_and_gaps, stream_rates]
+  stalls:
+    label: Stall and overcurrent
+    group: events
+    description: Seconds in which a motor drew more than 3 A, inrush at a start or a blocked wheel.
+    events: { slab: stall_events, time: t }
+    slabs: [stall_events]
+
+  joy_throttle:
+    label: Gamepad throttle
+    group: commands
+    unit: "-1..1"
+    description: Absolute throttle from the operator gamepad (trigger r2 minus l2), received while a gamepad is connected.
+    source: { table: joy, expr: "abs(throttle)" }
+    hz: 30
+    floor: 0.01
+    slabs: [command_timeline]
+  joy_steer:
+    label: Gamepad steering
+    group: commands
+    unit: "-1..1"
+    description: Absolute left-stick steering from the operator gamepad.
+    source: { table: joy, expr: "abs(steer)" }
+    hz: 30
+    floor: 0.01
+    slabs: [command_timeline]
+  drive_speed_command:
+    label: Drive topic speed
+    group: commands
+    unit: duty 0..1
+    description: Absolute speed on rabbit.cmd.drive, sent by navigation at 20 Hz and by the HUD and Forge stop buttons.
+    source: { table: drive, expr: "abs(speed)" }
+    hz: 20
+    floor: 0.01
+    slabs: [command_timeline]
+  drive_steer_command:
+    label: Drive topic steering
+    group: commands
+    unit: "-1..1"
+    description: Absolute steering on rabbit.cmd.drive from navigation.
+    source: { table: drive, expr: "abs(steer)" }
+    hz: 20
+    floor: 0.01
+    slabs: [command_timeline]
+  free_distance:
+    label: Free distance on the path
+    group: navigation
+    unit: m
+    description: Free travel along the commanded arc from the navigation safety governor; below 0.3 m it holds the robot, below 0.6 m it slows down.
+    source: { table: nav_state, expr: "free_distance" }
+    hz: 10
+    floor: 0.01
+    slabs: [nav_transitions, mission_timeline]
+  operator_heartbeat_rate:
+    label: HUD heartbeats
+    group: operator
+    unit: 1/s
+    description: Heartbeats from the operator HUD per second (about 2 while it is open); navigation stops a mission after 3 s without one.
+    source: { table: operator_heartbeat, expr: "1", agg: rate }
+    hz: 2
+    floor: 0.5
+    slabs: [operator_link, command_timeline]
+  operator_round_trip:
+    label: HUD round trip
+    group: operator
+    unit: ms
+    description: Time from the HUD through the robot NATS server back to Forge.
+    source: { table: operator_heartbeat, expr: "round_trip_ms" }
+    hz: 2
+    floor: 5
+    slabs: [operator_link]
+  log_errors:
+    label: Log warnings and errors
+    group: logs
+    unit: 1/s
+    description: Warnings and errors logged by all robot nodes per second, counting suppressed repeats.
+    source:
+      { table: logs, expr: "(level >= 'warning') * (1 + repeats)", agg: rate }
+    hz: 1
+    floor: 0.05
+    slabs: [log_error_rate, log_summary]
+  roboclaw_log_errors:
+    label: Motor controller log errors
+    group: logs
+    unit: 1/s
+    description: Warnings and errors per second from the roboclaw node, mostly serial I/O errors talking to the motor controller.
+    source:
+      {
+        table: logs,
+        expr: "(node = 'roboclaw' AND level >= 'warning') * (1 + repeats)",
+        agg: rate,
+      }
+    hz: 1
+    floor: 0.05
+    slabs: [log_error_rate]
+  nav_log_errors:
+    label: Navigation log errors
+    group: logs
+    unit: 1/s
+    description: Warnings and errors per second from the nav node, such as safety stops, pose jumps, rejected missions and control exceptions.
+    source:
+      {
+        table: logs,
+        expr: "(node = 'nav' AND level >= 'warning') * (1 + repeats)",
+        agg: rate,
+      }
+    hz: 1
+    floor: 0.05
+    slabs: [log_error_rate]
+  zed_log_errors:
+    label: Camera log errors
+    group: logs
+    unit: 1/s
+    description: Warnings and errors per second from the rabbit-zed node, such as tracking restarts, failed map saves and camera setting errors.
+    source:
+      {
+        table: logs,
+        expr: "(node = 'rabbit-zed' AND level >= 'warning') * (1 + repeats)",
+        agg: rate,
+      }
+    hz: 1
+    floor: 0.05
+    slabs: [log_error_rate]
+  explore_log_errors:
+    label: Exploration log errors
+    group: logs
+    unit: 1/s
+    description: Warnings and errors per second from the explore node, such as failed frontiers and crashed explorations.
+    source:
+      {
+        table: logs,
+        expr: "(node = 'explore' AND level >= 'warning') * (1 + repeats)",
+        agg: rate,
+      }
+    hz: 1
+    floor: 0.05
+    slabs: [log_error_rate]
+  nav_faults:
+    label: Navigation safety stops
+    group: events
+    description: Moments navigation stopped a mission on a safety rule (stall, collision, blocked, step timeout, operator link lost, control error, manual override).
+    events: { slab: nav_transitions, time: t, where: { kind: fault } }
+    slabs: [nav_transitions, nav_missions]
+  container_crashes:
+    label: Container crashes
+    group: events
+    description: A robot container exited with an error, ran out of memory or turned unhealthy.
+    events: { slab: container_events, time: t, where: { severity: warning } }
+    slabs: [container_events, log_summary]
+  missions:
+    label: Missions
+    group: events
+    description: Navigation missions and goals sent to the robot, by the operator, Forge or the explore node.
+    events: { slab: nav_missions, time: started_at }
+    slabs: [nav_missions, command_timeline]
+
+edges:
+  - from: battery_power
+    to: motor_power
+    type: decomposes_into
+    evidence: physics
+    why: The motors draw their power from the pack through the 12 V buck converter.
+  - from: battery_power
+    to: jetson_power
+    type: decomposes_into
+    evidence: physics
+    why: The Jetson runs from the pack and is the largest constant load.
+  - from: battery_power
+    to: servo_power
+    type: decomposes_into
+    evidence: physics
+    why: The steering servo rail is fed from the pack.
+  - from: motor_current
+    to: motor_current_left
+    type: decomposes_into
+    evidence: physics
+    why: Summed motor current is the left plus the right motor.
+  - from: motor_current
+    to: motor_current_right
+    type: decomposes_into
+    evidence: physics
+    why: Summed motor current is the left plus the right motor.
+  - from: nav_speed_command
+    to: drive_command
+    type: drives
+    evidence: design
+    why: In autonomous mode the navigation speed becomes the motor command.
+  - from: drive_command
+    to: motor_pwm
+    type: drives
+    evidence: design
+    why: The controller ramps the applied PWM toward the command.
+  - from: drive_command
+    to: motor_current
+    type: explains
+    evidence: physics
+    why: A higher duty draws more current; a jump in command causes inrush.
+  - from: motor_pwm
+    to: motor_current
+    type: drives
+    evidence: physics
+    why: Current follows the applied PWM and the load on the wheels.
+  - from: motor_pwm
+    to: ground_speed
+    type: drives
+    evidence: physics
+    why: Applied PWM turns the wheels; no speed at a steady PWM means a stall or slip.
+  - from: drive_command
+    to: ground_speed
+    type: explains
+    evidence: design
+    why: The commanded duty sets the expected ground speed.
+  - from: steering_angle
+    to: motor_current
+    type: explains
+    evidence: observed
+    why: Full-lock turns scrub the tyres and raise motor current.
+  - from: obstacle_clearance
+    to: motor_current
+    type: causes
+    sign: negative
+    evidence: observed
+    why: Pushing against a wall or object loads the wheels and raises motor current.
+  - from: steering_angle
+    to: yaw_rate
+    type: drives
+    evidence: physics
+    why: Steering while moving turns the robot.
+  - from: heading_error
+    to: steering_angle
+    type: drives
+    evidence: design
+    why: Navigation steers to cancel the heading error.
+  - from: motor_current
+    to: motor_power
+    type: drives
+    evidence: physics
+    why: Motor power is the 12 V supply times the motor current.
+  - from: motor_current
+    to: battery_current
+    type: drives
+    evidence: physics
+    why: Motor current at 12 V raises pack current by roughly its power over the pack voltage.
+  - from: jetson_power
+    to: battery_current
+    type: drives
+    evidence: physics
+    why: The Jetson is the largest constant share of pack current.
+  - from: battery_current
+    to: battery_voltage
+    type: drives
+    sign: negative
+    evidence: physics
+    why: Pack voltage sags by the internal resistance times the current.
+  - from: motor_current
+    to: supply_voltage
+    type: drives
+    sign: negative
+    evidence: physics
+    why: A large motor draw pulls the 12 V buck output down.
+  - from: battery_voltage
+    to: battery_charge
+    type: drives
+    evidence: design
+    why: The charge estimate is read off the voltage curve, so it dips with sag.
+  - from: motor_current
+    to: controller_temp
+    type: causes
+    evidence: physics
+    why: Sustained motor current heats the controller.
+  - from: ground_speed
+    to: imu_vibration
+    type: causes
+    evidence: physics
+    why: Driving over rough ground shakes the camera IMU.
+  - from: cpu_load
+    to: jetson_power
+    type: drives
+    evidence: physics
+    why: CPU work raises board power.
+  - from: gpu_load
+    to: jetson_power
+    type: drives
+    evidence: physics
+    why: GPU work raises board power.
+  - from: jetson_power
+    to: junction_temp
+    type: causes
+    evidence: physics
+    why: Dissipated power heats the module.
+  - from: cpu_load
+    to: cpu_temp
+    type: causes
+    evidence: physics
+    why: CPU load heats the CPU cluster.
+  - from: cpu_temp
+    to: junction_temp
+    type: correlates_with
+    evidence: physics
+    why: The CPU sensor and the hottest junction move together.
+  - from: junction_temp
+    to: fan_rpm
+    type: drives
+    evidence: design
+    why: The fan curve follows the module temperature.
+  - from: junction_temp
+    to: cpu_freq
+    type: causes
+    sign: negative
+    evidence: design
+    why: Above the throttling point the governor lowers CPU clocks.
+  - from: cpu_freq
+    to: zed_capture_ms
+    type: causes
+    sign: negative
+    evidence: physics
+    why: Slower clocks lengthen camera grab and processing.
+  - from: cpu_load
+    to: zed_capture_ms
+    type: explains
+    evidence: observed
+    why: Competing CPU work delays the camera pipeline.
+  - from: zed_capture_ms
+    to: zed_fps
+    type: causes
+    sign: negative
+    evidence: physics
+    why: Longer grabs mean fewer frames per second.
+  - from: zed_fps
+    to: tracking_confidence
+    type: drives
+    evidence: observed
+    why: Visual tracking needs a steady frame rate.
+  - from: imu_vibration
+    to: tracking_confidence
+    type: causes
+    sign: negative
+    evidence: observed
+    why: Jolts blur frames and upset visual-inertial fusion.
+  - from: tracking_confidence
+    to: position_std
+    type: correlates_with
+    sign: negative
+    evidence: design
+    why: Low confidence comes with a growing position uncertainty.
+  - from: pose_lost
+    to: tracking_confidence
+    type: symptom_of
+    evidence: design
+    why: Lost pose is the end state of collapsing tracking confidence.
+  - from: pose_lost
+    to: zed_fps
+    type: symptom_of
+    evidence: observed
+    why: Frame-rate collapses after camera restarts precede pose losses.
+  - from: zed_fps
+    to: uplink_kbps
+    type: drives
+    evidence: design
+    why: The camera preview is most of the uplink traffic.
+  - from: uplink_kbps
+    to: wifi_rtt
+    type: causes
+    evidence: observed
+    why: A saturated uplink queues packets and raises the ping.
+  - from: wifi_signal
+    to: wifi_rtt
+    type: explains
+    sign: negative
+    evidence: physics
+    why: A weaker signal lowers the link rate and adds retries.
+  - from: wifi_signal
+    to: wifi_lost_pings
+    type: explains
+    sign: negative
+    evidence: physics
+    why: At the edge of coverage pings are lost.
+  - from: wifi_rtt
+    to: wifi_lost_pings
+    type: correlates_with
+    evidence: observed
+    why: Congestion shows as high ping first and lost pings next.
+  - from: obstacle_clearance
+    to: nav_blocked
+    type: guards
+    sign: negative
+    evidence: design
+    why: Navigation stops in the blocked mode when the corridor ahead is closer than its clearance.
+  - from: nav_blocked
+    to: nav_speed_command
+    type: drives
+    sign: negative
+    evidence: design
+    why: A blocked navigator commands zero speed.
+  - from: tracking_confidence
+    to: heading_error
+    type: correlates_with
+    sign: negative
+    evidence: observed
+    why: Poor tracking makes the heading estimate and the heading error jump.
+  - from: stalls
+    to: motor_current
+    type: symptom_of
+    evidence: design
+    why: A stall event is a motor current above the threshold.
+  - from: stalls
+    to: ground_speed
+    type: symptom_of
+    sign: negative
+    evidence: design
+    why: High current with no ground speed separates a stall from inrush.
+  - from: obstacle_clearance
+    to: stalls
+    type: guards
+    sign: negative
+    evidence: observed
+    why: Driving into a wall or object blocks the wheels.
+  - from: stalls
+    to: drive_command
+    type: symptom_of
+    evidence: physics
+    why: Inrush at a command step looks like a one-sample stall.
+  - from: reboots
+    to: battery_voltage
+    type: symptom_of
+    sign: negative
+    evidence: physics
+    why: A sag below the Jetson's input limit browns it out.
+  - from: reboots
+    to: motor_current
+    type: symptom_of
+    evidence: observed
+    why: Motor inrush deepens the sag on a weak pack or connector.
+  - from: reboots
+    to: imu_vibration
+    type: symptom_of
+    evidence: observed
+    why: A knock can jar a loose power connector.
+  - from: reboots
+    to: jetson_power
+    type: symptom_of
+    evidence: physics
+    why: A load spike on the Jetson can trip its input protection.
+  - from: reboots
+    to: junction_temp
+    type: symptom_of
+    evidence: design
+    why: An overheated module shuts down.
+  - from: data_gaps
+    to: wifi_rtt
+    type: symptom_of
+    evidence: observed
+    why: Telemetry stops arriving when the link stalls.
+  - from: data_gaps
+    to: wifi_signal
+    type: symptom_of
+    sign: negative
+    evidence: physics
+    why: The robot drops off the network at the edge of coverage.
+  - from: data_gaps
+    to: uplink_kbps
+    type: symptom_of
+    evidence: observed
+    why: A saturated uplink delays telemetry until the writer sees a gap.
+  - from: joy_throttle
+    to: drive_command
+    type: drives
+    why: The motor controller applies gamepad throttle at half scale, and it overrides navigation for a second after any input.
+    evidence: design
+  - from: joy_steer
+    to: steering_angle
+    type: drives
+    why: The steering node applies the gamepad stick directly while the gamepad is active.
+    evidence: design
+  - from: nav_speed_command
+    to: drive_speed_command
+    type: drives
+    why: Navigation publishes its governed speed on the drive topic at 20 Hz.
+    evidence: design
+  - from: drive_speed_command
+    to: drive_command
+    type: drives
+    why: The motor controller applies the drive topic speed unless the gamepad is active.
+    evidence: design
+  - from: drive_steer_command
+    to: steering_angle
+    type: drives
+    why: The steering node applies the drive topic steering unless the gamepad is active.
+    evidence: design
+  - from: missions
+    to: nav_speed_command
+    type: explains
+    why: A mission makes navigation drive; between missions the speed command is zero.
+    evidence: design
+  - from: free_distance
+    to: nav_speed_command
+    type: guards
+    why: The safety governor holds the robot below 0.3 m of free distance and slows it below 0.6 m.
+    evidence: design
+  - from: obstacle_clearance
+    to: free_distance
+    type: correlates_with
+    why: Both come from the camera depth scan; free distance follows the commanded arc, clearance the straight corridor.
+    evidence: design
+  - from: free_distance
+    to: nav_blocked
+    type: causes
+    why: Navigation reports blocked while the governor holds the robot for lack of free distance.
+    evidence: design
+    sign: negative
+  - from: nav_faults
+    to: motor_current
+    type: symptom_of
+    why: A stall stop trips on more than 1.8 A with no ground speed for a second.
+    evidence: design
+  - from: nav_faults
+    to: ground_speed
+    type: symptom_of
+    why: A stall stop needs the camera to see no motion while the motors draw current.
+    evidence: design
+    sign: negative
+  - from: nav_faults
+    to: imu_vibration
+    type: symptom_of
+    why: A collision stop trips on a horizontal jolt above 5 m/s2 while driving.
+    evidence: design
+  - from: nav_faults
+    to: free_distance
+    type: symptom_of
+    why: A blocked stop trips after 10 s without free distance ahead.
+    evidence: design
+    sign: negative
+  - from: nav_faults
+    to: operator_heartbeat_rate
+    type: symptom_of
+    why: An operator link lost stop trips after 3 s without a HUD heartbeat.
+    evidence: design
+    sign: negative
+  - from: nav_faults
+    to: joy_throttle
+    type: symptom_of
+    why: Gamepad input during a mission cancels it as a manual override.
+    evidence: design
+  - from: nav_faults
+    to: nav_log_errors
+    type: correlates_with
+    why: Navigation logs a warning for every safety stop and an exception for a control error.
+    evidence: design
+  - from: wifi_rtt
+    to: operator_round_trip
+    type: drives
+    why: Heartbeats cross the Wi-Fi twice, from the HUD to the robot and back to Forge.
+    evidence: physics
+  - from: wifi_lost_pings
+    to: operator_heartbeat_rate
+    type: causes
+    why: Heartbeats lost on the Wi-Fi never reach the robot.
+    evidence: design
+    sign: negative
+  - from: log_errors
+    to: roboclaw_log_errors
+    type: decomposes_into
+    why: Warnings and errors per node add up to the total.
+    evidence: physics
+  - from: log_errors
+    to: nav_log_errors
+    type: decomposes_into
+    why: Warnings and errors per node add up to the total.
+    evidence: physics
+  - from: log_errors
+    to: zed_log_errors
+    type: decomposes_into
+    why: Warnings and errors per node add up to the total.
+    evidence: physics
+  - from: log_errors
+    to: explore_log_errors
+    type: decomposes_into
+    why: Warnings and errors per node add up to the total.
+    evidence: physics
+  - from: roboclaw_log_errors
+    to: motor_pwm
+    type: causes
+    why: A failed serial command leaves the motors at the previous duty, so the applied PWM stops following the command.
+    evidence: design
+    sign: negative
+  - from: pose_lost
+    to: zed_log_errors
+    type: drives
+    why: The camera node warns when it restarts tracking after a relocalisation timeout or a tilt disagreement.
+    evidence: design
+  - from: pose_lost
+    to: nav_log_errors
+    type: drives
+    why: Navigation warns on every pose jump, which happens when tracking relocalises.
+    evidence: design
+  - from: container_crashes
+    to: log_errors
+    type: symptom_of
+    why: A node logs the exception that kills it (Node crashed) before its container exits.
+    evidence: design

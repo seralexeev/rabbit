@@ -1,0 +1,136 @@
+title: Run summary
+description: >-
+  One-row overview of a run: how long it lasted, battery voltage, current, energy and charge,
+  motor current and errors, Jetson peak temperature and lowest CPU clock, distance travelled by
+  the camera pose, and ZED tracking losses. Start here for any question about a run as a whole.
+tags: [run, overview, battery, energy, motors, jetson, pose]
+prompts:
+  - Summarize the last run
+  - What was the average battery voltage and total motor current in the last run?
+  - How far did the robot drive?
+guidelines: >-
+  path_length_m sums one-second steps of the averaged pose, skipping steps over 2 m (tracking relocalization jumps), so a stationary robot still shows a
+  few centimetres of tracking noise. Motor current is measured at the 12 V supply of the motor
+  controller, battery current at the 4S pack, so the two are not directly comparable.
+dims: []
+sql: |
+  WITH
+    r AS (
+      SELECT run_id, name, started_at, duration_s FROM runs WHERE run_id = {run_id:String}
+    ),
+    m AS (
+      SELECT
+        run_id,
+        toNullable(avg(abs(left_current) + abs(right_current))) AS avg_motor_current_a,
+        toNullable(max(abs(left_current) + abs(right_current))) AS peak_motor_current_a,
+        toNullable(max(errors) - min(errors)) AS motor_errors
+      FROM roboclaw
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id
+    ),
+    b AS (
+      SELECT
+        run_id,
+        toNullable(avg(battery_voltage)) AS avg_battery_voltage,
+        toNullable(min(battery_voltage)) AS min_battery_voltage,
+        toNullable(avg(battery_current)) AS avg_battery_current_a,
+        toNullable(avg(battery_power) * dateDiff('millisecond', min(ts), max(ts)) / 3600000) AS battery_energy_wh,
+        argMax(battery_charge_pct, ts) AS end_charge_pct
+      FROM power
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id
+    ),
+    j AS (
+      SELECT run_id, toNullable(max(temp_tj)) AS max_jetson_tj_c, toNullable(min(arrayMin(cpu_freq_mhz))) AS min_cpu_freq_mhz
+      FROM jetson
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id
+    ),
+    p AS (
+      SELECT run_id, toNullable(sumIf(step, step <= 2)) AS path_length_m
+      FROM (
+        SELECT
+          run_id,
+          sqrt(pow(x - lagInFrame(x, 1, x) OVER w, 2) + pow(y - lagInFrame(y, 1, y) OVER w, 2) + pow(z - lagInFrame(z, 1, z) OVER w, 2)) AS step
+        FROM (
+          SELECT run_id, toStartOfSecond(ts) AS second, avg(x) AS x, avg(y) AS y, avg(z) AS z
+          FROM pose
+          WHERE run_id = {run_id:String}
+          GROUP BY run_id, second
+        )
+        WINDOW w AS (PARTITION BY run_id ORDER BY second ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+      )
+      GROUP BY run_id
+    ),
+    z AS (
+      SELECT run_id, toNullable(max(pose_drop_count) - min(pose_drop_count)) AS pose_drops
+      FROM zed_health
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id
+    )
+  SELECT
+    r.run_id AS run_id,
+    r.name AS name,
+    r.started_at AS started_at,
+    r.duration_s AS duration_s,
+    b.avg_battery_voltage AS avg_battery_voltage,
+    b.min_battery_voltage AS min_battery_voltage,
+    b.avg_battery_current_a AS avg_battery_current_a,
+    b.battery_energy_wh AS battery_energy_wh,
+    b.end_charge_pct AS end_charge_pct,
+    m.avg_motor_current_a AS avg_motor_current_a,
+    m.peak_motor_current_a AS peak_motor_current_a,
+    m.motor_errors AS motor_errors,
+    j.max_jetson_tj_c AS max_jetson_tj_c,
+    j.min_cpu_freq_mhz AS min_cpu_freq_mhz,
+    p.path_length_m AS path_length_m,
+    z.pose_drops AS pose_drops
+  FROM r
+  LEFT JOIN m ON m.run_id = r.run_id
+  LEFT JOIN b ON b.run_id = r.run_id
+  LEFT JOIN j ON j.run_id = r.run_id
+  LEFT JOIN p ON p.run_id = r.run_id
+  LEFT JOIN z ON z.run_id = r.run_id
+columns:
+  run_id: { kind: attribute }
+  name: { kind: attribute }
+  started_at: { kind: attribute }
+  duration_s: { measure: event, unit: s }
+  avg_battery_voltage: { measure: gauge, unit: V }
+  min_battery_voltage: { measure: gauge, unit: V }
+  avg_battery_current_a:
+    {
+      measure: gauge,
+      unit: A,
+      description: Total current drawn from the battery,
+    }
+  battery_energy_wh:
+    {
+      measure: event,
+      unit: Wh,
+      description: Energy drawn from the 99 Wh battery,
+    }
+  end_charge_pct:
+    {
+      measure: gauge,
+      unit: "%",
+      description: Charge estimate at the end of the run,
+    }
+  avg_motor_current_a:
+    {
+      measure: gauge,
+      unit: A,
+      description: Mean of left plus right absolute motor current,
+    }
+  peak_motor_current_a: { measure: gauge, unit: A }
+  motor_errors:
+    {
+      measure: event,
+      description: Failed motor-controller commands during the run,
+    }
+  max_jetson_tj_c: { measure: gauge, unit: C }
+  min_cpu_freq_mhz:
+    { measure: gauge, unit: MHz, description: Lowest clock of any CPU core }
+  path_length_m: { measure: event, unit: m }
+  pose_drops:
+    { measure: event, description: Camera frames without a tracked pose }

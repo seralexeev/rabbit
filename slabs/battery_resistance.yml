@@ -1,0 +1,50 @@
+title: Battery internal resistance fit
+description: >-
+  Fits battery voltage against battery current (every power-monitor sample of the run) with a
+  linear regression. The slope is the effective internal resistance of the battery and wiring, the
+  intercept the open-circuit voltage, and the worst unexplained sag is the deepest voltage dip
+  below what the fit predicts for the current at that moment.
+tags: [battery, resistance, sag, anomaly, health]
+prompts:
+  - Does the battery sag more than the current explains?
+  - What is the battery internal resistance?
+  - Is the battery healthy?
+guidelines: >-
+  The fit means something only when the current varied: trust internal_resistance_ohm when
+  current_range_a is above about 2 A. A worst_unexplained_sag_v well above the voltage noise
+  (about 0.1 V) marks a dip the current does not explain; find when it happened with
+  battery_sag.
+dims: []
+sql: |
+  WITH
+    fit AS (
+      SELECT
+        run_id,
+        count() AS samples,
+        simpleLinearRegression(battery_current, battery_voltage) AS line,
+        max(battery_current) - min(battery_current) AS current_range_a
+      FROM power
+      WHERE run_id = {run_id:String}
+      GROUP BY run_id
+    ),
+    residuals AS (
+      SELECT p.run_id AS run_id, max(f.line.2 + f.line.1 * p.battery_current - p.battery_voltage) AS worst_sag
+      FROM power AS p
+      JOIN fit AS f ON f.run_id = p.run_id
+      WHERE p.run_id = {run_id:String}
+      GROUP BY p.run_id
+    )
+  SELECT
+    f.samples AS samples,
+    -f.line.1 AS internal_resistance_ohm,
+    f.line.2 AS open_circuit_voltage,
+    f.current_range_a AS current_range_a,
+    r.worst_sag AS worst_unexplained_sag_v
+  FROM fit AS f
+  JOIN residuals AS r ON r.run_id = f.run_id
+columns:
+  samples: { measure: event }
+  internal_resistance_ohm: { measure: ratio, unit: ohm }
+  open_circuit_voltage: { measure: gauge, unit: V }
+  current_range_a: { measure: gauge, unit: A }
+  worst_unexplained_sag_v: { measure: gauge, unit: V }

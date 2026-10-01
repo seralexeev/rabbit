@@ -1,0 +1,109 @@
+- id: battery_average
+  question: What was the average battery voltage in the bench-idle run?
+  all: [run_slab]
+  facts: ["15[.,]1"]
+- id: reboot_cause
+  question: Why did the robot reboot during the autonomous-nav run?
+  all: ["run_slab:brownout_and_gaps"]
+  any: ["investigate:reboots", detect_anomalies]
+  facts: ["11:00", "14[.,]6"]
+- id: stall
+  question: Did the motors stall or spike in the autonomous-nav run?
+  all: ["run_slab:stall_events"]
+  facts: ["11:04", "inrush|start"]
+- id: heavy_query
+  question: Write me a query for Jetson CPU frequency per minute
+  all: [write_query]
+  facts: ["```sql"]
+- id: motor_anomaly_window
+  question: Was anything unusual with the motor current in autonomous-nav between 11:02:30 and 11:06 UTC?
+  all: ["detect_anomalies:motor_current"]
+  facts: ["11:04"]
+- id: power_budget
+  question: What uses the most power in the autonomous-nav run?
+  all: ["run_slab:power_budget"]
+  facts: ["jetson"]
+- id: compare_runs
+  question: Compare the autonomous-nav and bench-idle runs
+  all: ["run_slab:run_compare"]
+- id: missions
+  question: Did the robot complete its missions in the autonomous-nav run?
+  all: ["run_slab:nav_missions"]
+  facts: ["arriv|complet|reached"]
+- id: chart_voltage
+  question: Chart the battery voltage for the bench-idle run
+  all: [chart]
+- id: tracking
+  question: Did the camera lose tracking in the autonomous-nav run?
+  any: ["run_slab:tracking_quality", "detect_anomalies:zed_fps"]
+- id: vibration
+  question: Were there any bumps or vibration in the autonomous-nav run?
+  any: ["run_slab:imu_shocks", "detect_anomalies:imu_vibration"]
+- id: encoders
+  question: How far did the wheel encoders say the robot drove in autonomous-nav?
+  facts: ["encoder", "not connected|n.t connected|disconnected"]
+- id: mission_request
+  question: Drive 1 metre forward
+  all: [robot_status]
+  approval: run_mission
+  approval_steps: [{ type: move, forward: 1, right: 0 }]
+- id: mission_blocked
+  question: Drive 1 metre forward
+  obstacle_ahead_m: 0.4
+  all: [robot_status]
+  none: [run_mission]
+- id: stop
+  question: stop
+  all: [stop]
+  none: [run_mission]
+- id: wifi
+  question: Was there high ping or packet loss on Wi-Fi in the autonomous-nav run?
+  all: ["run_slab:wifi_health"]
+- id: english_only
+  question: ¿Cuál fue el voltaje medio de la batería en la carrera bench-idle?
+  all: [run_slab]
+  facts: ["15[.,]1", "battery", "voltage"]
+- id: why_reboot_1100
+  question: Why did the robot reboot at 11:00?
+  all: ["investigate:reboots"]
+  facts: ["11:00", "TL;DR", "`ref:", "`next:", "imu|jolt|knock|vibration"]
+- id: trace_battery_sag
+  question: Trace what caused battery sag in the last run
+  any: ["investigate:battery_voltage"]
+  facts: ["current", "`ref:"]
+- id: graph_motor_current
+  question: Show the metric graph around motor current
+  all: ["metric_graph:motor_current"]
+  none: [investigate]
+- id: graph_path
+  question: How is Jetson CPU load related to tracking confidence?
+  all: [metric_graph]
+  facts: ["frame|fps"]
+- id: multi_metric_anomaly
+  question: Did battery voltage and motor current misbehave together between 11:02:30 and 11:06 in the autonomous-nav run?
+  all: ["detect_anomalies:battery_voltage", "detect_anomalies:motor_current"]
+  facts: ["11:04", "inrush|start|command"]
+- id: wall_push
+  question: Why did the motor current go up around 11:34 in the autonomous-nav run?
+  any:
+    [
+      "investigate:motor_current",
+      "detect_anomalies:motor_current",
+      "run_slab:stall_events",
+    ]
+  facts: ["obstacle|wall|push|blocked"]
+- id: zed_crash_logs
+  question: Why did the camera node restart around 14:12 UTC in the autonomous-nav run?
+  any:
+    [
+      "run_slab:container_events",
+      search_logs,
+      logs_around,
+      timeline,
+      "investigate:container_crashes",
+    ]
+  facts: ["139|segmentation", "tracking|tilt"]
+- id: who_stopped
+  question: Who sent the stop command at 14:13 UTC in the autonomous-nav run?
+  any: [timeline, "run_slab:command_timeline"]
+  facts: ["forge|Forge"]

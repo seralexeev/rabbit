@@ -1,0 +1,67 @@
+title: Steering response
+description: >-
+  How the robot actually turned for the steering it was given: per time bucket the applied
+  steering angle, ground speed, yaw rate from the IMU, and the path curvature per unit of steering.
+  Use it to check the steering servo and trim, understeer on slippery floors, and turns that do
+  not follow the command.
+tags: [steering, turning, yaw, servo, curvature, handling]
+prompts:
+  - Does the robot turn the way it is steered?
+  - Is the steering trimmed correctly?
+guidelines: >-
+  curvature_per_steer is only computed while the robot moves (above 0.05 m/s) with real steering
+  (above 0.1); it should stay roughly constant. A lower value at full lock means understeer or
+  slipping; yaw_rate_dps clearly above zero with steer_angle near 0 means a trim offset.
+dims: [t]
+sql: |
+  WITH
+    s AS (
+      SELECT run_id, toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t, avg(angle) AS angle
+      FROM steering
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    ),
+    i AS (
+      SELECT run_id, toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t, toNullable(avg(gyro_y)) AS yaw_rate
+      FROM imu
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    ),
+    p AS (
+      SELECT run_id, toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t, toNullable(avg(sqrt(vx * vx + vy * vy + vz * vz))) AS speed
+      FROM pose
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    )
+  SELECT
+    s.t AS t,
+    s.angle AS steer_angle,
+    p.speed AS ground_speed_mps,
+    i.yaw_rate AS yaw_rate_dps,
+    if(p.speed > 0.05 AND abs(s.angle) > 0.1, abs(radians(i.yaw_rate)) / p.speed / abs(s.angle), NULL) AS curvature_per_steer
+  FROM s
+  LEFT JOIN i ON i.run_id = s.run_id AND i.t = s.t
+  LEFT JOIN p ON p.run_id = s.run_id AND p.t = s.t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  steer_angle: { measure: gauge, unit: -1..1 }
+  ground_speed_mps: { measure: gauge, unit: m/s }
+  yaw_rate_dps:
+    {
+      measure: gauge,
+      unit: deg/s,
+      description: Rotation about the vertical axis from the IMU,
+    }
+  curvature_per_steer: { measure: ratio, unit: 1/m per unit steer }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

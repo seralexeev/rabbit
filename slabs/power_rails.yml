@@ -1,0 +1,39 @@
+title: Power rail breakdown
+description: >-
+  Per power rail measured by the INA4235 monitor over the run: the battery (total draw of the
+  robot) and the 6 V servo rail, with mean voltage, current and power, peak power and energy.
+tags: [power, rails, battery, servo, energy]
+prompts:
+  - Break down power by rail
+  - How much energy did the robot use?
+  - How much power does the servo rail draw?
+guidelines: The battery rail is the whole robot, so it already includes the 6 V rail.
+dims: [rail]
+sql: |
+  SELECT
+    rail,
+    avg(voltage) AS avg_voltage,
+    avg(current) AS avg_current_a,
+    avg(power) AS avg_power_w,
+    max(power) AS peak_power_w,
+    avg(power) * dateDiff('millisecond', min(ts), max(ts)) / 3600000 AS energy_wh
+  FROM (
+    SELECT
+      ts,
+      rail,
+      if(rail = 'battery', battery_voltage, rail_6v_voltage) AS voltage,
+      if(rail = 'battery', battery_current, rail_6v_current) AS current,
+      if(rail = 'battery', battery_power, rail_6v_power) AS power
+    FROM power
+    ARRAY JOIN ['battery', 'rail_6v'] AS rail
+    WHERE run_id = {run_id:String}
+  )
+  GROUP BY rail
+  ORDER BY rail
+columns:
+  rail: { kind: category }
+  avg_voltage: { measure: gauge, unit: V }
+  avg_current_a: { measure: gauge, unit: A }
+  avg_power_w: { measure: gauge, unit: W }
+  peak_power_w: { measure: gauge, unit: W }
+  energy_wh: { measure: event, unit: Wh }

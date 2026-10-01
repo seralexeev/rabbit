@@ -1,0 +1,86 @@
+title: Navigation mission outcomes
+description: >-
+  One row per navigation mission or goal sent to the robot in a run: when it started, the planned
+  steps, whether the robot arrived, was cancelled or got a new mission first, how long it took,
+  how many steps it had, the share of time it was blocked by an obstacle, and the largest heading
+  error on the way.
+tags: [navigation, missions, goals, autonomy, arrival, blocked]
+prompts:
+  - Did the robot complete its missions?
+  - How long did the last mission take?
+  - How often was navigation blocked?
+guidelines: >-
+  Missions are known from the commands Forge recorded, so a mission sent while the writer was
+  not running is missing. A mission counts as arrived when its last step finished (within 0.15 m
+  for a move or goto, within 8 degrees for a turn).
+dims: [mission_index]
+sql: |
+  WITH
+    events AS (
+      SELECT
+        run_id,
+        ts AS started_at,
+        toString(event) AS kind,
+        if(event = 'mission', steps, concat('[{"type":"goto","x":', toString(goal_x), ',"z":', toString(goal_z), '}]')) AS plan,
+        leadInFrame(ts, 1, toDateTime64('2100-01-01 00:00:00', 9, 'UTC')) OVER w AS until,
+        leadInFrame(toString(event), 1, '') OVER w AS next_event
+      FROM nav_events
+      WHERE run_id = {run_id:String}
+      WINDOW w AS (PARTITION BY run_id ORDER BY ts ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING)
+    ),
+    missions AS (
+      SELECT run_id, started_at, kind, plan, until, next_event FROM events WHERE kind IN ('mission', 'goal')
+    ),
+    states AS (
+      SELECT
+        s.run_id AS run_id,
+        s.ts AS ts,
+        s.mode AS mode,
+        s.steps_total AS steps_total,
+        s.heading_error_deg AS heading_error_deg,
+        m.started_at AS started_at,
+        m.until AS until
+      FROM nav_state AS s
+      ASOF JOIN missions AS m ON m.run_id = s.run_id AND s.ts >= m.started_at
+      WHERE s.run_id = {run_id:String}
+    ),
+    outcomes AS (
+      SELECT
+        run_id,
+        started_at,
+        countIf(mode = 'arrived') > 0 AS arrived,
+        if(arrived, dateDiff('millisecond', started_at, minIf(ts, mode = 'arrived')) / 1000, NULL) AS time_to_arrive_s,
+        max(steps_total) AS steps,
+        countIf(mode = 'blocked') / count() AS blocked_share,
+        max(abs(heading_error_deg)) AS max_heading_error_deg
+      FROM states
+      WHERE ts < until
+      GROUP BY run_id, started_at
+    )
+  SELECT
+    row_number() OVER (ORDER BY m.started_at) AS mission_index,
+    m.started_at AS started_at,
+    m.kind AS kind,
+    m.plan AS plan,
+    multiIf(o.arrived, 'arrived', m.next_event = 'cancel', 'cancelled', m.next_event != '', 'replaced', 'not arrived') AS outcome,
+    o.time_to_arrive_s AS time_to_arrive_s,
+    o.steps AS steps,
+    o.blocked_share AS blocked_share,
+    o.max_heading_error_deg AS max_heading_error_deg
+  FROM missions AS m
+  JOIN outcomes AS o ON o.run_id = m.run_id AND o.started_at = m.started_at
+  ORDER BY mission_index
+columns:
+  mission_index: { kind: ordinal }
+  started_at: { kind: attribute }
+  kind: { kind: attribute, description: mission or a single goal }
+  plan: { kind: attribute, description: Planned steps as JSON }
+  outcome:
+    {
+      kind: attribute,
+      description: "arrived, cancelled, replaced or not arrived",
+    }
+  time_to_arrive_s: { measure: event, unit: s }
+  steps: { measure: gauge }
+  blocked_share: { measure: ratio, unit: 0..1 }
+  max_heading_error_deg: { measure: gauge, unit: deg }
