@@ -122,6 +122,21 @@ def test_obstacle_between_start_and_goal_is_avoided():
     assert math.hypot(path.waypoints[-1].x - 3.4, path.waypoints[-1].z - 1.5) <= 0.12
 
 
+def test_start_inside_inflated_clearance_escapes_without_cutting_closer():
+    grid = walled_grid(4.0, 2.0)
+    start = Pose2D(1.0, 0.17, 0.0)
+    costmap = build_costmap(grid)
+    start_clearance = pose_clearance(costmap, np.array([start.x, start.z, start.theta]))[0]
+    assert start_clearance < 0
+
+    path = plan_hybrid_astar(grid, start, Pose2D(3.0, 1.05, 0.0))
+
+    assert path is not None
+    assert not touches_obstacle(grid, path.poses())
+    assert pose_clearance(costmap, path.poses()).min() >= start_clearance - 1e-6
+    assert math.hypot(path.waypoints[-1].x - 3.0, path.waypoints[-1].z - 1.05) <= 0.12
+
+
 def test_is_path_blocked_only_looks_ahead_of_index():
     grid = walled_grid(4.0, 2.0)
     path = plan_hybrid_astar(grid, Pose2D(0.5, 1.05, 0.0), Pose2D(3.5, 1.05, 0.0))

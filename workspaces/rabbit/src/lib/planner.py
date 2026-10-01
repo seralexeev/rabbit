@@ -422,8 +422,7 @@ def plan_hybrid_astar(
     costmap = build_costmap(grid, params.footprint, params.unknown_blocked, params.proximity_band)
     goal_xz = (goal.x, goal.z) if isinstance(goal, Pose2D) else (float(goal[0]), float(goal[1]))
     goal_theta = goal.theta if isinstance(goal, Pose2D) else None
-    if pose_clearance(costmap, np.array([start.x, start.z, start.theta]))[0] < 0:
-        return None
+    start_clearance = float(pose_clearance(costmap, np.array([start.x, start.z, start.theta]))[0])
     if goal_theta is not None and pose_clearance(costmap, np.array([*goal_xz, goal_theta]))[0] < 0:
         return None
     field_2d = distance_map_from(costmap, goal_xz, params.unknown_cost)
@@ -473,6 +472,7 @@ def plan_hybrid_astar(
 
     xs, zs, thetas = [start.x], [start.z], [wrap_angle(start.theta)]
     directions, steers, parents, costs = [0], [0.0], [-1], [0.0]
+    floors = [min(0.0, start_clearance)]
 
     def chain(node: int) -> list[tuple[float, float, float, int, float]]:
         rows = []
@@ -527,10 +527,11 @@ def plan_hybrid_astar(
         unknown_share = unknown_map.take(cells).reshape(count, per).sum(axis=1).tolist()
         parent_direction = directions[node]
         parent_steer = steers[node]
+        floor = floors[node]
 
         for p in range(count):
             room = clearance[p]
-            if room < 0.0:
+            if room < floor:
                 continue
             ex, ez, turn = prims.end[p]
             nx = x + c * ex - s * ez
@@ -560,6 +561,7 @@ def plan_hybrid_astar(
             parents.append(node)
             costs.append(ng)
             keys.append(key)
+            floors.append(min(0.0, room))
             best[key] = ng
             if at_goal(nx, nz, ntheta):
                 return _assemble(chain(child), ng)
