@@ -46,8 +46,7 @@ const backdropCss = css`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(2, 8, 12, 0.55);
-    backdrop-filter: blur(4px);
+    background: rgba(2, 8, 12, 0.7);
 `;
 
 const dialogCss = css`

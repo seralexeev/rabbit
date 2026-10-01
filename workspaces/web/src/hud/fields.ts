@@ -7,6 +7,9 @@ export type RowSpec = { label: string; bar?: BarKind };
 export type FieldRefs = { values: (HTMLElement | null)[]; bars: (HTMLElement | null)[] };
 
 const BAR_STEPS = 40;
+const FLICK_INTERVAL_MS = 1000;
+
+const flicks = new WeakMap<HTMLElement, number>();
 
 export const useFields = () => React.useRef<FieldRefs>({ values: [], bars: [] });
 
@@ -32,6 +35,9 @@ export const writeText = (el: HTMLElement | null | undefined, text: string, tone
     if (node instanceof Text ? node.data === text : el.textContent === text) return;
     if (node instanceof Text) node.data = text;
     else el.textContent = text;
+    const now = performance.now();
+    if (now - (flicks.get(el) ?? -Infinity) < FLICK_INTERVAL_MS) return;
+    flicks.set(el, now);
     el.dataset['flick'] = el.dataset['flick'] === 'a' ? 'b' : 'a';
 };
 

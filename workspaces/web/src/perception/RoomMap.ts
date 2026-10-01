@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 
 const CHUNK_HEADER_BYTES = 12;
+const GROUP_SIZE = 16;
+const REBUILD_BUDGET_MS = 3;
 const NEAR_M = 0.3;
 const FAR_M = 2;
 const LINE_ALPHA = 0.5;
@@ -10,6 +12,7 @@ export type RoomMap = {
     group: THREE.Group;
     apply: (session: string, payload: Uint8Array) => void;
     setRobot: (position: THREE.Vector3) => void;
+    flush: () => void;
     dispose: () => void;
 };
 
@@ -48,7 +51,8 @@ const fragmentShader = `
 `;
 
 export const createRoomMap = (): RoomMap => {
-    const chunks = new Map<number, THREE.Mesh>();
+    const chunks = new Map<number, Float32Array>();
+    const groups = new Map<number, THREE.Mesh>();
     const group = new THREE.Group();
     const material = new THREE.ShaderMaterial({
         glslVersion: THREE.GLSL3,
@@ -66,17 +70,56 @@ export const createRoomMap = (): RoomMap => {
     });
 
     let session: string | null = null;
+    const dirty = new Set<number>();
 
-    const remove = (index: number) => {
-        const mesh = chunks.get(index);
+    const removeGroup = (key: number) => {
+        const mesh = groups.get(key);
         if (mesh == null) return;
         group.remove(mesh);
         mesh.geometry.dispose();
-        chunks.delete(index);
+        groups.delete(key);
     };
 
     const clear = () => {
-        for (const index of [...chunks.keys()]) remove(index);
+        for (const key of [...groups.keys()]) removeGroup(key);
+        chunks.clear();
+        dirty.clear();
+    };
+
+    const rebuild = (key: number) => {
+        const members: number[] = [];
+        let length = 0;
+        for (let index = key * GROUP_SIZE; index < (key + 1) * GROUP_SIZE; index++) {
+            const positions = chunks.get(index);
+            if (positions == null) continue;
+            members.push(index);
+            length += positions.length;
+        }
+        if (length === 0) {
+            removeGroup(key);
+            return;
+        }
+        const merged = new Float32Array(length);
+        let offset = 0;
+        for (const index of members) {
+            const positions = chunks.get(index)!;
+            merged.set(positions, offset);
+            chunks.set(index, merged.subarray(offset, offset + positions.length));
+            offset += positions.length;
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(merged, 3));
+        geometry.computeBoundingSphere();
+        const mesh = groups.get(key);
+        if (mesh == null) {
+            const created = new THREE.Mesh(geometry, material);
+            created.matrixAutoUpdate = false;
+            groups.set(key, created);
+            group.add(created);
+        } else {
+            mesh.geometry.dispose();
+            mesh.geometry = geometry;
+        }
     };
 
     const apply = (nextSession: string, payload: Uint8Array) => {
@@ -100,8 +143,11 @@ export const createRoomMap = (): RoomMap => {
             offset += (4 - ((offset - start) % 4)) % 4;
             if (offset > payload.byteLength) break;
 
-            remove(index);
-            if (vertexCount === 0 || triangleCount === 0) continue;
+            dirty.add(Math.floor(index / GROUP_SIZE));
+            if (vertexCount === 0 || triangleCount === 0) {
+                chunks.delete(index);
+                continue;
+            }
 
             const positions = new Float32Array(triangleCount * 9);
             for (let t = 0; t < triangleCount * 3; t++) {
@@ -111,19 +157,23 @@ export const createRoomMap = (): RoomMap => {
                 positions[t * 3 + 1] = view.getInt16(source + 2, true) / 1000;
                 positions[t * 3 + 2] = view.getInt16(source + 4, true) / 1000;
             }
-            const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geometry.computeBoundingSphere();
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.matrixAutoUpdate = false;
-            chunks.set(index, mesh);
-            group.add(mesh);
+            chunks.set(index, positions);
+        }
+    };
+
+    const flush = () => {
+        const start = performance.now();
+        for (const key of dirty) {
+            dirty.delete(key);
+            rebuild(key);
+            if (performance.now() - start > REBUILD_BUDGET_MS) return;
         }
     };
 
     return {
         group,
         apply,
+        flush,
         setRobot: (position) => {
             material.uniforms['uRobot']!.value.copy(position);
         },

@@ -367,6 +367,7 @@ export const createScene = ({
         fxFrame.target = explore?.target ?? null;
         navFx.update(fxFrame);
 
+        roomMap.flush();
         roomMap.setRobot(robot.group.position);
         renderer.render(scene, camera);
 

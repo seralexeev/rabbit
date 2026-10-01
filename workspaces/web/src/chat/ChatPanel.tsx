@@ -322,7 +322,7 @@ const MessageView: React.FC<{ message: UIMessage; onApproval: (id: string, appro
 );
 
 const stopPulse = keyframes`
-    50% { box-shadow: 0 0 22px rgba(255, 90, 74, 0.75); }
+    50% { opacity: 1; }
 `;
 
 const stopCss = css`
@@ -346,6 +346,16 @@ const stopCss = css`
         background: rgba(255, 90, 74, 0.28);
         color: #fff;
         text-shadow: 0 0 8px rgba(255, 90, 74, 0.8);
+    }
+
+    &[data-moving='true']::after {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        box-shadow: 0 0 22px rgba(255, 90, 74, 0.75);
+        opacity: 0;
+        pointer-events: none;
+        will-change: opacity;
         animation: ${stopPulse} 1.2s ease-in-out infinite;
     }
 
