@@ -1,11 +1,13 @@
 import React from 'react';
 
 import { useEvent } from '../hooks.ts';
+import type { FloorPlan } from '../perception/FloorPlan.ts';
 import type { TelemetryStore } from '../perception/Telemetry.ts';
 import type { History } from '../perception/history.ts';
 import type { HudEngine } from './Hud.ts';
 
 const PANEL_IDS = [
+    'minimap',
     'nav',
     'route',
     'explore',
@@ -25,7 +27,7 @@ export type HudLayout = { left: PanelId[]; right: PanelId[]; collapsed: PanelId[
 
 export const DEFAULT_LAYOUT: HudLayout = {
     left: ['nav', 'route', 'explore', 'system', 'drive-left', 'steering'],
-    right: ['zed', 'power', 'wifi', 'drive-right', 'roboclaw', 'gamepad'],
+    right: ['minimap', 'zed', 'power', 'wifi', 'drive-right', 'roboclaw', 'gamepad'],
     collapsed: [],
 };
 
@@ -44,7 +46,9 @@ export const normalize = (raw: unknown): HudLayout => {
     const right = pick(source.right);
     for (const id of PANEL_IDS) {
         if (seen.has(id)) continue;
-        (DEFAULT_LAYOUT.left.includes(id) ? left : right).push(id);
+        const defaults = DEFAULT_LAYOUT.left.includes(id) ? DEFAULT_LAYOUT.left : DEFAULT_LAYOUT.right;
+        const list = defaults === DEFAULT_LAYOUT.left ? left : right;
+        list.splice(Math.min(defaults.indexOf(id), list.length), 0, id);
     }
     return { left, right, collapsed: (source.collapsed ?? []).filter(isPanelId) };
 };
@@ -52,6 +56,7 @@ export const normalize = (raw: unknown): HudLayout => {
 type HudContextValue = {
     engine: HudEngine;
     store: TelemetryStore;
+    floorPlan: FloorPlan;
     history: History;
     connected: boolean;
     stopRobot: () => void;

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+import type { FloorPlan } from './FloorPlan.ts';
+
 const CHUNK_HEADER_BYTES = 24;
 const GROUP_SIZE = 16;
 const REBUILD_BUDGET_MS = 3;
@@ -50,7 +52,7 @@ const fragmentShader = `
     }
 `;
 
-export const createRoomMap = (): RoomMap => {
+export const createRoomMap = (floorPlan: Pick<FloorPlan, 'reset' | 'chunk'>): RoomMap => {
     const chunks = new Map<number, Float32Array>();
     const groups = new Map<number, THREE.Mesh>();
     const group = new THREE.Group();
@@ -126,6 +128,7 @@ export const createRoomMap = (): RoomMap => {
         if (nextSession !== session) {
             session = nextSession;
             clear();
+            floorPlan.reset();
         }
 
         const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
@@ -149,6 +152,7 @@ export const createRoomMap = (): RoomMap => {
             dirty.add(Math.floor(index / GROUP_SIZE));
             if (vertexCount === 0 || triangleCount === 0) {
                 chunks.delete(index);
+                floorPlan.chunk(index, null);
                 continue;
             }
 
@@ -161,6 +165,7 @@ export const createRoomMap = (): RoomMap => {
                 positions[t * 3 + 2] = originZ + view.getInt16(source + 4, true) / 1000;
             }
             chunks.set(index, positions);
+            floorPlan.chunk(index, positions);
         }
     };
 

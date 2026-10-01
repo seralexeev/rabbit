@@ -1,6 +1,5 @@
 import { css, cx } from '@emotion/css';
 import React from 'react';
-import type * as THREE from 'three';
 
 import { useLinkState, useNats } from '../app/NatsProvider.tsx';
 import { ChatPanel } from '../chat/ChatPanel.tsx';
@@ -15,6 +14,7 @@ import { LinkIndicator } from '../hud/LinkIndicator.tsx';
 import { DrivePanel, PowerPanel, RoboclawPanel, SteeringPanel } from '../hud/panels/DrivePanels.tsx';
 import { ExplorePanel } from '../hud/panels/ExplorePanel.tsx';
 import { GamepadPanel } from '../hud/panels/GamepadPanel.tsx';
+import { MinimapPanel } from '../hud/panels/MinimapPanel.tsx';
 import { NavPanel } from '../hud/panels/NavPanel.tsx';
 import { RoutePanel } from '../hud/panels/RoutePanel.tsx';
 import { SystemPanel } from '../hud/panels/SystemPanel.tsx';
@@ -23,6 +23,7 @@ import { ZedPanel } from '../hud/panels/ZedPanel.tsx';
 import { L } from '../log.ts';
 import { ui } from '../ui/index.ts';
 import { TOP_ORIENTATIONS, type TopOrientation, VIEW_MODES, type ViewMode } from './CameraRig.ts';
+import { createFloorPlan } from './FloorPlan.ts';
 import { type Scene, type SceneSettings, createScene } from './Scene.ts';
 import { createTelemetryStore } from './Telemetry.ts';
 import { createHistory } from './history.ts';
@@ -53,6 +54,7 @@ export const PerceptionView: React.FC = () => {
 
     const [engine] = React.useState(createHudEngine);
     const [store] = React.useState(createTelemetryStore);
+    const [floorPlan] = React.useState(createFloorPlan);
     const [history] = React.useState(() => createHistory(store));
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
@@ -77,7 +79,7 @@ export const PerceptionView: React.FC = () => {
 
     const changeViewMode = useEvent((mode: ViewMode) => setViewMode(() => mode));
 
-    const publishGoal = useEvent((point: THREE.Vector3, append: boolean) => {
+    const publishGoal = useEvent((point: { x: number; z: number }, append: boolean) => {
         if (link() !== 'connected') {
             L.warn('Mission not sent: NATS is not connected');
             setGoArmed(false);
@@ -108,6 +110,7 @@ export const PerceptionView: React.FC = () => {
         if (!connected) setGoArmed(false);
     }, [connected]);
     React.useEffect(() => history.start(), [history]);
+    React.useEffect(() => floorPlan.start(), [floorPlan]);
 
     React.useLayoutEffect(() => {
         const container = containerRef.current;
@@ -134,6 +137,7 @@ export const PerceptionView: React.FC = () => {
             nc,
             onLink,
             store,
+            floorPlan,
             engine,
             settings: settingsRef.current,
             onModeChange: changeViewMode,
@@ -145,7 +149,7 @@ export const PerceptionView: React.FC = () => {
             sceneRef.current = null;
             scene.dispose();
         };
-    }, [nc, onLink, store, engine, changeViewMode, publishGoal]);
+    }, [nc, onLink, store, floorPlan, engine, changeViewMode, publishGoal]);
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -160,7 +164,13 @@ export const PerceptionView: React.FC = () => {
     }, [stopRobot, connected]);
 
     return (
-        <HudProvider engine={engine} store={store} history={history} connected={connected} stopRobot={stopRobot}>
+        <HudProvider
+            engine={engine}
+            store={store}
+            floorPlan={floorPlan}
+            history={history}
+            connected={connected}
+            stopRobot={stopRobot}>
             <div ref={containerRef} className={rootCss} data-armed={goArmed}>
                 <canvas ref={canvasRef} className={canvasCss} />
                 <div ref={tagsRef} className={overlayCss} />
@@ -195,6 +205,7 @@ export const PerceptionView: React.FC = () => {
                     />
                 </div>
 
+                <MinimapPanel armed={goArmed} onGoal={publishGoal} />
                 <NavPanel />
                 <RoutePanel armed={goArmed} onArm={() => setGoArmed((armed) => !armed)} onCancel={stopRobot} />
                 <ExplorePanel />

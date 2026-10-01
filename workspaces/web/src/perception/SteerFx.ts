@@ -3,14 +3,11 @@ import * as THREE from 'three';
 import { HUD_COLOR } from '../hud/Hud.ts';
 import { FLOOR_DEPTH_BIAS } from './GroundFx.ts';
 import type { Scan } from './Telemetry.ts';
+import { type ArcPose, CAMERA_TO_REAR_AXLE, FOOTPRINT, curvatureForSteer, sweepPose } from './drive.ts';
 
-const STEER_TABLE = [0, 0.5, 1];
-const LEFT_CURVATURE_TABLE = [0, 1.7, 3.34];
-const RIGHT_CURVATURE_TABLE = [0, 1.33, 2.49];
-const CAMERA_TO_REAR_AXLE = 0.1845;
-const FRONT = 0.2245;
-const REAR = 0.07;
-const HALF_WIDTH = 0.1;
+const FRONT = FOOTPRINT.front;
+const REAR = FOOTPRINT.rear;
+const HALF_WIDTH = FOOTPRINT.halfWidth;
 const MARGIN = 0.04;
 const LENGTH = 1.2;
 const SAMPLES = 64;
@@ -22,19 +19,6 @@ const REBUILD_EPSILON = 0.002;
 const UNKNOWN_FREE = 1e3;
 const AMBER = 0xffb547;
 const ALERT = 0xff5a4a;
-
-export const curvatureForSteer = (steer: number) => {
-    const table = steer >= 0 ? RIGHT_CURVATURE_TABLE : LEFT_CURVATURE_TABLE;
-    const x = Math.min(Math.abs(steer), 1);
-    for (let i = 1; i < STEER_TABLE.length; i++) {
-        const x1 = STEER_TABLE[i]!;
-        if (x > x1 && i < STEER_TABLE.length - 1) continue;
-        const x0 = STEER_TABLE[i - 1]!;
-        const y0 = table[i - 1]!;
-        return Math.sign(steer) * (y0 + ((table[i]! - y0) * (x - x0)) / (x1 - x0));
-    }
-    return 0;
-};
 
 export type SteerFxFrame = {
     origin: THREE.Vector3;
@@ -143,6 +127,7 @@ export const createSteerFx = (): SteerFx => {
     group.add(mesh);
 
     const scanPoints = new Float32Array(MAX_SCAN_POINTS * 2);
+    const pose: ArcPose = { along: 0, across: 0, theta: 0 };
     let curvature = 0;
     let builtCurvature = Number.NaN;
     let builtDirection = 0;
@@ -160,10 +145,7 @@ export const createSteerFx = (): SteerFx => {
         const span = LENGTH + lead + trail;
         for (let i = 0; i < SAMPLES; i++) {
             const u = -trail + (span * i) / (SAMPLES - 1);
-            const s = direction * u;
-            const theta = u > 0 ? k * s : 0;
-            const along = u > 0 && bend > 1e-6 ? Math.sin(theta) / k : s;
-            const across = u > 0 && bend > 1e-6 ? (1 - Math.cos(theta)) / k : 0;
+            const { along, across, theta } = sweepPose(u > 0 ? k : 0, direction * u, pose);
             const rx = Math.cos(theta);
             const rz = Math.sin(theta);
             const a = i * 6;
@@ -194,11 +176,9 @@ export const createSteerFx = (): SteerFx => {
             count++;
         }
         for (let d = 0; d <= LENGTH + 1e-9; d += FREE_STEP) {
-            const heading = k * d;
-            const px = Math.abs(k) > 1e-6 ? Math.sin(heading) / k : d;
-            const py = Math.abs(k) > 1e-6 ? (1 - Math.cos(heading)) / k : 0;
-            const cos = Math.cos(heading);
-            const sin = Math.sin(heading);
+            const { along: px, across: py, theta } = sweepPose(k, d, pose);
+            const cos = Math.cos(theta);
+            const sin = Math.sin(theta);
             for (let j = 0; j < count; j++) {
                 const dx = scanPoints[j * 2]! - px;
                 const dy = scanPoints[j * 2 + 1]! - py;

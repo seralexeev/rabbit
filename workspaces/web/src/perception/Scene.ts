@@ -7,12 +7,14 @@ import { createWorldTag } from '../hud/WorldTag.ts';
 import { type Tone, fixed } from '../hud/fields.ts';
 import { L } from '../log.ts';
 import { type TopOrientation, type ViewMode, createCameraRig } from './CameraRig.ts';
+import type { FloorPlan } from './FloorPlan.ts';
 import { createGroundFx } from './GroundFx.ts';
 import { MAX_WAYPOINTS, type NavFxFrame, createNavFx, sameContact } from './NavFx.ts';
 import { createRobotModel } from './RobotModel.ts';
 import { createRoomMap } from './RoomMap.ts';
 import { type SteerFxFrame, createSteerFx } from './SteerFx.ts';
 import { type Contact, type TelemetryStore, isLive } from './Telemetry.ts';
+import { driveCommand } from './drive.ts';
 import { predictWaypoints, remainingMission } from './mission.ts';
 
 const MAP_CHUNKS_SUBJECT = 'rabbit.map.chunks';
@@ -50,6 +52,7 @@ type SceneOptions = {
     nc: NatsConnection;
     onLink: (fn: (state: LinkState) => void) => () => void;
     store: TelemetryStore;
+    floorPlan: FloorPlan;
     engine: HudEngine;
     settings: SceneSettings;
     onModeChange: (mode: ViewMode) => void;
@@ -72,6 +75,7 @@ export const createScene = ({
     nc,
     onLink,
     store,
+    floorPlan,
     engine,
     settings,
     onModeChange,
@@ -107,7 +111,7 @@ export const createScene = ({
     const centerLocal = bounds.getCenter(new THREE.Vector3());
     const frontLocal = new THREE.Vector3(centerLocal.x, centerLocal.y, bounds.min.z);
 
-    const roomMap = createRoomMap();
+    const roomMap = createRoomMap(floorPlan);
     scene.add(roomMap.group);
     const groundFx = createGroundFx();
     scene.add(groundFx.group);
@@ -395,8 +399,7 @@ export const createScene = ({
         fxFrame.target = explore?.target ?? null;
         navFx.update(fxFrame);
 
-        const roboclaw = isLive(store.roboclaw, now) ? store.roboclaw.value : null;
-        const command = roboclaw == null ? 0 : ((roboclaw.left.command ?? 0) + (roboclaw.right.command ?? 0)) / 2;
+        const command = driveCommand(store, now);
         const mission = nav != null && MISSION_MODES.has(nav.mode);
         steerFrame.yaw = Math.atan2(-forward.x, -forward.z);
         steerFrame.steer = isLive(store.steering, now) ? (store.steering.value?.angle ?? null) : null;

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { useLocalState } from '../hooks.ts';
+import type { FloorPlan } from '../perception/FloorPlan.ts';
 import type { TelemetryStore } from '../perception/Telemetry.ts';
 import type { History } from '../perception/history.ts';
 import type { HudEngine } from './Hud.ts';
@@ -9,11 +10,12 @@ import { DEFAULT_LAYOUT, HudContext, type HudLayout, type PanelId, normalize } f
 export const HudProvider: React.FC<{
     engine: HudEngine;
     store: TelemetryStore;
+    floorPlan: FloorPlan;
     history: History;
     connected: boolean;
     stopRobot: () => void;
     children: React.ReactNode;
-}> = ({ engine, store, history, connected, stopRobot, children }) => {
+}> = ({ engine, store, floorPlan, history, connected, stopRobot, children }) => {
     const [layout, update] = useLocalState<HudLayout>('rabbit.ui.hud', normalize, DEFAULT_LAYOUT);
 
     React.useEffect(() => {
@@ -49,7 +51,7 @@ export const HudProvider: React.FC<{
         });
 
     return (
-        <HudContext.Provider value={{ engine, store, history, connected, stopRobot, layout, toggle, swap, raise }}>
+        <HudContext.Provider value={{ engine, store, floorPlan, history, connected, stopRobot, layout, toggle, swap, raise }}>
             {children}
         </HudContext.Provider>
     );
