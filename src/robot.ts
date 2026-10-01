@@ -26,6 +26,8 @@ const nats = async () => {
     const pending = connect({
       servers: config.natsUrl,
       name: 'forge-chat',
+      pingInterval: config.natsPingIntervalMs,
+      maxPingOut: config.natsMaxPingOut,
       timeout: 5000,
       maxReconnectAttempts: -1,
       reconnectTimeWait: 1000,

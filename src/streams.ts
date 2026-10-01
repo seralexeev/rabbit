@@ -349,6 +349,8 @@ const motorColumns = (
 
 const mapChunks = { session: '', sizes: new Map<number, string>() };
 
+const MAP_CHUNK_HEADER_BYTES = 24;
+
 const mapChunkRows = (
   data: Uint8Array,
   session: string,
@@ -361,11 +363,16 @@ const mapChunkRows = (
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   const rows: Row[] = [];
   let offset = 0;
-  while (offset + 12 <= view.byteLength) {
+  while (offset + MAP_CHUNK_HEADER_BYTES <= view.byteLength) {
     const chunkIndex = view.getUint32(offset, true);
     const vertices = view.getUint32(offset + 4, true);
     const triangles = view.getUint32(offset + 8, true);
-    const positions = offset + 12;
+    const origin = [
+      view.getFloat32(offset + 12, true),
+      view.getFloat32(offset + 16, true),
+      view.getFloat32(offset + 20, true),
+    ] as const;
+    const positions = offset + MAP_CHUNK_HEADER_BYTES;
     const size = vertices * 6 + triangles * 6;
     offset = positions + size + (-size & 3);
     if (mapChunks.sizes.get(chunkIndex) === `${vertices}:${triangles}`) {
@@ -378,17 +385,17 @@ const mapChunkRows = (
       sy += view.getInt16(positions + i * 6 + 2, true);
       sz += view.getInt16(positions + i * 6 + 4, true);
     }
-    const centroid = (sum: number) =>
-      vertices === 0 ? 0 : sum / vertices / 1000;
+    const centroid = (sum: number, axis: 0 | 1 | 2) =>
+      vertices === 0 ? 0 : origin[axis] + sum / vertices / 1000;
     rows.push({
       ts: receivedAt,
       session,
       chunk_index: chunkIndex,
       vertices,
       triangles,
-      cx: centroid(sx),
-      cy: centroid(sy),
-      cz: centroid(sz),
+      cx: centroid(sx, 0),
+      cy: centroid(sy, 1),
+      cz: centroid(sz, 2),
     });
   }
   return rows;

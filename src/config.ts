@@ -16,6 +16,8 @@ const setting = (name: string) => {
 
 export const config = {
   natsUrl: 'nats://192.168.1.53:4222',
+  natsPingIntervalMs: 5000,
+  natsMaxPingOut: 2,
   clickhouseUrl: setting('FORGE_CLICKHOUSE_URL') ?? 'http://127.0.0.1:18123',
   chatListenHost: setting('FORGE_CHAT_LISTEN_HOST') ?? '127.0.0.1',
   openAiApiKey: setting('OPEN_AI_KEY'),

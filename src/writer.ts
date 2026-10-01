@@ -283,6 +283,8 @@ export const runWriter = async () => {
   const nc = await connect({
     servers: config.natsUrl,
     name: 'forge-writer',
+    pingInterval: config.natsPingIntervalMs,
+    maxPingOut: config.natsMaxPingOut,
     maxReconnectAttempts: -1,
     reconnectTimeWait: 2000,
     waitOnFirstConnect: true,
