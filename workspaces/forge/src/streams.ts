@@ -799,6 +799,7 @@ export const STREAMS: Stream[] = [
   },
   commandEvent('rabbit.nav.explore'),
   commandEvent('rabbit.map.save'),
+  commandEvent('rabbit.map.reset'),
   {
     subject: 'rabbit.map.chunks',
     table: 'map_chunks',

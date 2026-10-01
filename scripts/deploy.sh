@@ -9,10 +9,16 @@ if [[ -f "$KEY" ]]; then
     SSH+=(-i "$KEY")
 fi
 
+BUILD=""
+if [[ "${1:-}" == "--build" ]]; then
+    BUILD="--build"
+    shift
+fi
+
 ROOT="$(cd "$(dirname "$0")/../workspaces" && pwd)"
 
 if [[ $# -eq 0 || " $* " == *" rabbit-web "* ]]; then
-    (cd "$ROOT/web" && VITE_CHAT_URL= node ../../.yarn/releases/yarn-4.9.3.cjs vite build --logLevel warn)
+    (cd "$ROOT/web" && VITE_CHAT_URL= VITE_NATS_URL= node ../../.yarn/releases/yarn-4.9.3.cjs vite build --logLevel warn)
 fi
 
 rsync -az -e "${SSH[*]}" \
@@ -24,4 +30,4 @@ rsync -az -e "${SSH[*]}" "$ROOT/web/nginx.conf" "$HOST:$REMOTE/web/"
 rsync -az --delete -e "${SSH[*]}" "$ROOT/web/dist/" "$HOST:$REMOTE/web/dist/"
 
 SERVICES="${*:-\$(docker compose config --services | grep -E '^(rabbit-|forge-writer|forge-chat)')}"
-"${SSH[@]}" "$HOST" "cd $REMOTE && docker compose up -d --build --remove-orphans && docker compose restart $SERVICES"
+"${SSH[@]}" "$HOST" "cd $REMOTE && docker compose up -d $BUILD --remove-orphans && docker compose up -d --no-deps --force-recreate $SERVICES"

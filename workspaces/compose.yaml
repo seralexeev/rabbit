@@ -4,6 +4,33 @@ x-logging: &logging
     max-size: 20m
     max-file: '3'
 
+x-rabbit: &rabbit
+  logging: *logging
+  image: rabbit
+  pull_policy: never
+  working_dir: /rabbit
+  restart: unless-stopped
+  volumes:
+    - &rabbit-src ./rabbit:/rabbit
+  depends_on:
+    - nats-init
+
+x-forge: &forge
+  logging: *logging
+  image: forge
+  restart: unless-stopped
+  init: true
+  env_file: ./forge/.env
+  environment:
+    FORGE_CLICKHOUSE_URL: http://forge-clickhouse:8123
+    FORGE_NATS_URL: nats://nats:4222
+  volumes:
+    - &forge-src ./forge/src:/app/src:ro
+    - &forge-clickhouse-config ./forge/clickhouse:/app/clickhouse:ro
+    - &forge-slabs ./forge/slabs:/app/slabs:ro
+    - &forge-graph ./forge/graph:/app/graph:ro
+  cpus: 1
+
 services:
   nats:
     logging: *logging
@@ -31,119 +58,69 @@ services:
     restart: 'no'
 
   rabbit-zed:
-    logging: *logging
+    <<: *rabbit
     build:
       context: ./rabbit
       dockerfile: ./docker/Dockerfile.zed
+    pull_policy: build
     container_name: rabbit-zed
     stop_grace_period: 30s
     privileged: true
-    working_dir: /rabbit
     runtime: nvidia
     volumes:
-      - ./rabbit:/rabbit
+      - *rabbit-src
       - /dev:/dev
-      - /tmp/argus_socket:/tmp/argus_socket
       - ../../zed/settings:/usr/local/zed/settings
       - ../../zed/resources:/usr/local/zed/resources
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-    restart: unless-stopped
     command: uv run src/node/zed.py
-    depends_on:
-      - nats-init
 
   rabbit-roboclaw:
-    logging: *logging
-    build:
-      context: ./rabbit
-      dockerfile: ./docker/Dockerfile.zed
+    <<: *rabbit
     container_name: rabbit-roboclaw
     privileged: true
-    working_dir: /rabbit
     volumes:
-      - ./rabbit:/rabbit
+      - *rabbit-src
       - /dev:/dev
-    restart: unless-stopped
     command: uv run src/node/roboclaw.py
 
   rabbit-steering:
-    logging: *logging
-    build:
-      context: ./rabbit
-      dockerfile: ./docker/Dockerfile.zed
+    <<: *rabbit
     container_name: rabbit-steering
     privileged: true
-    working_dir: /rabbit
-    volumes:
-      - ./rabbit:/rabbit
-    restart: unless-stopped
     command: uv run src/node/steering.py
 
   rabbit-nav:
-    logging: *logging
-    build:
-      context: ./rabbit
-      dockerfile: ./docker/Dockerfile.zed
+    <<: *rabbit
     container_name: rabbit-nav
-    working_dir: /rabbit
-    volumes:
-      - ./rabbit:/rabbit
-    restart: unless-stopped
     command: uv run src/node/nav.py
-    depends_on:
-      - nats-init
 
   rabbit-explore:
-    logging: *logging
-    build:
-      context: ./rabbit
-      dockerfile: ./docker/Dockerfile.zed
+    <<: *rabbit
     container_name: rabbit-explore
-    working_dir: /rabbit
-    volumes:
-      - ./rabbit:/rabbit
-    restart: unless-stopped
     command: uv run src/node/explore.py
-    depends_on:
-      - nats-init
 
   rabbit-telemetry:
-    logging: *logging
-    build:
-      context: ./rabbit
-      dockerfile: ./docker/Dockerfile.zed
+    <<: *rabbit
     container_name: rabbit-telemetry
     privileged: true
     network_mode: host
     environment:
       - NATS_URL=nats://127.0.0.1:4222
       - WIFI_INTERFACE=wlP1p1s0
-    working_dir: /rabbit
     volumes:
-      - ./rabbit:/rabbit
+      - *rabbit-src
       - /run/jtop.sock:/run/jtop.sock
       - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
     command: uv run src/node/telemetry.py
-    depends_on:
-      - nats-init
 
   rabbit-ina:
-    logging: *logging
-    build:
-      context: ./rabbit
-      dockerfile: ./docker/Dockerfile.zed
+    <<: *rabbit
     container_name: rabbit-ina
     privileged: true
-    working_dir: /rabbit
-    volumes:
-      - ./rabbit:/rabbit
-    restart: unless-stopped
     command: uv run src/node/ina.py
-    depends_on:
-      - nats-init
 
   forge-clickhouse:
     logging: *logging
@@ -171,22 +148,18 @@ services:
       retries: 60
 
   forge-writer:
-    logging: *logging
+    <<: *forge
     build: ./forge
-    image: forge
     container_name: forge-writer
-    restart: unless-stopped
-    init: true
     command: ['writer']
     stop_grace_period: 45s
-    env_file: ./forge/.env
-    environment:
-      FORGE_CLICKHOUSE_URL: http://forge-clickhouse:8123
-      FORGE_NATS_URL: nats://nats:4222
     volumes:
+      - *forge-src
+      - *forge-clickhouse-config
+      - *forge-slabs
+      - *forge-graph
       - forge-dead-letters:/app/dead_letters
     mem_limit: 512m
-    cpus: 1
     depends_on:
       forge-clickhouse:
         condition: service_healthy
@@ -194,20 +167,15 @@ services:
         condition: service_started
 
   forge-chat:
-    logging: *logging
-    image: forge
+    <<: *forge
     pull_policy: never
     container_name: forge-chat
-    restart: unless-stopped
-    init: true
     command: ['serve']
-    env_file: ./forge/.env
     environment:
       FORGE_CLICKHOUSE_URL: http://forge-clickhouse:8123
       FORGE_NATS_URL: nats://nats:4222
       FORGE_CHAT_LISTEN_HOST: 0.0.0.0
     mem_limit: 384m
-    cpus: 1
     depends_on:
       forge-writer:
         condition: service_started
@@ -237,6 +205,15 @@ services:
       - '8000:80'
     depends_on:
       - nats
+
+  tunnel:
+    logging: *logging
+    image: cloudflare/cloudflared:2026.9.0
+    container_name: tunnel
+    restart: unless-stopped
+    command: ['tunnel', '--no-autoupdate', '--url', 'https://rabbit-web:443', '--no-tls-verify']
+    depends_on:
+      - rabbit-web
 
 volumes:
   forge-clickhouse:

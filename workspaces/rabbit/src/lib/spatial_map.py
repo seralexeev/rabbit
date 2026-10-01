@@ -6,6 +6,7 @@ import numpy as np
 MAP_CHUNKS_SUBJECT = "rabbit.map.chunks"
 MAP_SNAPSHOT_SUBJECT = "rabbit.map.snapshot"
 MAP_SAVE_SUBJECT = "rabbit.map.save"
+MAP_RESET_SUBJECT = "rabbit.map.reset"
 MAP_DIR = Path("/rabbit/data/map")
 AREA_FILE = MAP_DIR / "room.area"
 MESH_FILE = MAP_DIR / "room.ply"

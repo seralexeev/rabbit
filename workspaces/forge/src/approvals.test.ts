@@ -1,7 +1,8 @@
+import { type UIMessage, convertToModelMessages } from 'ai';
 import { describe, expect, it } from 'vitest';
 
-import { CHAT_TOOLS } from './agent/chat.ts';
-import { asAiTool } from './agent/model.ts';
+import { CHAT_TOOLS, withLanguageReminder } from './agent/chat.ts';
+import { asAiTool, asAiTools } from './agent/model.ts';
 import {
   APPROVAL_TTL_MS,
   consumeApproval,
@@ -16,7 +17,35 @@ describe('mission approval', () => {
   it('asks the operator to approve exactly the tools that require it', () => {
     expect(approvalConfig(CHAT_TOOLS)).toEqual({
       run_mission: 'user-approval',
+      reset_map: 'user-approval',
     });
+  });
+
+  it('keeps an approval response last so the approved tool runs', async () => {
+    const approved: UIMessage[] = [
+      {
+        id: 'u',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Drive forward' }],
+      },
+      {
+        id: 'a',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-run_mission',
+            toolCallId: 'call-1',
+            state: 'approval-responded',
+            input: MISSION,
+            approval: { id: 'approval-1', approved: true },
+          },
+        ],
+      },
+    ];
+    const history = await convertToModelMessages(approved, {
+      tools: asAiTools(CHAT_TOOLS),
+    });
+    expect(withLanguageReminder(history).at(-1)?.role).toBe('tool');
   });
 
   it('refuses to run a mission whose tool call was never approved', async () => {

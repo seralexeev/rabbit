@@ -1,4 +1,5 @@
 import {
+  type ModelMessage,
   type UIMessage,
   convertToModelMessages,
   isStepCount,
@@ -43,6 +44,9 @@ const lastUserText = (messages: UIMessage[]) =>
     .map((part) => part.text)
     .join(' ') ?? '';
 
+export const withLanguageReminder = (history: ModelMessage[]) =>
+  history.at(-1)?.role === 'tool' ? history : [...history, LANGUAGE_REMINDER];
+
 export const chatSettings = async (
   messages: UIMessage[],
   registry: Record<string, ForgeTool> = CHAT_TOOLS,
@@ -56,8 +60,9 @@ export const chatSettings = async (
         role: 'user' as const,
         content: await groundingContext(lastUserText(messages)),
       },
-      ...(await convertToModelMessages(messages, { tools })),
-      LANGUAGE_REMINDER,
+      ...withLanguageReminder(
+        await convertToModelMessages(messages, { tools }),
+      ),
     ],
     allowSystemInMessages: true,
     tools,

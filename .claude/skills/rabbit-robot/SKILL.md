@@ -19,7 +19,9 @@ description: Operate the Rabbit robot - check that it is alive and healthy, depl
   - `rabbit-zed`, `rabbit-nav`, `rabbit-explore`, `rabbit-roboclaw`, `rabbit-steering`, `rabbit-ina`;
   - `rabbit-telemetry`, which runs with host networking;
   - `forge-clickhouse`, `forge-writer` and `forge-chat` (Forge, see `forge-dev`);
-  - `rabbit-web`: nginx serving the built HUD at https://jetson.rabbit (port 443) and proxying `/api` to the chat. It resolves the chat's address on every request, so recreating `forge-chat` doesn't break it.
+  - `rabbit-web`: nginx serving the built HUD at https://jetson.rabbit (port 443). It proxies `/api` to the chat and `/nats` to the NATS websocket, so the HUD needs only one address. It resolves both upstreams on every request, so recreating them doesn't break it.
+  - `tunnel`: a Cloudflare quick tunnel to `rabbit-web` for sharing the HUD outside the LAN, with no authentication (the user's choice). The URL changes whenever the container restarts. Get it with `ssh -i ~/.ssh/rabbit_id_rsa root@192.168.1.53 'docker logs tunnel 2>&1 | grep -o "https://[a-z0-9-]*\.trycloudflare\.com" | tail -1'`.
+- **Images:** all `rabbit-*` nodes share one image, `rabbit`, built by `rabbit-zed` from `rabbit/docker/Dockerfile.zed`, with the code bind-mounted. Forge's `forge` image holds only `node_modules`, and its sources are mounted read-only too.
 - `/root/rabbit/workspaces/rabbit` is bind-mounted into the containers at `/rabbit`. A code change needs a container restart, not a rebuild. Only `docker/Dockerfile.zed` changes need a rebuild.
 - **Saved room map** is in `/root/rabbit/workspaces/rabbit/data/map/`:
   - `room.area`: ZED tracking memory;
@@ -34,6 +36,7 @@ description: Operate the Rabbit robot - check that it is alive and healthy, depl
 From the Mac:
 
 ```sh
+cd ~/projects/rabbit && scripts/deploy.sh --build         # also rebuild images (dependencies or a Dockerfile changed)
 cd ~/projects/rabbit && scripts/deploy.sh                 # all rabbit-* services
 cd ~/projects/rabbit && scripts/deploy.sh rabbit-nav      # only the listed ones
 cd ~/projects/rabbit && scripts/deploy.sh nats rabbit-zed # nats only when nats/ config changed
@@ -42,7 +45,9 @@ cd ~/projects/rabbit && scripts/deploy.sh nats rabbit-zed # nats only when nats/
 `deploy.sh` does the following:
 1. On a full deploy, or with `rabbit-web` in the list, it builds the HUD (same-origin chat).
 2. It rsyncs `compose.yaml`, `nats/`, `rabbit/`, `forge/` (not `.env`, `node_modules` or `data/`) and `web/dist`.
-3. It runs `docker compose up -d --build --remove-orphans`, then restarts the services. The default list is every `rabbit-*` service plus `forge-writer` and `forge-chat`.
+3. It runs `docker compose up -d --remove-orphans` (with `--build` only when asked), then recreates the listed services (`--force-recreate`).
+
+A code-only deploy takes about 30 s, because nothing is built. `tunnel`, `nats` and `forge-clickhouse` are not in the default list, so a deploy keeps the tunnel URL and the database running. The default list is every `rabbit-*` service plus `forge-writer` and `forge-chat`.
 
 A full deploy takes about a minute. Restart only what you changed: `lib/node.py` affects every node, `lib/geometry.py` and `lib/safety.py` affect zed, nav and explore.
 

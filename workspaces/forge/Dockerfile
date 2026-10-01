@@ -9,10 +9,6 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
-COPY src ./src
-COPY clickhouse ./clickhouse
-COPY slabs ./slabs
-COPY graph ./graph
 RUN mkdir dead_letters && chown node:node dead_letters
 USER node
 ENTRYPOINT ["node", "src/cli.ts"]

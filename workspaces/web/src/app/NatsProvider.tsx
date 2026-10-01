@@ -8,7 +8,11 @@ import { L } from '../log.ts';
 import { ui } from '../ui/index.ts';
 
 const KV_BUCKET = 'rabbit';
-const SERVER = import.meta.env['VITE_NATS_URL'] ?? 'wss://jetson.rabbit:9222';
+const CONFIGURED_SERVER = import.meta.env['VITE_NATS_URL'] ?? 'wss://jetson.rabbit:9222';
+const SERVER =
+    CONFIGURED_SERVER === ''
+        ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/nats`
+        : CONFIGURED_SERVER;
 const HEARTBEAT_SUBJECT = 'rabbit.operator.heartbeat';
 const HEARTBEAT_MS = 500;
 const DISPLAY_INTERVAL_MS = 100;

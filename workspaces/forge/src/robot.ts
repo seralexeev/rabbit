@@ -361,6 +361,18 @@ export const saveMapTool = forgeTool({
   },
 });
 
+export const resetMapTool = forgeTool({
+  title: 'Reset map',
+  description:
+    "Discards the robot's saved room map and restarts the camera with an empty one. The old map is archived on the robot, not deleted. The camera is unavailable for about 10 seconds while it restarts, so the robot must not be driving.",
+  input: z.object({}),
+  requiresApproval: true,
+  run: async () => {
+    await publish('rabbit.map.reset', { source: 'forge' });
+    return { ok: true, published: 'rabbit.map.reset' };
+  },
+});
+
 export const startRunTool = forgeTool({
   title: 'Start run',
   description:
@@ -620,6 +632,7 @@ export const ROBOT_TOOLS = {
   run_mission: runMissionTool,
   stop: stopTool,
   save_map: saveMapTool,
+  reset_map: resetMapTool,
   start_run: startRunTool,
   stop_run: stopRunTool,
 };

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import signal
 import threading
@@ -19,6 +20,7 @@ from lib.spatial_map import (
     MESH_FILE,
     MAP_CHUNKS_SUBJECT,
     MAP_DIR,
+    MAP_RESET_SUBJECT,
     MAP_SAVE_SUBJECT,
     MAP_SNAPSHOT_SUBJECT,
     decode_chunks,
@@ -216,6 +218,7 @@ class Node(RabbitNode):
         await self.init_camera_settings()
         await self.watch_kv(self.CAMERA_SETTINGS_KEY, self.on_camera_settings_update)
         await self.subscribe(MAP_SAVE_SUBJECT, self.on_map_save)
+        await self.subscribe(MAP_RESET_SUBJECT, self.on_map_reset)
         await self.subscribe(MAP_SNAPSHOT_SUBJECT, self.on_map_snapshot)
         self.preview_every_n_frames = max(
             1, round(self.camera_fps / self.PREVIEW_FPS)
@@ -250,7 +253,7 @@ class Node(RabbitNode):
 
     def _save_map(self):
         if self.restarting:
-            self.logger.warning("Not saving the map of a failed tracking session")
+            self.logger.warning("Not saving the map of a discarded session")
             return
         if self.relocalizing_since is not None:
             self.logger.warning("Not saving the map before relocalizing against the saved one")
@@ -270,6 +273,14 @@ class Node(RabbitNode):
 
     async def on_map_save(self, msg: Msg):
         self.save_requested = True
+
+    async def on_map_reset(self, msg: Msg):
+        source = json.loads(msg.data or b"{}").get("source", "unknown")
+        await asyncio.to_thread(self._reset_map, source)
+
+    def _reset_map(self, source: str):
+        with self._camera_lock:
+            self._restart_process(f"map reset requested by {source}", archive=True)
 
     async def on_map_snapshot(self, msg: Msg):
         await self.publish(

@@ -5,6 +5,11 @@ x-forge: &forge
   restart: unless-stopped
   init: true
   env_file: .env
+  volumes:
+    - &src ./src:/app/src:ro
+    - &clickhouse-config ./clickhouse:/app/clickhouse:ro
+    - &slabs ./slabs:/app/slabs:ro
+    - &graph ./graph:/app/graph:ro
   depends_on:
     clickhouse:
       condition: service_healthy
@@ -42,6 +47,10 @@ services:
     environment:
       FORGE_CLICKHOUSE_URL: http://clickhouse:8123
     volumes:
+      - *src
+      - *clickhouse-config
+      - *slabs
+      - *graph
       - ./dead_letters:/app/dead_letters
     healthcheck:
       test:
