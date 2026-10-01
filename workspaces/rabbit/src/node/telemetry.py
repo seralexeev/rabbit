@@ -13,6 +13,7 @@ from lib.node import RabbitNode
 
 TELEMETRY_SUBJECT = "rabbit.telemetry"
 PUBLISH_INTERVAL = 1.0
+JTOP_SILENCE_S = 5.0
 CONTAINER_STATS_INTERVAL = 10.0
 
 KB = 1024
@@ -213,6 +214,7 @@ class Node(RabbitNode):
     def __init__(self):
         super().__init__("telemetry")
         self.jetson = jtop()
+        self.jetson_seen_at = time.monotonic()
         self._wifi = WifiCollector(os.environ.get("WIFI_INTERFACE", "wlP1p1s0"))
         self._container_stats = ContainerStatsCollector(docker.DockerClient.from_env())
         self._container_events = ContainerEventWatcher(docker.DockerClient.from_env())
@@ -226,7 +228,10 @@ class Node(RabbitNode):
 
     async def publish_telemetry(self):
         if not await asyncio.to_thread(self.jetson.ok):
+            if time.monotonic() - self.jetson_seen_at > JTOP_SILENCE_S:
+                await asyncio.to_thread(self._reconnect_jetson)
             return
+        self.jetson_seen_at = time.monotonic()
 
         j = self.jetson
 
@@ -337,6 +342,16 @@ class Node(RabbitNode):
         }
 
         await self.publish_json(TELEMETRY_SUBJECT, payload)
+
+    def _reconnect_jetson(self):
+        self.logger.warning("jtop stopped answering, reconnecting")
+        try:
+            self.jetson.close()
+        except Exception:
+            self.logger.exception("Closing the stale jtop client failed")
+        self.jetson = jtop()
+        self.jetson.start()
+        self.jetson_seen_at = time.monotonic()
 
     async def close(self):
         await super().close()

@@ -1,4 +1,6 @@
 import asyncio
+import os
+import signal
 import threading
 import time
 from collections import deque
@@ -79,6 +81,7 @@ class Node(RabbitNode):
     IMU_WINDOW_NS = 10_000_000
     STATUS_EVERY_N_FRAMES = 30
     RELOCALIZATION_TIMEOUT_S = 30.0
+    FRESH_MAP_SUSPECT_S = 120.0
     BASE_INDEX_OFFSET = 1 << 20
     BASE_REPLACE_MARGIN = 0.1
     AREA_ARCHIVE_KEEP = 5
@@ -113,7 +116,6 @@ class Node(RabbitNode):
         self._sensors_thread = threading.Thread(target=self._poll_sensors, daemon=True)
         self.map = sl.Mesh()
         self._camera_lock = threading.Lock()
-        self._sensors_lock = threading.Lock()
         self._encoding: asyncio.Task | None = None
 
         self.runtime_params = sl.RuntimeParameters()
@@ -165,6 +167,8 @@ class Node(RabbitNode):
         self.base_centers = np.empty((0, 3))
         self.relocalization_motion_s = 0.0
         self.relocalization_checked_at = 0.0
+        self.restarting = False
+        self.started_at = time.monotonic()
 
         self.frame_number = -1
         self.timestamp = 0
@@ -245,6 +249,9 @@ class Node(RabbitNode):
             self.zed.close()
 
     def _save_map(self):
+        if self.restarting:
+            self.logger.warning("Not saving the map of a failed tracking session")
+            return
         if self.relocalizing_since is not None:
             self.logger.warning("Not saving the map before relocalizing against the saved one")
             return
@@ -339,6 +346,8 @@ class Node(RabbitNode):
         )
 
     def _grab(self) -> CapturedFrame | None:
+        if self.restarting:
+            return None
         with self._camera_lock:
             status = self.zed.grab(self.runtime_params)
             if status == sl.ERROR_CODE.CORRUPTED_FRAME:
@@ -520,7 +529,7 @@ class Node(RabbitNode):
         if self.relocalization_motion_s < self.RELOCALIZATION_TIMEOUT_S:
             return
 
-        self._restart_tracking("relocalization timed out")
+        self._restart_process("relocalization timed out", archive=True)
 
     def _check_tilt(self, tracking_ok: bool):
         if not tracking_ok or self.imu_tilt_deg is None:
@@ -536,38 +545,19 @@ class Node(RabbitNode):
             self.tilt_mismatch_since = now
         elif now - self.tilt_mismatch_since > self.TILT_MISMATCH_S:
             self.tilt_mismatch_since = None
-            self._restart_tracking(f"pose tilt {pose_tilt:.1f} deg disagrees with IMU {self.imu_tilt_deg:.1f} deg")
+            self._restart_process(
+                f"pose tilt {pose_tilt:.1f} deg disagrees with IMU {self.imu_tilt_deg:.1f} deg",
+                archive=time.monotonic() - self.started_at < self.FRESH_MAP_SUSPECT_S,
+            )
 
-    def _restart_tracking(self, reason: str):
-        self.logger.warning(f"Restarting tracking with a fresh map: {reason}")
-        self.relocalizing_since = None
-        self.map_requested = False
-        self._archive_area()
-        if self.map_worker is not None:
-            self.map_worker.join()
-        with self.map_lock, self._sensors_lock:
-            if self.mapping_enabled:
-                self.zed.disable_spatial_mapping()
-                self.mapping_enabled = False
-            self.zed.disable_positional_tracking()
-            self.tracking_parameters.area_file_path = ""
-            status = self.zed.enable_positional_tracking(self.tracking_parameters)
-            if status != sl.ERROR_CODE.SUCCESS:
-                raise RuntimeError(f"Failed to restart positional tracking: {status}")
-            self.zed.reset_positional_tracking(sl.Transform())
-            self.floor_y = None
-            self.last_camera_height = None
-            self.map = sl.Mesh()
-            with self._pending_lock:
-                self.pending_map = None
-            self.chunk_timestamps.clear()
-            self.encoded_chunks.clear()
-            self.chunk_points.clear()
-            self.base_keys = np.empty(0, dtype=np.int64)
-            self.base_centers = np.empty((0, 3))
-            self.snapshot_payload = b""
-        self.session = str(time.time_ns())
-        self.set_log_context(map_session=self.session)
+    def _restart_process(self, reason: str, archive: bool):
+        if self.restarting:
+            return
+        self.restarting = True
+        self.logger.warning(f"Restarting the camera process: {reason}", extra={"archive_map": archive})
+        if archive:
+            self._archive_area()
+        os.kill(os.getpid(), signal.SIGTERM)
 
     def _archive_area(self):
         if not AREA_FILE.exists():
@@ -646,9 +636,8 @@ class Node(RabbitNode):
         last_imu = last_magnetometer = last_barometer = 0
         last_state = 0.0
         while not self._sensors_stop.wait(self.SENSOR_POLL_S):
-            with self._sensors_lock:
-                if self.zed.get_sensors_data(data, sl.TIME_REFERENCE.CURRENT) != sl.ERROR_CODE.SUCCESS:
-                    continue
+            if self.zed.get_sensors_data(data, sl.TIME_REFERENCE.CURRENT) != sl.ERROR_CODE.SUCCESS:
+                continue
 
             now = time.monotonic()
             if now - last_state >= 1.0:
