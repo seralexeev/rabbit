@@ -1,6 +1,6 @@
 # rabbit [rabbit0.dev](https://rabbit0.dev)
 
-The robot code (`workspaces/rabbit`), the web HUD (`workspaces/web`, served by the robot at https://jetson.rabbit) and Forge, its telemetry analytics and agent (`workspaces/forge`). `AGENTS.md` and the skills in `.claude/skills` explain how to run, deploy and develop all of it. The notes below are hardware and setup scratch notes.
+The robot code (`workspaces/rabbit`), the web HUD (`workspaces/web`, served by the robot at https://jetson.rabbit on the LAN and publicly at https://live.rabbit0.dev) and Forge, its telemetry analytics and agent (`workspaces/forge`). `AGENTS.md` and the skills in `.claude/skills` explain how to run, deploy and develop all of it. The notes below are hardware and setup scratch notes.
 
 ![whiteboard excalidraw](https://github.com/user-attachments/assets/90191113-4795-4add-820a-ea3d4afff8f1)
 
