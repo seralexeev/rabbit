@@ -6,6 +6,10 @@ import { useNats } from '../app/NatsProvider.tsx';
 import { L } from '../log.ts';
 import { util } from '../utils/index.ts';
 
+const SIGNAL_TIMEOUT_MS = 1500;
+
+type Source = { type: string; width: number; height: number };
+
 type Stats = {
     bytes: number;
     fps: number;
@@ -15,6 +19,7 @@ type Stats = {
     throughput: number;
     frameSize: number;
     subject: string;
+    live: boolean;
 };
 
 export const useCameraStream = ({ subject }: { subject: string }) => {
@@ -24,8 +29,9 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
 
     React.useEffect(() => {
         let bytes = 0;
-        let type = 'unknown';
+        const source: Source = { type: 'unknown', width: 0, height: 0 };
 
+        let lastFrameAt = -Infinity;
         let tick = {
             now: Date.now(),
             frames: 0,
@@ -40,11 +46,12 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
                 bytes,
                 fps: Math.round((tick.frames * 1000) / elapsed),
                 throughput: tick.bytes / (elapsed / 1000),
-                width: canvas.current?.width ?? 0,
-                height: canvas.current?.height ?? 0,
-                type,
+                width: source.width,
+                height: source.height,
+                type: source.type,
                 frameSize: tick.frames !== 0 ? tick.bytes / tick.frames : 0,
                 subject,
+                live: Date.now() - lastFrameAt < SIGNAL_TIMEOUT_MS,
             });
 
             tick = {
@@ -63,7 +70,7 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
                 const msg = pending;
                 pending = null;
                 try {
-                    type = await drawFrame(canvas, msg);
+                    await drawFrame(canvas, msg, source);
                 } catch (e) {
                     console.error('Failed to decode camera frame', e);
                 }
@@ -73,6 +80,7 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
 
         const subscription = nc.subscribe(subject, {
             callback: (_, msg) => {
+                lastFrameAt = Date.now();
                 tick.frames += 1;
                 tick.bytes += msg.data.length;
 
@@ -100,24 +108,36 @@ export const useCameraStream = ({ subject }: { subject: string }) => {
     return { canvas, stats };
 };
 
-const drawFrame = async (canvas: React.RefObject<HTMLCanvasElement | null>, msg: Msg) => {
-    const { type } = util.parseNatsHeaders(MessageHeader, msg);
-    const bitmap = await createImageBitmap(new Blob([msg.data as Uint8Array<ArrayBuffer>], { type }));
+const drawFrame = async (canvas: React.RefObject<HTMLCanvasElement | null>, msg: Msg, source: Source) => {
+    const header = util.parseNatsHeaders(MessageHeader, msg);
+    source.type = header.type;
+    source.width = header.width ?? source.width;
+    source.height = header.height ?? source.height;
+    const target = canvas.current;
+    const width = target == null ? 0 : Math.round(target.clientWidth * window.devicePixelRatio);
+    if (target == null || width === 0) return;
+
+    const blob = new Blob([msg.data as Uint8Array<ArrayBuffer>], { type: header.type });
+    const bitmap = await (header.width != null && header.height != null && width < header.width
+        ? createImageBitmap(blob, {
+              resizeWidth: width,
+              resizeHeight: Math.round((width * header.height) / header.width),
+              resizeQuality: 'medium',
+          })
+        : createImageBitmap(blob));
 
     try {
-        const target = canvas.current;
-        const ctx = target?.getContext('2d');
-        if (target == null || ctx == null) {
-            return type;
+        if (header.width == null || header.height == null) {
+            source.width = bitmap.width;
+            source.height = bitmap.height;
         }
-
+        const ctx = target.getContext('2d');
+        if (ctx == null) return;
         if (target.width !== bitmap.width || target.height !== bitmap.height) {
             target.width = bitmap.width;
             target.height = bitmap.height;
         }
-
         ctx.drawImage(bitmap, 0, 0);
-        return type;
     } finally {
         bitmap.close();
     }
@@ -125,4 +145,6 @@ const drawFrame = async (canvas: React.RefObject<HTMLCanvasElement | null>, msg:
 
 const MessageHeader = z.object({
     type: z.string(),
+    width: z.coerce.number().optional(),
+    height: z.coerce.number().optional(),
 });

@@ -17,6 +17,7 @@ import { predictWaypoints, remainingMission } from './mission.ts';
 const MAP_CHUNKS_SUBJECT = 'rabbit.map.chunks';
 const MAP_SNAPSHOT_SUBJECT = 'rabbit.map.snapshot';
 const SNAPSHOT_TIMEOUT_MS = 10_000;
+const SNAPSHOT_RETRY_MS = 3000;
 const MAX_STEERING_RAD = THREE.MathUtils.degToRad(30);
 const MAX_PIXEL_RATIO = 1.5;
 const POSE_RATE = 24;
@@ -119,16 +120,25 @@ export const createScene = ({
             }
         },
     });
-    const requestSnapshot = () =>
-        nc
-            .request(MAP_SNAPSHOT_SUBJECT, undefined, { timeout: SNAPSHOT_TIMEOUT_MS })
+    let snapshotRetry: number | null = null;
+    let linked = true;
+    const requestSnapshot = () => {
+        if (snapshotRetry != null) window.clearTimeout(snapshotRetry);
+        snapshotRetry = null;
+        nc.request(MAP_SNAPSHOT_SUBJECT, undefined, { timeout: SNAPSHOT_TIMEOUT_MS })
             .then((msg) => {
                 if (!disposed) roomMap.apply(msg.headers?.get('session') ?? '', msg.data);
             })
-            .catch((error) => L.error('Failed to load map snapshot', error));
-    void requestSnapshot();
+            .catch((error) => {
+                if (disposed || !linked) return;
+                L.warn('Map snapshot not loaded, retrying', error);
+                snapshotRetry = window.setTimeout(requestSnapshot, SNAPSHOT_RETRY_MS);
+            });
+    };
+    requestSnapshot();
     const offLink = onLink((state) => {
-        if (state === 'connected') void requestSnapshot();
+        linked = state === 'connected';
+        if (linked) requestSnapshot();
     });
 
     const posePosition = new THREE.Vector3();
@@ -405,6 +415,7 @@ export const createScene = ({
         apply,
         dispose: () => {
             disposed = true;
+            if (snapshotRetry != null) window.clearTimeout(snapshotRetry);
             observer.disconnect();
             renderer.setAnimationLoop(null);
             rig.dispose();

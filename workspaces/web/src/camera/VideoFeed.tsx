@@ -17,14 +17,13 @@ const formatBytes = (bytes: number) => {
 
 export const VideoFeed: React.FC<{ subject: string }> = ({ subject }) => {
     const { canvas, stats } = useCameraStream({ subject });
+    const live = stats?.live === true;
 
     return (
         <div className={frameCss}>
             <canvas ref={canvas} className={canvasCss} />
             <div className={statsCss}>
-                {stats == null ? (
-                    <span>NO SIGNAL</span>
-                ) : (
+                {stats == null || !live ? null : (
                     <>
                         <span>{`${stats.width}x${stats.height}@${stats.fps}`}</span>
                         <span>{`${formatBytes(stats.throughput)}/s`}</span>
@@ -32,7 +31,9 @@ export const VideoFeed: React.FC<{ subject: string }> = ({ subject }) => {
                     </>
                 )}
             </div>
-            <span className={recCss}>● LIVE</span>
+            <span className={recCss} data-live={live}>
+                {live ? '● LIVE' : '○ NO SIGNAL'}
+            </span>
         </div>
     );
 };
@@ -68,9 +69,16 @@ const statsCss = css`
 
 const recCss = css`
     position: absolute;
-    top: 2px;
-    left: 4px;
+    top: 3px;
+    left: 3px;
+    padding: 0 4px;
     font-size: 8px;
+    background: rgba(0, 0, 0, 0.7);
     color: var(--hud-alert);
     text-shadow: 0 0 4px rgba(255, 90, 74, 0.6);
+
+    &[data-live='false'] {
+        color: var(--hud-amber);
+        text-shadow: none;
+    }
 `;

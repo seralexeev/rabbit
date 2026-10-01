@@ -37,11 +37,12 @@ export const HudPanel: React.FC<HudPanelProps> = ({ id, code, title, source, liv
         if (link.textContent !== next) {
             link.textContent = next;
             link.dataset['lost'] = String(next === 'LOST');
+            if (ref.current != null) ref.current.dataset['lost'] = String(next === 'LOST');
         }
     });
 
     return (
-        <section ref={ref} className={panelCss} data-side={side}>
+        <section ref={ref} className={panelCss} data-side={side} data-lost={source == null ? live === false : undefined}>
             <header className={headCss}>
                 <button className={titleButtonCss} onClick={() => toggle(id)} title={collapsed ? 'Expand' : 'Collapse'}>
                     <span className={codeCss}>{code}</span>
@@ -98,6 +99,10 @@ const panelCss = cx(
 
         &[data-compact='true'] > .hud-body {
             display: none;
+        }
+
+        &[data-lost='true'] > .hud-body > :not(button, :has(button)) {
+            opacity: 0.45;
         }
     `,
 );

@@ -8,10 +8,12 @@ import { L } from '../log.ts';
 import { ui } from '../ui/index.ts';
 
 const KV_BUCKET = 'rabbit';
-const SERVER = 'wss://jetson.rabbit:9222';
+const SERVER = import.meta.env['VITE_NATS_URL'] ?? 'wss://jetson.rabbit:9222';
 const HEARTBEAT_SUBJECT = 'rabbit.operator.heartbeat';
 const HEARTBEAT_MS = 500;
 const DISPLAY_INTERVAL_MS = 100;
+const PING_INTERVAL_MS = 3000;
+const MAX_PINGS_OUT = 2;
 
 export type LinkState = 'connected' | 'reconnecting' | 'disconnected';
 
@@ -32,6 +34,9 @@ const connect = async (): Promise<{ nc: NatsConnection; kv: KV }> => {
         servers: [SERVER],
         reconnect: true,
         maxReconnectAttempts: -1,
+        waitOnFirstConnect: true,
+        pingInterval: PING_INTERVAL_MS,
+        maxPingOut: MAX_PINGS_OUT,
         name: 'rabbit-web',
     });
     try {
@@ -54,7 +59,7 @@ const createLink = (nc: NatsConnection) => {
     void (async () => {
         for await (const status of nc.status()) {
             if (status.type === 'disconnect') set('disconnected');
-            else if (status.type === 'reconnecting') set('reconnecting');
+            else if (status.type === 'reconnecting' || status.type === 'staleConnection') set('reconnecting');
             else if (status.type === 'reconnect') set('connected');
             else if (status.type === 'close') set('disconnected');
         }
