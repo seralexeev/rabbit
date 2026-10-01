@@ -36,6 +36,33 @@ def bin_scan(along: np.ndarray, across: np.ndarray, half_fov_deg: float, bins: i
     return np.where(counts >= min_points, ranges[kth], np.inf)
 
 
+def heights_above_floor(
+    offset_xz: np.ndarray,
+    y: np.ndarray,
+    band: float = 0.08,
+    inlier: float = 0.02,
+    max_slope: float = 0.15,
+    min_points: int = 200,
+) -> np.ndarray:
+    candidates = np.abs(y) < band
+    if candidates.sum() < min_points:
+        return y
+    design = np.column_stack([offset_xz[:, 0], offset_xz[:, 1], np.ones(len(y))])
+    for _ in range(2):
+        plane, *_ = np.linalg.lstsq(design[candidates], y[candidates], rcond=None)
+        residual = y - _plane_height(offset_xz, plane)
+        candidates = np.abs(residual) < inlier
+        if candidates.sum() < min_points:
+            return y
+    if np.abs(plane[:2]).max() > max_slope or abs(plane[2]) > band:
+        return y
+    return y - _plane_height(offset_xz, plane)
+
+
+def _plane_height(offset_xz: np.ndarray, plane: np.ndarray) -> np.ndarray:
+    return plane[0] * offset_xz[:, 0] + plane[1] * offset_xz[:, 1] + plane[2]
+
+
 def sweep_poses(curvature: float, distances: np.ndarray) -> np.ndarray:
     heading = curvature * distances
     if abs(curvature) < 1e-6:

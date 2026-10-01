@@ -9,7 +9,7 @@ import numpy as np
 from lib.geometry import CAMERA_HEIGHT, CENTERLINE_OFFSET, GRAVITY, quaternion_to_matrix, tilt_deg
 from lib.model import CameraIntrinsics
 from lib.node import RabbitNode
-from lib.safety import bin_scan
+from lib.safety import bin_scan, heights_above_floor
 from lib.spatial_map import (
     AREA_ARCHIVE_DIR,
     AREA_FILE,
@@ -451,9 +451,10 @@ class Node(RabbitNode):
 
         offset = world - origin
         horizontal = np.hypot(offset[:, 0], offset[:, 2])
+        height = heights_above_floor(offset[:, [0, 2]], world[:, 1])
         mask = (
-            (world[:, 1] > self.OBSTACLE_MIN_HEIGHT)
-            & (world[:, 1] < self.OBSTACLE_MAX_HEIGHT)
+            (height > self.OBSTACLE_MIN_HEIGHT)
+            & (height < self.OBSTACLE_MAX_HEIGHT)
             & (horizontal < self.OBSTACLE_MAX_RANGE)
         )
         if not mask.any():
