@@ -32,6 +32,8 @@ Compose runs three services with `restart: unless-stopped`, so recording survive
 
 ## Run it
 
+In normal use Forge runs on the robot itself: `forge-clickhouse`, `forge-writer` and `forge-chat` are services in the monorepo's `workspaces/compose.yaml`, deployed with `scripts/deploy.sh`, and the HUD reaches the chat through `https://jetson.rabbit/api`. The commands below run the same stack on a laptop for development.
+
 Requires Node 26 (`.nvmrc`), pnpm and Docker.
 
 ```sh
