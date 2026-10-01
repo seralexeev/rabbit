@@ -3,9 +3,10 @@ set -euo pipefail
 
 HOST="${RABBIT_HOST:-root@192.168.1.53}"
 REMOTE="${RABBIT_REMOTE:-/root/rabbit/workspaces}"
+KEY="${RABBIT_SSH_KEY:-$HOME/.ssh/rabbit_id_rsa}"
 SSH=(ssh)
-if [[ -n "${RABBIT_SSH_KEY:-}" ]]; then
-    SSH+=(-i "$RABBIT_SSH_KEY")
+if [[ -f "$KEY" ]]; then
+    SSH+=(-i "$KEY")
 fi
 
 ROOT="$(cd "$(dirname "$0")/../workspaces" && pwd)"

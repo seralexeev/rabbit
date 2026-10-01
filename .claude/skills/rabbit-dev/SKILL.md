@@ -1,6 +1,6 @@
 ---
 name: rabbit-dev
-description: Develop the Rabbit robot code (Python NATS nodes in ../rabbit/workspaces/rabbit) and its web HUD (React/three.js in ../rabbit/workspaces/web) - layout, conventions, coordinate frames, message contracts, tests, running the HUD and verifying changes. Use before editing anything in ../rabbit.
+description: Develop the Rabbit robot code (Python NATS nodes in workspaces/rabbit) and its web HUD (React/three.js in workspaces/web) - layout, conventions, coordinate frames, message contracts, tests, running the HUD and verifying changes. Use before editing workspaces/rabbit or workspaces/web.
 ---
 
 # Developing Rabbit

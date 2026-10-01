@@ -1,6 +1,6 @@
 # Forge
 
-Forge turns the telemetry of Rabbit, a small rover (`~/projects/rabbit`), into answers an agent can trust. It records every NATS stream, every command with its sender, the robot's configuration changes and the logs of all its nodes into ClickHouse on one clock, tagged by run, keeps a library of reviewed queries called **slabs**, guards every ad-hoc query with a static SQL gate and a ClickHouse EXPLAIN, and serves all of it to coding agents over MCP, plus an `ask` agent that answers questions in plain language.
+Forge turns the telemetry of Rabbit, a small rover (this monorepo), into answers an agent can trust. It records every NATS stream, every command with its sender, the robot's configuration changes and the logs of all its nodes into ClickHouse on one clock, tagged by run, keeps a library of reviewed queries called **slabs**, guards every ad-hoc query with a static SQL gate and a ClickHouse EXPLAIN, and serves all of it to coding agents over MCP, plus an `ask` agent that answers questions in plain language.
 
 It is a small, standalone version of the ideas behind Sherpa in Nexus: curated queries with grain and measure metadata, a fast path that runs a reviewed query, and a heavy path where a sub-agent writes new SQL that must pass validation before it runs.
 
@@ -227,7 +227,7 @@ A rejection returns a stable error plus a repair hint for the model (the columns
 
 ## Chat API
 
-The `chat` service (`pnpm forge serve` on the host) listens on `http://127.0.0.1:18080` for the rabbit web HUD, which calls it directly from the browser (`VITE_CHAT_URL`, default `http://127.0.0.1:18080`, in `rabbit/workspaces/web/src/chat/session.ts`) with CORS rather than through a Vite proxy:
+The `chat` service (`pnpm forge serve` on the host) listens on `http://127.0.0.1:18080` for the rabbit web HUD, which calls it directly from the browser (`VITE_CHAT_URL`, default `http://127.0.0.1:18080`, in `workspaces/web/src/chat/session.ts`) with CORS rather than through a Vite proxy:
 
 - `POST /api/chat` takes `{ messages: UIMessage[] }` (stateless, the client sends the history; only `user` and `assistant` messages) and streams the AI SDK UI message stream. A client that disconnects aborts the agent run. It requires an allowed `Origin` (`https://localhost:*`, `https://dev.rabbit:*`), `content-type: application/json` and the `x-forge-token` header.
 - `GET /api/session` returns `{ token, header }` to an allowed origin, so the HUD can fetch the token on load.
@@ -239,7 +239,7 @@ The chat agent is `ask` with more tools: the data tools, `write_query`, `chart` 
 ## MCP
 
 ```sh
-claude mcp add forge -- node /Users/sergey/projects/forge/src/cli.ts mcp
+claude mcp add forge -- node /Users/sergey/projects/rabbit/workspaces/forge/src/cli.ts mcp
 ```
 
 Tools: `list_runs`, `search_slabs`, `run_slab`, `query`, `describe_schema`, `detect_anomalies`, `metric_graph`, `investigate`, `timeline`, `search_logs`, `logs_around`, `list_metrics`, `ask` (no robot actions over MCP). All are read-only. To try it without Claude Code:

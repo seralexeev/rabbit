@@ -7,10 +7,10 @@ description: Operate the Rabbit robot - check that it is alive and healthy, depl
 
 ## Access
 
-- **Host.** `root@192.168.1.53` (hostname `rabbit`, the HUD calls it `jetson.rabbit`). SSH with the key in this repo: `ssh -i ~/projects/forge/id_rsa root@192.168.1.53 '<command>'`. Never print or copy the key.
+- **Host.** `root@192.168.1.53` (hostname `rabbit`, the HUD calls it `jetson.rabbit`). SSH with `ssh -i ~/.ssh/rabbit_id_rsa root@192.168.1.53 '<command>'`. Never print or copy the key.
 - **NATS.** Client `nats://192.168.1.53:4222`; websocket with TLS on `:9222` (HUD); monitoring at `http://192.168.1.53:8222` (`/varz`, `/connz?subs=1`), reachable over SSH as `localhost:8222`.
 - **Quick scripts from the Mac.** `uv run -q --with nats-py python script.py`. Keep scratch scripts outside both repos.
-- **Status at a glance.** Run `uv run -q --with nats-py python ~/projects/forge/.claude/skills/rabbit-robot/status.py`. It prints pose, obstacle scan, nav, explore, ZED health, power, motors and Wi-Fi from 3 s of traffic. If it times out, the robot is off, still booting, or the Wi-Fi is down: `ping 192.168.1.53`.
+- **Status at a glance.** Run `uv run -q --with nats-py python ~/projects/rabbit/.claude/skills/rabbit-robot/status.py`. It prints pose, obstacle scan, nav, explore, ZED health, power, motors and Wi-Fi from 3 s of traffic. If it times out, the robot is off, still booting, or the Wi-Fi is down: `ping 192.168.1.53`.
 
 ## Layout on the robot
 
@@ -32,9 +32,9 @@ description: Operate the Rabbit robot - check that it is alive and healthy, depl
 From the Mac:
 
 ```sh
-cd ~/projects/rabbit && RABBIT_SSH_KEY=~/projects/forge/id_rsa scripts/deploy.sh                 # all rabbit-* services
-cd ~/projects/rabbit && RABBIT_SSH_KEY=~/projects/forge/id_rsa scripts/deploy.sh rabbit-nav      # only the listed ones
-cd ~/projects/rabbit && RABBIT_SSH_KEY=~/projects/forge/id_rsa scripts/deploy.sh nats rabbit-zed # nats only when nats/ config changed
+cd ~/projects/rabbit && scripts/deploy.sh                 # all rabbit-* services
+cd ~/projects/rabbit && scripts/deploy.sh rabbit-nav      # only the listed ones
+cd ~/projects/rabbit && scripts/deploy.sh nats rabbit-zed # nats only when nats/ config changed
 ```
 
 `deploy.sh` rsyncs `compose.yaml`, `nats/` and `rabbit/` (not `data/`), runs `docker compose up -d --build --remove-orphans`, then restarts the services. Restart only what you changed: `lib/node.py` affects every node, `lib/geometry.py` and `lib/safety.py` affect zed, nav and explore.
@@ -53,7 +53,7 @@ It takes 30–60 s and is the only disruptive restart.
 Wait for those log lines before testing:
 
 ```sh
-ssh -i ~/projects/forge/id_rsa root@192.168.1.53 'timeout 150 sh -c "until docker logs --since 2m rabbit-zed 2>&1 | grep -qE \"Loaded .* saved map chunks|Restarting tracking|Spatial mapping enabled\"; do sleep 2; done"; docker logs --since 3m rabbit-zed 2>&1 | grep -E "Relocal|Loaded|Restarting|Archived|Error" | cut -c1-160'
+ssh -i ~/.ssh/rabbit_id_rsa root@192.168.1.53 'timeout 150 sh -c "until docker logs --since 2m rabbit-zed 2>&1 | grep -qE \"Loaded .* saved map chunks|Restarting the camera process|Spatial mapping enabled\"; do sleep 2; done"; docker logs --since 3m rabbit-zed 2>&1 | grep -E "Relocal|Loaded|Restarting|Archived|Error" | cut -c1-160'
 ```
 
 ## Logs and health

@@ -5,3 +5,5 @@ dist
 coverage
 
 projects/api/src/db/sqlc.ts
+
+workspaces/forge

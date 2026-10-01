@@ -1,6 +1,6 @@
 ---
 name: forge-dev
-description: Develop and run Forge (this repo) - the Docker services, ClickHouse access, adding a NATS subject to the writer, schema changes, slabs, the metric graph, the chat/MCP agent and its evals - and investigate robot incidents with SQL over the recorded telemetry. Use before changing Forge or when asked why the robot did something.
+description: Develop and run Forge (workspaces/forge) - the Docker services, ClickHouse access, adding a NATS subject to the writer, schema changes, slabs, the metric graph, the chat/MCP agent and its evals - and investigate robot incidents with SQL over the recorded telemetry. Use before changing Forge or when asked why the robot did something.
 ---
 
 # Developing Forge
@@ -12,7 +12,7 @@ description: Develop and run Forge (this repo) - the Docker services, ClickHouse
 ClickHouse, the writer and the chat server run in Docker Compose inside the Colima VM.
 
 - **Health check:** `docker compose ps` should show `forge-clickhouse`, `forge-writer` and `forge-chat` as healthy, and `curl -s http://127.0.0.1:18080/api/health` reports `latest_data_age_s`.
-- **After a Mac reboot** Colima doesn't start by itself. Run `colima start`, then `docker compose up -d --wait` in this repo. Until then nothing is recorded and the HUD chat is down.
+- **After a Mac reboot** Colima doesn't start by itself. Run `colima start`, then `docker compose up -d --wait` in `workspaces/forge`. Until then nothing is recorded and the HUD chat is down.
 - **Deploying code changes:** `docker compose up -d --build --wait writer chat`.
 - **Running on the host for debugging:** stop the matching container first (`docker compose stop writer`), otherwise every message is recorded twice or port 18080 clashes.
 - **Writer state:** `docker compose logs --since 10m writer` prints rows/s every 10 s and the NATS state. NATS pings every 5 s, so a dead link is noticed in about 10 s.
