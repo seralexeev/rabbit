@@ -145,4 +145,5 @@ __pycache__/
 
 workspaces/nats/data/
 # robot runtime data
+workspaces/tunnel.env
 workspaces/rabbit/data

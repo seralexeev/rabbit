@@ -20,7 +20,7 @@ description: Operate the Rabbit robot - check that it is alive and healthy, depl
   - `rabbit-telemetry`, which runs with host networking;
   - `forge-clickhouse`, `forge-writer` and `forge-chat` (Forge, see `forge-dev`);
   - `rabbit-web`: nginx serving the built HUD at https://jetson.rabbit (port 443). It proxies `/api` to the chat and `/nats` to the NATS websocket, so the HUD needs only one address. It resolves both upstreams on every request, so recreating them doesn't break it.
-  - `tunnel`: a Cloudflare quick tunnel to `rabbit-web` for sharing the HUD outside the LAN, with no authentication (the user's choice). The URL changes whenever the container restarts. Get it with `ssh -i ~/.ssh/rabbit_id_rsa root@192.168.1.53 'docker logs tunnel 2>&1 | grep -o "https://[a-z0-9-]*\.trycloudflare\.com" | tail -1'`.
+  - `tunnel`: the Cloudflare tunnel `rabbit` (account Sergey, zone `bunnyfleet.com`) that publishes `rabbit-web` at https://robot.bunnyfleet.com with no authentication, by the user's choice. Its token is in `/root/rabbit/workspaces/tunnel.env` on the robot (gitignored, never print it). The route (HTTPS to `rabbit-web:443`, No TLS Verify) is configured in the Cloudflare dashboard under Zero Trust → Networks → Tunnels.
 - **Images:** all `rabbit-*` nodes share one image, `rabbit`, built by `rabbit-zed` from `rabbit/docker/Dockerfile.zed`, with the code bind-mounted. Forge's `forge` image holds only `node_modules`, and its sources are mounted read-only too.
 - `/root/rabbit/workspaces/rabbit` is bind-mounted into the containers at `/rabbit`. A code change needs a container restart, not a rebuild. Only `docker/Dockerfile.zed` changes need a rebuild.
 - **Saved room map** is in `/root/rabbit/workspaces/rabbit/data/map/`:

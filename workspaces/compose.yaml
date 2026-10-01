@@ -211,7 +211,8 @@ services:
     image: cloudflare/cloudflared:2026.9.0
     container_name: tunnel
     restart: unless-stopped
-    command: ['tunnel', '--no-autoupdate', '--url', 'https://rabbit-web:443', '--no-tls-verify']
+    command: ['tunnel', '--no-autoupdate', 'run']
+    env_file: ./tunnel.env
     depends_on:
       - rabbit-web
 
