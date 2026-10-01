@@ -57,7 +57,7 @@ Map chunks travel on `rabbit.map.chunks`, and `rabbit.map.snapshot` and `room.ch
 
 - **ZED node and the GIL.** pyzed calls hold the GIL. Anything slow in the ZED process (mesh filtering, walking every chunk) freezes the event loop, and pose and obstacle publishing stall. Keep per-update work proportional to the changed chunks and measure capture gaps after changes.
 - **ZED threads.** The ZED node has a grab thread, a sensors thread and a map worker. Respect the locks: `_camera_lock`, `map_lock`, `_sensors_lock`, `_pending_lock`. Publish only from the event loop.
-- **Relocalization rules.** Never save the map before relocalizing. Mapping waits for relocalization. A fresh tracking session starts at the origin. A pose with confidence 0 is not published.
+- **Relocalization rules.** Never save the map before relocalizing. Mapping waits for relocalization. After a tracking failure the process restarts rather than re-enabling tracking in-process, because re-enabling left the SDK broken and produced poses tens of metres away. A pose with confidence 0 is not published.
 - **Obstacles.** Heights are measured from a plane fitted to the floor in each frame, not from the global floor estimate. Sectors use the 4th nearest point, because single "flying pixels" inside the blind zone used to stop the robot.
 - **Mission tracking.** `rabbit.nav.state.mission_id` persists after a mission ends, so use `mode`. Explore sends its own mission `id` and waits for nav to adopt it.
 

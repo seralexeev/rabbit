@@ -46,7 +46,9 @@ It takes 30–60 s and is the only disruptive restart.
 1. **On stop**, it saves the map (`room.area` and `room.chunks`), but only if it has already relocalized.
 2. **On start**, it logs `Relocalizing against .../room.area`, then `Relocalized (KNOWN_MAP)` and `Loaded N saved map chunks`.
 3. **Spatial mapping** turns on only after relocalization.
-4. **If relocalization never succeeds**, it gives up after 30 s of camera motion (time standing still doesn't count). It then archives the map and starts fresh at the origin.
+4. **If relocalization never succeeds**, it gives up after 30 s of camera motion (time standing still doesn't count), archives the map and restarts the process with a fresh map.
+5. **If tracking fails** (pose tilt disagrees with the IMU), the process discards the session without saving, restarts itself and relocalizes against the last saved map. It archives the map only if the failure repeats within 2 minutes of start.
+6. **A fresh session's origin** is where the SDK puts it, which is not always the robot's position (it has started at x = 17 m). Map and pose stay consistent, so this is harmless.
 
 Wait for those log lines before testing:
 
