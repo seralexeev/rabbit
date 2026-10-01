@@ -73,7 +73,9 @@ React 19 with the React Compiler, Vite 8, three.js, uPlot and `@ai-sdk/react`. C
 
   Check with `curl -sk -o /dev/null -w "%{http_code}" https://localhost:3005/`. Vite hot-reloads changes.
 - **Checks:** `node ../../.yarn/releases/yarn-4.9.3.cjs tsc` (`tsc --build`) and `node ../../.yarn/releases/yarn-4.9.3.cjs vite build`. There is no linter or test runner.
-- **NATS.** The default is `wss://jetson.rabbit:9222`; `VITE_NATS_URL` overrides it for a local NATS. The chat calls Forge at `http://127.0.0.1:18080` (`VITE_CHAT_URL`).
+- **NATS.** The default is `wss://jetson.rabbit:9222`; `VITE_NATS_URL` overrides it for a local NATS.
+- **Chat.** The dev server calls the robot's chat at `https://jetson.rabbit` (`VITE_CHAT_URL`). The robot build uses an empty `VITE_CHAT_URL`, so it calls the same origin.
+- **Production.** The robot serves the built HUD at https://jetson.rabbit. `scripts/deploy.sh rabbit-web` rebuilds and redeploys it.
 
 **Layout:**
 

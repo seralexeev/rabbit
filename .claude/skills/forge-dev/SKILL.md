@@ -9,13 +9,18 @@ description: Develop and run Forge (workspaces/forge) - the Docker services, Cli
 
 ## Services
 
-ClickHouse, the writer and the chat server run in Docker Compose inside the Colima VM.
+On the robot, from `workspaces/compose.yaml`:
+- `forge-clickhouse`: memory capped at 768 MiB inside and 900 MB by cgroup;
+- `forge-writer`: reads NATS at `nats://nats:4222` locally, so recording doesn't depend on Wi-Fi or on the Mac being on;
+- `forge-chat`.
 
-- **Health check:** `docker compose ps` should show `forge-clickhouse`, `forge-writer` and `forge-chat` as healthy, and `curl -s http://127.0.0.1:18080/api/health` reports `latest_data_age_s`.
-- **After a Mac reboot** Colima doesn't start by itself. Run `colima start`, then `docker compose up -d --wait` in `workspaces/forge`. Until then nothing is recorded and the HUD chat is down.
-- **Deploying code changes:** `docker compose up -d --build --wait writer chat`.
-- **Running on the host for debugging:** stop the matching container first (`docker compose stop writer`), otherwise every message is recorded twice or port 18080 clashes.
-- **Writer state:** `docker compose logs --since 10m writer` prints rows/s every 10 s and the NATS state. NATS pings every 5 s, so a dead link is noticed in about 10 s.
+The HUD is served by `rabbit-web` (nginx) at https://jetson.rabbit, which proxies `/api` to the chat. Data starts fresh on the robot; the old Mac ClickHouse volume (`forge_clickhouse-data`) is stopped.
+
+- **Health:** `curl -sk https://jetson.rabbit/api/health` reports `latest_data_age_s`. `ssh ... 'docker logs --since 10m forge-writer'` prints rows/s every 10 s.
+- **Deploying:** `scripts/deploy.sh forge-writer forge-chat` rebuilds the `forge` image on the Jetson (about a minute) and restarts both.
+- **ClickHouse on the robot:** `ssh -i ~/.ssh/rabbit_id_rsa root@192.168.1.53 'docker exec forge-clickhouse clickhouse-client -d forge -q "SELECT ..."'`.
+- **Local development on the Mac:** `workspaces/forge/docker-compose.yml` still runs a Mac-side stack (`docker compose up -d --wait` after `colima start`), and `pnpm forge ...` reads `workspaces/forge/.env`. `FORGE_NATS_URL` and `FORGE_CLICKHOUSE_URL` choose the robot or the local services.
+- **Running on the host for debugging:** stop the matching container first, otherwise every message is recorded twice or port 18080 clashes.
 
 ## Checks
 
@@ -29,7 +34,7 @@ pnpm forge eval       # chat agent on evals/chat.yml against live ClickHouse and
 ## ClickHouse
 
 ```sh
-docker compose exec -T clickhouse clickhouse-client -d forge -q "SELECT ... FORMAT TSV"
+ssh -i ~/.ssh/rabbit_id_rsa root@192.168.1.53 'docker exec forge-clickhouse clickhouse-client -d forge -q "SELECT ... FORMAT TSV"'
 ```
 
 - **Timestamps.** Every table has `ts DateTime64(9, 'UTC')` on the robot's clock and a `run_id`. Write time literals as `toDateTime64('2026-10-01 21:10:00', 9, 'UTC')`. The robot's local time zone is AEST (UTC+10).

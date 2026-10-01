@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env['VITE_CHAT_URL'] ?? 'http://127.0.0.1:18080';
+const BASE_URL = import.meta.env['VITE_CHAT_URL'] ?? 'https://jetson.rabbit';
 const TOKEN_HEADER = 'x-forge-token';
 
 export const CHAT_URL = `${BASE_URL}/api/chat`;

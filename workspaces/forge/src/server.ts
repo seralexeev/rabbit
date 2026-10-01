@@ -19,7 +19,8 @@ import { ForgeError, errorMessage } from './errors.ts';
 import { log } from './log.ts';
 import { startLiveStatus } from './robot.ts';
 
-const ALLOWED_ORIGIN = /^https:\/\/(localhost|dev\.rabbit)(:\d+)?$/;
+const ALLOWED_ORIGIN =
+  /^https:\/\/(localhost|dev\.rabbit|jetson\.rabbit)(:\d+)?$/;
 
 const ALLOWED_HOSTS = new Set([
   `127.0.0.1:${config.chatPort}`,

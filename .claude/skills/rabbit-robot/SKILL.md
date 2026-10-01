@@ -17,7 +17,9 @@ description: Operate the Rabbit robot - check that it is alive and healthy, depl
 - `/root/rabbit/workspaces/compose.yaml` runs these services:
   - `nats`, `nats-init` (creates the KV bucket `rabbit` and the `LOGS` stream) and `nats-dashboard`;
   - `rabbit-zed`, `rabbit-nav`, `rabbit-explore`, `rabbit-roboclaw`, `rabbit-steering`, `rabbit-ina`;
-  - `rabbit-telemetry`, which runs with host networking.
+  - `rabbit-telemetry`, which runs with host networking;
+  - `forge-clickhouse`, `forge-writer` and `forge-chat` (Forge, see `forge-dev`);
+  - `rabbit-web`: nginx serving the built HUD at https://jetson.rabbit (port 443) and proxying `/api` to the chat.
 - `/root/rabbit/workspaces/rabbit` is bind-mounted into the containers at `/rabbit`. A code change needs a container restart, not a rebuild. Only `docker/Dockerfile.zed` changes need a rebuild.
 - **Saved room map** is in `/root/rabbit/workspaces/rabbit/data/map/`:
   - `room.area`: ZED tracking memory;
@@ -37,7 +39,12 @@ cd ~/projects/rabbit && scripts/deploy.sh rabbit-nav      # only the listed ones
 cd ~/projects/rabbit && scripts/deploy.sh nats rabbit-zed # nats only when nats/ config changed
 ```
 
-`deploy.sh` rsyncs `compose.yaml`, `nats/` and `rabbit/` (not `data/`), runs `docker compose up -d --build --remove-orphans`, then restarts the services. Restart only what you changed: `lib/node.py` affects every node, `lib/geometry.py` and `lib/safety.py` affect zed, nav and explore.
+`deploy.sh` does the following:
+1. On a full deploy, or with `rabbit-web` in the list, it builds the HUD (same-origin chat).
+2. It rsyncs `compose.yaml`, `nats/`, `rabbit/`, `forge/` (not `.env`, `node_modules` or `data/`) and `web/dist`.
+3. It runs `docker compose up -d --build --remove-orphans`, then restarts the services. The default list is every `rabbit-*` service plus `forge-writer` and `forge-chat`.
+
+A full deploy takes about a minute. Restart only what you changed: `lib/node.py` affects every node, `lib/geometry.py` and `lib/safety.py` affect zed, nav and explore.
 
 ### Restarting `rabbit-zed`
 
