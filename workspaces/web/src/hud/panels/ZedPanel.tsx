@@ -51,8 +51,9 @@ const formatSize = (bytes: number) => {
     return `${(bytes / 1024).toFixed(0)}K`;
 };
 
-const isOk = (status: string | undefined) =>
-    status == null || status === 'OK' || status === 'ON' || status === 'SEARCHING_FLOOR_PLANE';
+const BAD_STATUSES = new Set(['OFF', 'LOST', 'SEARCHING', 'INITIALIZING', 'UNAVAILABLE']);
+
+const isOk = (status: string | undefined) => status == null || !BAD_STATUSES.has(status);
 
 export const ZedPanel: React.FC = () => {
     const zed = useSubjectState('rabbit.health.zed', (msg) => msg.json() as ZedHealth, HEALTH_INTERVAL_MS);
