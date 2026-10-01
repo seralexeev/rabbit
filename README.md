@@ -1,5 +1,7 @@
 # rabbit [rabbit0.dev](https://rabbit0.dev)
 
+The robot code (`workspaces/rabbit`), the web HUD (`workspaces/web`, served by the robot at https://jetson.rabbit) and Forge, its telemetry analytics and agent (`workspaces/forge`). `AGENTS.md` and the skills in `.claude/skills` explain how to run, deploy and develop all of it. The notes below are hardware and setup scratch notes.
+
 ![whiteboard excalidraw](https://github.com/user-attachments/assets/90191113-4795-4add-820a-ea3d4afff8f1)
 
 ![146-1](https://github.com/user-attachments/assets/46094498-2394-4d8f-b6d4-94cd619eff84)
@@ -26,7 +28,7 @@ mutagen sync flush --all
 Blue - RX - S1
 Green - TX - S2
 
-docker compose -f compose.jetson.dev.yaml up --build rabbit-roboclaw
+scripts/deploy.sh rabbit-roboclaw
 
 # Cameras
 

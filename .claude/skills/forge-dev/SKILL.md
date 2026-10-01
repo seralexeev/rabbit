@@ -16,10 +16,11 @@ On the robot, from `workspaces/compose.yaml`:
 
 The HUD is served by `rabbit-web` (nginx) at https://jetson.rabbit, which proxies `/api` to the chat. Data starts fresh on the robot; the old Mac ClickHouse volume (`forge_clickhouse-data`) is stopped.
 
-- **Health:** `curl -sk https://jetson.rabbit/api/health` reports `latest_data_age_s`. `ssh ... 'docker logs --since 10m forge-writer'` prints rows/s every 10 s.
+- **Health:** `curl -sk https://jetson.rabbit/api/health` reports `latest_data_age_s`. The writer opens a new `auto` run each time it restarts, and the agent looks at the latest run by default. `ssh ... 'docker logs --since 10m forge-writer'` prints rows/s every 10 s.
 - **Deploying:** `scripts/deploy.sh forge-writer forge-chat` rebuilds the `forge` image on the Jetson (about a minute) and restarts both.
 - **ClickHouse on the robot:** `ssh -i ~/.ssh/rabbit_id_rsa root@192.168.1.53 'docker exec forge-clickhouse clickhouse-client -d forge -q "SELECT ..."'`.
-- **Local development on the Mac:** `workspaces/forge/docker-compose.yml` still runs a Mac-side stack (`docker compose up -d --wait` after `colima start`), and `pnpm forge ...` reads `workspaces/forge/.env`. `FORGE_NATS_URL` and `FORGE_CLICKHOUSE_URL` choose the robot or the local services.
+- **From the Mac.** `pnpm forge ...` (CLI, `ask`, evals) and the MCP server use the robot's ClickHouse: `forge-clickhouse` publishes port 18123 on the LAN, and `workspaces/forge/.env` sets `FORGE_CLICKHOUSE_URL=http://192.168.1.53:18123`. When `.env` exists, Forge reads settings only from it, never from the shell.
+- **Mac-side stack.** `workspaces/forge/docker-compose.yml` still runs a full stack on the Mac (`colima start`, then `docker compose up -d --wait`) for offline development. Point `.env` at `http://127.0.0.1:18123` while using it, and stop it afterwards: two writers would split the data.
 - **Running on the host for debugging:** stop the matching container first, otherwise every message is recorded twice or port 18080 clashes.
 
 ## Checks

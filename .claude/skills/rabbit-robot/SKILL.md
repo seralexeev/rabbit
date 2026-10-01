@@ -19,7 +19,7 @@ description: Operate the Rabbit robot - check that it is alive and healthy, depl
   - `rabbit-zed`, `rabbit-nav`, `rabbit-explore`, `rabbit-roboclaw`, `rabbit-steering`, `rabbit-ina`;
   - `rabbit-telemetry`, which runs with host networking;
   - `forge-clickhouse`, `forge-writer` and `forge-chat` (Forge, see `forge-dev`);
-  - `rabbit-web`: nginx serving the built HUD at https://jetson.rabbit (port 443) and proxying `/api` to the chat.
+  - `rabbit-web`: nginx serving the built HUD at https://jetson.rabbit (port 443) and proxying `/api` to the chat. It resolves the chat's address on every request, so recreating `forge-chat` doesn't break it.
 - `/root/rabbit/workspaces/rabbit` is bind-mounted into the containers at `/rabbit`. A code change needs a container restart, not a rebuild. Only `docker/Dockerfile.zed` changes need a rebuild.
 - **Saved room map** is in `/root/rabbit/workspaces/rabbit/data/map/`:
   - `room.area`: ZED tracking memory;
@@ -116,4 +116,4 @@ Only with the user's go-ahead in this session; see the rules in `AGENTS.md`.
 ## Disk
 
 - **Jetson:** NVMe 915 GB with lots of free space. About 75 GB are stale Docker images, reclaimable with `docker image prune -a` (ask first).
-- **Mac:** Forge's ClickHouse grows about 15 MiB per hour of driving.
+- **Forge:** ClickHouse on the robot grows about 15 MiB per hour of driving, in the Docker volume `workspaces_forge-clickhouse`.
