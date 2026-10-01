@@ -8,11 +8,11 @@ from lib.drive import DRIVE_SUBJECT, HEARTBEAT_SUBJECT, JOY_SUBJECT, is_active, 
 from lib.log import time_id
 from lib.node import RabbitNode
 from lib.geometry import (
-    CAMERA_TO_REAR_AXLE,
-    CENTERLINE_OFFSET,
     MAX_CURVATURE,
     curvature_for_steer,
     linear_acceleration,
+    rear_axle_path,
+    rear_axle_point,
     steer_for_curvature,
 )
 from lib.safety import free_distance, scan_points
@@ -31,6 +31,7 @@ class Node(RabbitNode):
     CONTROL_INTERVAL = 0.05
     STATE_INTERVAL = 0.1
     ARRIVE_DISTANCE = 0.15
+    PATH_ARRIVE_DISTANCE = 0.05
     LOOKAHEAD = 1.0
     CRUISE_SPEED = 0.25
     MANEUVER_SPEED = 0.25
@@ -67,7 +68,7 @@ class Node(RabbitNode):
     PATH_STEP = 0.1
     TURN_TOLERANCE_DEG = 8.0
     PATH_LOOKAHEAD = 0.35
-    GEAR_SWITCH_TOLERANCE = 0.1
+    GEAR_SWITCH_TOLERANCE = 0.05
     REVERSE_SPEED = 0.22
 
     def __init__(self):
@@ -178,8 +179,7 @@ class Node(RabbitNode):
     def rear_axle(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         assert self.position is not None and self.forward is not None
         right = np.array([-self.forward[1], self.forward[0]])
-        origin = self.position + CENTERLINE_OFFSET * right - CAMERA_TO_REAR_AXLE * self.forward
-        return origin, self.forward, right
+        return rear_axle_point(self.position, self.forward), self.forward, right
 
     def obstacles(self) -> np.ndarray:
         cutoff = time.monotonic() - self.OBSTACLE_MEMORY
@@ -475,31 +475,33 @@ class Node(RabbitNode):
 
     async def follow_path(self):
         assert self.path is not None and self.position is not None and self.forward is not None
-        points, directions = self.path[:, :2], self.path[:, 2]
+        directions = self.path[:, 2]
+        position, _, _ = self.rear_axle()
+        points = rear_axle_path(self.path[:, :2], directions, self.forward)
         direction = directions[self.path_index]
         switch = next((i for i in range(self.path_index, len(points)) if directions[i] != direction), len(points))
         segment_end = switch - 1
         motion = self.forward * direction
-        end_offset = points[segment_end] - self.position
+        end_offset = points[segment_end] - position
         end_distance = float(np.linalg.norm(end_offset))
         passed = end_distance < self.PATH_LOOKAHEAD and float(end_offset @ motion) <= 0.0
-        self.distance = float(np.linalg.norm(points[-1] - self.position))
-        if switch == len(points) and (self.distance < self.ARRIVE_DISTANCE or passed):
+        self.distance = float(np.linalg.norm(points[-1] - position))
+        if switch == len(points) and (self.distance < self.PATH_ARRIVE_DISTANCE or passed):
             self.finish_step()
             await self.command(0.0, 0.0)
             return
         window = points[self.path_index : segment_end + 1]
-        nearest = self.path_index + int(np.argmin(np.linalg.norm(window - self.position, axis=1)))
+        nearest = self.path_index + int(np.argmin(np.linalg.norm(window - position, axis=1)))
         self.path_index = nearest
         if switch < len(points) and (end_distance < self.GEAR_SWITCH_TOLERANCE or passed):
             self.path_index = switch
             await self.command(0.0, 0.0)
             return
 
-        ahead = np.linalg.norm(points[nearest : segment_end + 1] - self.position, axis=1)
+        ahead = np.linalg.norm(points[nearest : segment_end + 1] - position, axis=1)
         target_index = nearest + int(np.argmax(ahead >= self.PATH_LOOKAHEAD)) if (ahead >= self.PATH_LOOKAHEAD).any() else segment_end
         right = np.array([-motion[1], motion[0]])
-        offset = points[target_index] - self.position
+        offset = points[target_index] - position
         lookahead = max(float(np.linalg.norm(offset)), 0.05)
         self.heading_error = math.degrees(math.atan2(float(offset @ right), float(offset @ motion)))
         curvature = 2.0 * math.sin(math.radians(self.heading_error)) / lookahead

@@ -21,6 +21,21 @@ def scan_points(scan: dict) -> np.ndarray:
     return np.stack([along, across], axis=1)
 
 
+def bin_scan(along: np.ndarray, across: np.ndarray, half_fov_deg: float, bins: int, min_points: int) -> np.ndarray:
+    angles = np.degrees(np.arctan2(across, along))
+    ranges = np.hypot(along, across)
+    index = np.floor((angles + half_fov_deg) / (2 * half_fov_deg / bins)).astype(int)
+    valid = (index >= 0) & (index < bins)
+    index, ranges = index[valid], ranges[valid]
+    order = np.lexsort((ranges, index))
+    index, ranges = index[order], ranges[order]
+    if len(ranges) == 0:
+        return np.full(bins, np.inf)
+    counts = np.bincount(index, minlength=bins)
+    kth = np.minimum(np.searchsorted(index, np.arange(bins)) + min_points - 1, len(ranges) - 1)
+    return np.where(counts >= min_points, ranges[kth], np.inf)
+
+
 def sweep_poses(curvature: float, distances: np.ndarray) -> np.ndarray:
     heading = curvature * distances
     if abs(curvature) < 1e-6:

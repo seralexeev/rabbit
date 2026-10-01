@@ -35,6 +35,30 @@ RIGHT_CURVATURE_TABLE = np.array([0.0, 1.33, 2.49])
 MAX_CURVATURE = float(min(LEFT_CURVATURE_TABLE[-1], RIGHT_CURVATURE_TABLE[-1]))
 
 
+def rear_axle_point(camera: np.ndarray, forward: np.ndarray) -> np.ndarray:
+    right = np.stack([-forward[..., 1], forward[..., 0]], axis=-1)
+    return camera + CENTERLINE_OFFSET * right - CAMERA_TO_REAR_AXLE * forward
+
+
+def camera_point(rear: np.ndarray, forward: np.ndarray) -> np.ndarray:
+    right = np.stack([-forward[..., 1], forward[..., 0]], axis=-1)
+    return rear + CAMERA_TO_REAR_AXLE * forward - CENTERLINE_OFFSET * right
+
+
+def rear_axle_path(points: np.ndarray, directions: np.ndarray, fallback_forward: np.ndarray) -> np.ndarray:
+    tangents = np.diff(points, axis=0, prepend=points[:1])
+    if len(points) > 1:
+        tangents[0] = points[1] - points[0]
+    lengths = np.linalg.norm(tangents, axis=1)
+    valid = lengths > 1e-6
+    if not valid.any():
+        return rear_axle_point(points, np.broadcast_to(fallback_forward, points.shape))
+    last_valid = np.maximum.accumulate(np.where(valid, np.arange(len(points)), -1))
+    source = np.where(last_valid >= 0, last_valid, int(np.argmax(valid)))
+    travel = tangents[source] / lengths[source][:, None]
+    return rear_axle_point(points, travel * np.sign(directions)[:, None])
+
+
 def curvature_for_steer(steer: float) -> float:
     table = RIGHT_CURVATURE_TABLE if steer >= 0 else LEFT_CURVATURE_TABLE
     return float(np.copysign(np.interp(abs(steer), STEER_TABLE, table), steer))

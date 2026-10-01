@@ -20,7 +20,7 @@ from lib.planner import (
     rank_frontiers,
     smooth,
 )
-from lib.geometry import CAMERA_TO_REAR_AXLE, CENTERLINE_OFFSET
+from lib.geometry import CENTERLINE_OFFSET, camera_point, rear_axle_point
 from lib.spatial_map import MAP_CHUNKS_SUBJECT, MAP_SAVE_SUBJECT, MAP_SNAPSHOT_SUBJECT, decode_chunks
 from nats.aio.msg import Msg
 
@@ -40,23 +40,16 @@ def rear_axle_pose(translation: list[float], orientation: list[float]) -> Pose2D
     x, y, z, w = orientation
     forward = np.array([-2 * (x * z + y * w), -(1 - 2 * (x * x + y * y))])
     forward /= np.linalg.norm(forward)
-    right = np.array([-forward[1], forward[0]])
-    camera = np.array([translation[0], translation[2]])
-    rear = camera + CENTERLINE_OFFSET * right - CAMERA_TO_REAR_AXLE * forward
+    rear = rear_axle_point(np.array([translation[0], translation[2]]), forward)
     return Pose2D(float(rear[0]), float(rear[1]), math.atan2(forward[1], forward[0]))
 
 
 def camera_points(path) -> list[list[float]]:
     points = []
     for waypoint in path.waypoints:
-        cos, sin = math.cos(waypoint.theta), math.sin(waypoint.theta)
-        points.append(
-            [
-                round(waypoint.x + CAMERA_TO_REAR_AXLE * cos + CENTERLINE_OFFSET * sin, 3),
-                round(waypoint.z + CAMERA_TO_REAR_AXLE * sin - CENTERLINE_OFFSET * cos, 3),
-                int(waypoint.direction),
-            ]
-        )
+        forward = np.array([math.cos(waypoint.theta), math.sin(waypoint.theta)])
+        x, z = camera_point(np.array([waypoint.x, waypoint.z]), forward)
+        points.append([round(float(x), 3), round(float(z), 3), int(waypoint.direction)])
     return points
 
 

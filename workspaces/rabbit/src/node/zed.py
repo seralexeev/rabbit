@@ -9,6 +9,7 @@ import numpy as np
 from lib.geometry import CAMERA_HEIGHT, CENTERLINE_OFFSET, GRAVITY, quaternion_to_matrix, tilt_deg
 from lib.model import CameraIntrinsics
 from lib.node import RabbitNode
+from lib.safety import bin_scan
 from lib.spatial_map import (
     AREA_ARCHIVE_DIR,
     AREA_FILE,
@@ -63,6 +64,8 @@ class Node(RabbitNode):
     OBSTACLE_MIN_HEIGHT = 0.04
     OBSTACLE_MAX_HEIGHT = 0.45
     OBSTACLE_MAX_RANGE = 5.0
+    OBSTACLE_MIN_DEPTH = 0.25
+    SCAN_MIN_POINTS = 4
     CORRIDOR_HALF_WIDTH = 0.15
     SCAN_HALF_FOV_DEG = 60.0
     SCAN_BINS = 48
@@ -419,6 +422,7 @@ class Node(RabbitNode):
         blind_fraction = float(1.0 - np.isfinite(window).all(axis=2).mean())
         camera = image.reshape(-1, 3)
         camera = camera[np.isfinite(camera).all(axis=1)]
+        camera = camera[np.linalg.norm(camera, axis=1) > self.OBSTACLE_MIN_DEPTH]
         rotation = quaternion_to_matrix(self.pose.get_orientation().get())
         origin = np.asarray(self.pose.get_translation().get(), dtype=float)
         world = camera @ rotation.T + origin
@@ -450,10 +454,16 @@ class Node(RabbitNode):
                 "bearing_deg": round(float(np.degrees(np.arctan2(across[index], along[index]))), 1),
             }
 
+        def kth_nearest(candidates: np.ndarray) -> dict | None:
+            if len(candidates) < self.SCAN_MIN_POINTS:
+                return None
+            order = np.argpartition(horizontal[candidates], self.SCAN_MIN_POINTS - 1)
+            return describe(int(candidates[order[self.SCAN_MIN_POINTS - 1]]))
+
         corridor = np.flatnonzero((along > 0) & (np.abs(across) < self.CORRIDOR_HALF_WIDTH))
         return {
-            "nearest": describe(int(np.argmin(horizontal))),
-            "ahead": describe(int(corridor[np.argmin(along[corridor])])) if len(corridor) else None,
+            "nearest": kth_nearest(np.arange(len(horizontal))),
+            "ahead": kth_nearest(corridor),
             "scan": self._scan(along, across - CENTERLINE_OFFSET, blind_fraction),
         }
 
@@ -469,12 +479,7 @@ class Node(RabbitNode):
 
     def _scan(self, along: np.ndarray, across: np.ndarray, blind_fraction: float) -> dict:
         scan = self._empty_scan(blind_fraction)
-        angles = np.degrees(np.arctan2(across, along))
-        ranges = np.hypot(along, across)
-        bins = np.floor((angles + self.SCAN_HALF_FOV_DEG) / scan["angle_step_deg"]).astype(int)
-        valid = (bins >= 0) & (bins < self.SCAN_BINS)
-        nearest = np.full(self.SCAN_BINS, np.inf)
-        np.minimum.at(nearest, bins[valid], ranges[valid])
+        nearest = bin_scan(along, across, self.SCAN_HALF_FOV_DEG, self.SCAN_BINS, self.SCAN_MIN_POINTS)
         scan["ranges"] = [round(float(r), 3) if np.isfinite(r) else None for r in nearest]
         return scan
 
