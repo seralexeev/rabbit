@@ -5,6 +5,7 @@ from collections import deque
 
 import numpy as np
 from lib.drive import DRIVE_SUBJECT, HEARTBEAT_SUBJECT, JOY_SUBJECT, is_active, parse_joy
+from lib.log import time_id
 from lib.node import RabbitNode
 from lib.geometry import (
     CAMERA_TO_REAR_AXLE,
@@ -303,7 +304,7 @@ class Node(RabbitNode):
         self.blocked_since = None
         self.holding = False
         self.mode = "driving"
-        self.mission_id = str(time.time_ns())
+        self.mission_id = time_id()
         self.set_log_context(mission_id=self.mission_id)
         self.logger.info("New mission with %d steps", len(steps), extra={"step_types": [step.get("type") for step in steps]})
 

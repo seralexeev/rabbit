@@ -4,6 +4,7 @@ import math
 import time
 
 import numpy as np
+from lib.log import time_id
 from lib.node import RabbitNode
 from lib.planner import (
     FREE,
@@ -181,7 +182,7 @@ class Node(RabbitNode):
             "max_distance_m": float(request.get("max_distance_m", 20.0)),
         }
         self.started_at = time.monotonic()
-        self.exploration_id = str(time.time_ns())
+        self.exploration_id = time_id()
         self.set_log_context(exploration_id=self.exploration_id)
         self.logger.info("Exploration started", extra=self.limits)
         self.travelled = 0.0

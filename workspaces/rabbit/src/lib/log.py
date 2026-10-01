@@ -7,6 +7,7 @@ import time
 import traceback
 from collections import deque
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 LOG_SUBJECT = "rabbit.log"
@@ -24,6 +25,10 @@ LEVELS = {
 RECORD_ATTRIBUTES = set(vars(logging.makeLogRecord({}))) | {"message", "asctime", "taskName"}
 
 NUMBER = re.compile(r"\d+(\.\d+)?")
+
+
+def time_id() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")[:-3]
 
 
 def log_subject(node: str) -> str:
