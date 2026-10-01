@@ -14,7 +14,7 @@ Rabbit (NATS 192.168.1.53:4222)
   │  rabbit.health.zed, rabbit.telemetry
   │  JetStream: LOGS (rabbit.log.>, durable, 7 days on the robot), KV_rabbit (camera settings and other config)
   ▼
-writer (docker)          ── one INSERT per table per second, deduplicated ──► ClickHouse (docker, forge db)
+writer (docker)          ── one INSERT per table every 10 s, deduplicated ──► ClickHouse (docker, forge db)
        logs: durable pull consumer, acked after the insert
                                                                           ▲ forge_reader (read-only)
 CLI ─┬─ run start / stop / list                                           │

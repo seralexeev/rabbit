@@ -136,7 +136,8 @@ services:
       - ./forge/clickhouse/config.xml:/etc/clickhouse-server/config.d/forge.xml:ro
       - ./forge/clickhouse/users.xml:/etc/clickhouse-server/users.d/forge.xml:ro
     mem_limit: 900m
-    cpus: 1.5
+    cpus: 1
+    cpu_shares: 256
     ulimits:
       nofile:
         soft: 262144

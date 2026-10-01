@@ -22,7 +22,7 @@ import {
 import { migrate } from './schema.ts';
 import { type Row, STREAMS } from './streams.ts';
 
-const FLUSH_MS = 1000;
+const FLUSH_MS = 10_000;
 const POLL_MS = 2000;
 const REPORT_MS = 10_000;
 const IDLE_MS = 60_000;
@@ -230,7 +230,7 @@ export const runWriter = async () => {
       log('Heartbeat write failed', { error: errorMessage(error) });
     }
     const totals = new Map([
-      ...buffers.inserted,
+      ...buffers.received,
       ['logs', robot?.logs.inserted() ?? 0],
     ]);
     const rates = Object.fromEntries(

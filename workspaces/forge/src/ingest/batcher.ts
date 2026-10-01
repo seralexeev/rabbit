@@ -51,6 +51,7 @@ export class Batcher {
   private readonly inFlight = new Set<string>();
   private readonly retryAt = new Map<string, number>();
   private buffered = 0;
+  public readonly received = new Map<string, number>();
   public readonly inserted = new Map<string, number>();
   public readonly deadLettered = new Map<string, number>();
   private readonly insert: Insert;
@@ -67,6 +68,7 @@ export class Batcher {
     const buffer = this.buffers.get(table) ?? [];
     buffer.push(...rows);
     this.buffers.set(table, buffer);
+    this.received.set(table, (this.received.get(table) ?? 0) + rows.length);
     this.buffered += rows.length;
     const overflow = this.buffered - this.options.maxBufferedRows;
     if (overflow > 0) {
