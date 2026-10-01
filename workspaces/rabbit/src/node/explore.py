@@ -97,6 +97,7 @@ class Node(RabbitNode):
     MAX_SCANS = 2000
     RECENT_HITS = 50
     BLOCKED_REPLAN = 3.0
+    VIEWPOINT_REACHED = 0.5
 
     def __init__(self):
         super().__init__("explore")
@@ -224,7 +225,9 @@ class Node(RabbitNode):
                 if outcome == "cancelled":
                     await self.finish("idle", "navigation mission cancelled outside exploration")
                     return
-                if outcome != "arrived":
+                if outcome == "arrived":
+                    failures = 0
+                else:
                     failures += 1
                     if outcome == "blocked":
                         self.blocked.append(frontier)
@@ -326,7 +329,7 @@ class Node(RabbitNode):
                 blocked_since = blocked_since or time.monotonic()
                 if time.monotonic() - blocked_since > self.BLOCKED_REPLAN:
                     await self.cancel_mission()
-                    return "blocked"
+                    return "arrived" if self.nav.get("distance_to_goal", math.inf) <= self.VIEWPOINT_REACHED else "blocked"
             else:
                 blocked_since = None
             if mode == "arrived":

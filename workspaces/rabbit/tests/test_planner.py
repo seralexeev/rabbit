@@ -282,3 +282,18 @@ def test_unreachable_frontier_is_excluded_from_ranking():
 
     assert len(frontiers) == 1
     assert rank_frontiers(frontiers, start, grid, distance_map_from(costmap, (start.x, start.z))) == []
+
+
+def test_frontier_behind_a_long_detour_is_excluded_from_ranking():
+    grid = walled_grid(8.0, 8.0)
+    fill(grid, 3.0, 0.0, 3.1, 7.0)
+    fill(grid, 3.6, 0.8, 4.0, 1.2, UNKNOWN)
+    costmap = build_costmap(grid)
+    start = Pose2D(2.0, 1.0, 0.0)
+    costs = distance_map_from(costmap, (start.x, start.z))
+
+    frontiers = [frontier for frontier in find_frontiers(costmap) if frontier.centroid[0] > 3.0]
+
+    assert len(frontiers) == 1
+    assert rank_frontiers(frontiers, start, grid, costs, max_detour=math.inf) == frontiers
+    assert rank_frontiers(frontiers, start, grid, costs) == []

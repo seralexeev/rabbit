@@ -698,12 +698,13 @@ def rank_frontiers(
     heuristic_costs: np.ndarray,
     size_weight: float = 1.0,
     turn_penalty: float = 0.3,
+    max_detour: float = 3.0,
 ) -> list[Frontier]:
     scored = []
     for frontier in frontiers:
         iz, ix, inside = grid.cell_index(np.array([frontier.viewpoint.x, frontier.viewpoint.z]))
         cost = float(heuristic_costs[iz[0], ix[0]]) if inside[0] else math.inf
-        if math.isinf(cost):
+        if cost > max_detour * math.hypot(frontier.viewpoint.x - start.x, frontier.viewpoint.z - start.z) + 1.0:
             continue
         effort = cost + turn_penalty * abs(wrap_angle(frontier.viewpoint.theta - start.theta))
         scored.append((size_weight * frontier.cells / max(effort, grid.resolution), frontier))
