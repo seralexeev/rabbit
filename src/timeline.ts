@@ -177,7 +177,7 @@ const stateEvents = async (window: TimeWindow): Promise<Raw[]> => {
 const configEvents = async (window: TimeWindow): Promise<Raw[]> =>
   (
     await query<{ t: string; key: string; operation: string; value: string }>(
-      `SELECT toString(ts) AS t, key, operation, value FROM kv_changes WHERE ${WINDOW_SQL} ORDER BY ts`,
+      `SELECT toString(ts) AS t, key, operation, value FROM kv_changes FINAL WHERE ${WINDOW_SQL} ORDER BY ts`,
       window,
     )
   ).map((row) => ({

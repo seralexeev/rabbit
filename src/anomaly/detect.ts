@@ -197,6 +197,8 @@ const windowStarts = (shape: Shape, channels: Channel[]): Window[] => {
   return windows;
 };
 
+const FORECAST_CACHE_ENTRIES = 16;
+
 const forecastCache = new Map<string, Forecast & { model: string }>();
 
 const forecast = async (
@@ -263,6 +265,10 @@ const forecast = async (
     windows,
   } satisfies Forecast & { model: string };
   forecastCache.set(key, result);
+  const [oldest] = forecastCache.keys();
+  if (forecastCache.size > FORECAST_CACHE_ENTRIES && oldest != null) {
+    forecastCache.delete(oldest);
+  }
   return result;
 };
 

@@ -347,13 +347,17 @@ const motorColumns = (
   [`${side}_encoder`]: motor.encoder,
 });
 
-const mapChunkSizes = new Map<string, string>();
+const mapChunks = { session: '', sizes: new Map<number, string>() };
 
 const mapChunkRows = (
   data: Uint8Array,
   session: string,
   receivedAt: string,
 ): Row[] => {
+  if (session !== mapChunks.session) {
+    mapChunks.session = session;
+    mapChunks.sizes.clear();
+  }
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   const rows: Row[] = [];
   let offset = 0;
@@ -364,11 +368,10 @@ const mapChunkRows = (
     const positions = offset + 12;
     const size = vertices * 6 + triangles * 6;
     offset = positions + size + (-size & 3);
-    const key = `${session}:${chunkIndex}`;
-    if (mapChunkSizes.get(key) === `${vertices}:${triangles}`) {
+    if (mapChunks.sizes.get(chunkIndex) === `${vertices}:${triangles}`) {
       continue;
     }
-    mapChunkSizes.set(key, `${vertices}:${triangles}`);
+    mapChunks.sizes.set(chunkIndex, `${vertices}:${triangles}`);
     let [sx, sy, sz] = [0, 0, 0];
     for (let i = 0; i < vertices; i++) {
       sx += view.getInt16(positions + i * 6, true);

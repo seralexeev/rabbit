@@ -588,7 +588,19 @@ const structuralError = (
       left.push(join.this);
     }
   }
-  for (const fn of collect<{ name: string }>(ast, 'function')) {
+  const applied = collect<{ expression: unknown }>(ast, 'apply').flatMap(
+    (apply) => {
+      const column = node(apply.expression, 'column') as {
+        name?: { name?: unknown };
+      } | null;
+      const name = column?.name?.name;
+      return typeof name === 'string' ? [{ name }] : [];
+    },
+  );
+  for (const fn of [
+    ...collect<{ name: string }>(ast, 'function'),
+    ...applied,
+  ]) {
     if (!functionAllowed(fn.name)) {
       return `Function '${fn.name}' is not available here. Use standard aggregate, window, math, date and time, string, array, JSON and conditional functions.`;
     }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { toGrid } from './series.ts';
+import { gridFor, toGrid } from './series.ts';
 
 describe('toGrid', () => {
   it('treats a missing value as an unobserved gap instead of zero', () => {
@@ -38,4 +38,12 @@ describe('toGrid', () => {
       expect(grid.values).toEqual(values);
     },
   );
+});
+
+describe('gridFor', () => {
+  it('bins in whole milliseconds, which ClickHouse binds as UInt32', () => {
+    const grid = gridFor({ first: 0, last: 110_000 }, 600 / 110);
+    expect(grid.binMs).toBe(183);
+    expect(grid.length).toBe(602);
+  });
 });

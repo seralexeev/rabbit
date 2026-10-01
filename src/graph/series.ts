@@ -59,7 +59,7 @@ export const gridFor = (
   span: { first: number; last: number },
   hz: number,
 ): Grid => {
-  const binMs = 1000 / hz;
+  const binMs = Math.max(1, Math.round(1000 / hz));
   const firstBin = Math.floor(span.first / binMs);
   return {
     binMs,

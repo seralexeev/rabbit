@@ -26,6 +26,7 @@ describe('validateSql', () => {
     'SELECT avgIf(left_current, left_pwm > 0) AS a, quantileExactIf(0.9)(right_current, right_pwm > 0) AS q FROM roboclaw',
     'SELECT x FROM (SELECT [1, 2] AS xs FROM roboclaw) ARRAY JOIN xs AS x',
     'SELECT 1 AS a FROM roboclaw UNION ALL SELECT 2 AS a FROM imu',
+    'SELECT * APPLY(max) FROM roboclaw',
   ])('accepts %s', (sql) => {
     expect(validateSql(sql, TABLES)).toBeNull();
   });
@@ -101,6 +102,11 @@ describe('validateSql', () => {
       'a cross join',
       'SELECT 1 FROM roboclaw CROSS JOIN imu',
       'Every JOIN must match run_id',
+    ],
+    [
+      'a function applied to every column',
+      'SELECT * APPLY(toString) APPLY(sleepEachRow) FROM roboclaw',
+      "Function 'sleepEachRow'",
     ],
     ['a comma join', 'SELECT 1 FROM roboclaw, imu', 'Comma joins'],
     ['unparseable SQL', 'SELECT (1 FROM roboclaw', 'could not be parsed'],

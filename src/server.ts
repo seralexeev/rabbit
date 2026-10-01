@@ -10,6 +10,7 @@ import {
   createServer,
 } from 'node:http';
 import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 import { chat } from './agent/chat.ts';
 import { reader, select } from './clickhouse.ts';
@@ -122,11 +123,22 @@ const streamChat = async (
       throw new ForgeError('Body needs messages');
     }
     messages = body.messages as UIMessage[];
+    if (
+      messages.some(
+        (message) => message.role !== 'user' && message.role !== 'assistant',
+      )
+    ) {
+      throw new ForgeError('Only user and assistant messages are accepted');
+    }
   } catch (error) {
     sendJson(request, response, 400, { error: errorMessage(error) });
     return;
   }
-  const { result, tools } = await chat(messages);
+  const abort = new AbortController();
+  response.once('close', () => {
+    abort.abort();
+  });
+  const { result, tools } = await chat(messages, abort.signal);
   const web = createUIMessageStreamResponse({
     stream: toUIMessageStream({
       stream: result.stream,
@@ -145,7 +157,13 @@ const streamChat = async (
     response.end();
     return;
   }
-  Readable.fromWeb(web.body).pipe(response);
+  await pipeline(Readable.fromWeb(web.body), response).catch(
+    (error: unknown) => {
+      if (!abort.signal.aborted) {
+        log('Chat stream failed', { error: errorMessage(error) });
+      }
+    },
+  );
 };
 
 const rejection = (request: IncomingMessage, path: string) => {
@@ -213,7 +231,10 @@ export const serve = () => {
     });
   });
   startLiveStatus();
-  server.listen(config.chatPort, '127.0.0.1', () => {
-    log('Forge chat listening', { url: `http://127.0.0.1:${config.chatPort}` });
+  server.listen(config.chatPort, config.chatListenHost, () => {
+    log('Forge chat listening', {
+      host: config.chatListenHost,
+      port: config.chatPort,
+    });
   });
 };

@@ -68,10 +68,11 @@ export const chatSettings = async (
   };
 };
 
-export const chat = async (messages: UIMessage[]) => {
+export const chat = async (messages: UIMessage[], abortSignal: AbortSignal) => {
   const settings = await chatSettings(messages);
   const result = streamText({
     ...settings,
+    abortSignal,
     onChunk: ({ chunk }) => {
       if (chunk.type === 'tool-approval-request') {
         recordApprovalRequest(chunk.toolCall.toolCallId);
