@@ -263,13 +263,14 @@ class Node(RabbitNode):
         self.start_mission(steps)
 
     async def on_mission(self, msg: Msg):
-        steps = json.loads(msg.data)["steps"]
+        request = json.loads(msg.data)
+        steps = request["steps"]
         problem = self.validate_mission(steps)
         if problem is not None:
             self.logger.error(f"Rejected mission: {problem}")
             self.fault = f"rejected: {problem}"
             return
-        self.start_mission(steps)
+        self.start_mission(steps, request.get("id"))
 
     def validate_mission(self, steps: list[dict]) -> str | None:
         if not 0 < len(steps) <= self.MAX_STEPS:
@@ -290,7 +291,7 @@ class Node(RabbitNode):
         return None
 
     async def on_cancel(self, msg: Msg):
-        if self.mission_id is not None:
+        if self.mode not in ("idle", "arrived", "fault"):
             self.logger.info("Mission cancelled")
         self.steps.clear()
         self.finish_step()
@@ -298,7 +299,7 @@ class Node(RabbitNode):
         await self.command(0.0, 0.0)
         self.end_mission()
 
-    def start_mission(self, steps: list[dict]):
+    def start_mission(self, steps: list[dict], mission_id: str | None = None):
         self.steps = deque(steps)
         self.steps_total = len(steps)
         self.step_index = 0
@@ -308,12 +309,11 @@ class Node(RabbitNode):
         self.blocked_since = None
         self.holding = False
         self.mode = "driving"
-        self.mission_id = time_id()
+        self.mission_id = mission_id or time_id()
         self.set_log_context(mission_id=self.mission_id)
         self.logger.info("New mission with %d steps", len(steps), extra={"step_types": [step.get("type") for step in steps]})
 
     def end_mission(self):
-        self.mission_id = None
         self.set_log_context(mission_id=None)
 
     def finish_step(self):
@@ -458,11 +458,11 @@ class Node(RabbitNode):
         curvature = 2.0 * math.sin(math.radians(self.heading_error)) / lookahead
         steer = steer_for_curvature(curvature)
         speed = max(self.MIN_SPEED, self.CRUISE_SPEED * (1.0 - min(abs(steer), 1.0) * 0.3))
-        await self.drive_forward(speed, steer)
+        await self.drive(speed, steer)
 
-    async def drive_forward(self, speed: float, steer: float):
+    async def drive(self, speed: float, steer: float):
         allowed = await self.command(speed, steer)
-        if allowed or self.speed > 0:
+        if allowed or self.speed != 0:
             self.mode = "driving"
             self.blocked_since = None
             return
@@ -505,10 +505,9 @@ class Node(RabbitNode):
         curvature = 2.0 * math.sin(math.radians(self.heading_error)) / lookahead
         steer = steer_for_curvature(curvature * direction)
         if direction > 0:
-            await self.drive_forward(max(self.MIN_SPEED, self.CRUISE_SPEED * (1.0 - min(abs(steer), 1.0) * 0.3)), steer)
+            await self.drive(max(self.MIN_SPEED, self.CRUISE_SPEED * (1.0 - min(abs(steer), 1.0) * 0.3)), steer)
         else:
-            await self.command(-self.REVERSE_SPEED, steer)
-            self.mode = "driving"
+            await self.drive(-self.REVERSE_SPEED, steer)
 
     async def maneuver(self):
         assert self.position is not None and self.segment_start is not None

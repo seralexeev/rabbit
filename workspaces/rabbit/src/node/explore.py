@@ -95,6 +95,7 @@ class Node(RabbitNode):
     STATE_INTERVAL = 0.5
     MISSION_POLL = 0.2
     MISSION_TIMEOUT = 120.0
+    MISSION_ACCEPT_TIMEOUT = 2.0
     FAILED_FRONTIER_RADIUS = 0.6
     MAX_FAILURES = 5
     CANDIDATES = 3
@@ -312,14 +313,21 @@ class Node(RabbitNode):
         return None
 
     async def run_mission(self, steps: list[dict]) -> str:
-        await self.publish_json(MISSION_SUBJECT, {"steps": steps, "source": "explore"})
-        await asyncio.sleep(1.0)
+        mission_id = time_id()
+        await self.publish_json(MISSION_SUBJECT, {"steps": steps, "source": "explore", "id": mission_id})
+        accept_deadline = time.monotonic() + self.MISSION_ACCEPT_TIMEOUT
+        while self.nav.get("mission_id") != mission_id:
+            if time.monotonic() > accept_deadline:
+                return f"rejected: {self.nav.get('fault')}"
+            await asyncio.sleep(self.MISSION_POLL)
         deadline = time.monotonic() + self.MISSION_TIMEOUT
         blocked_since: float | None = None
         while time.monotonic() < deadline:
             if self.limit_reached() is not None:
                 await self.cancel_mission()
                 return "limit"
+            if self.nav.get("mission_id") != mission_id:
+                return "cancelled"
             mode = self.nav.get("mode")
             if mode == "blocked":
                 blocked_since = blocked_since or time.monotonic()
