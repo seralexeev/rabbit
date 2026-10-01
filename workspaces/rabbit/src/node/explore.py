@@ -123,7 +123,7 @@ class Node(RabbitNode):
         self.planning_ms: float | None = None
         self.scans: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
         self.cancelling = False
-        self.attempts: dict[tuple[float, float], int] = {}
+        self.blocked: list[tuple[float, float]] = []
 
     async def init(self):
         await self.subscribe(MAP_CHUNKS_SUBJECT, self.on_chunks)
@@ -187,7 +187,7 @@ class Node(RabbitNode):
         self.logger.info("Exploration started", extra=self.limits)
         self.travelled = 0.0
         self.failed = []
-        self.attempts = {}
+        self.blocked = []
         self.message = None
         self.task = asyncio.create_task(self.explore())
 
@@ -227,16 +227,23 @@ class Node(RabbitNode):
                 outcome = await self.run_mission([{"type": "path", "points": points}])
                 if outcome == "limit":
                     continue
+                if outcome == "cancelled":
+                    await self.finish("idle", "navigation mission cancelled outside exploration")
+                    return
                 if outcome != "arrived":
                     failures += 1
-                    self.attempts[frontier] = self.attempts.get(frontier, 0) + 1
-                    if outcome != "blocked" or self.attempts[frontier] >= 2:
+                    if outcome == "blocked":
+                        self.blocked.append(frontier)
+                    repeats = sum(math.dist(frontier, other) <= self.FAILED_FRONTIER_RADIUS for other in self.blocked)
+                    if outcome != "blocked" or repeats >= 2:
                         self.failed.append(frontier)
                     self.logger.warning(f"Frontier at {frontier} failed: {outcome}")
                     if failures >= self.MAX_FAILURES:
                         await self.finish("failed", f"{failures} frontiers failed, last: {outcome}")
                         return
         except asyncio.CancelledError:
+            if self.phase == "driving":
+                await self.cancel_mission()
             raise
         except Exception as e:
             self.logger.exception("Exploration crashed")
@@ -259,26 +266,26 @@ class Node(RabbitNode):
         return None
 
     def plan_next(self) -> tuple[tuple[float, float], list[list[float]]] | None:
-        if self.pose is None or not self.chunks:
+        pose, chunks = self.pose, list(self.chunks.values())
+        if pose is None or not chunks:
             raise RuntimeError("No pose or map yet")
         started = time.monotonic()
-        offsets = np.cumsum([0] + [len(v) for v, _ in self.chunks.values()])[:-1]
+        offsets = np.cumsum([0] + [len(v) for v, _ in chunks])[:-1]
         scans = list(self.scans)
         ray_points = np.concatenate([np.vstack([origin, ends]) for origin, ends, _ in scans]) if scans else np.empty((0, 2))
         vertices = np.concatenate(
-            [v for v, _ in self.chunks.values()] + [np.column_stack([ray_points[:, 0], np.full(len(ray_points), 1.0), ray_points[:, 1]])]
+            [v for v, _ in chunks] + [np.column_stack([ray_points[:, 0], np.full(len(ray_points), 1.0), ray_points[:, 1]])]
         )
-        triangles = np.concatenate([t + offset for (_, t), offset in zip(self.chunks.values(), offsets)])
+        triangles = np.concatenate([t + offset for (_, t), offset in zip(chunks, offsets)])
         grid = grid_from_mesh(vertices, triangles)
         for origin, ends, hits in scans:
             clear_unknown(grid, origin, ends)
         for _, ends, hits in scans[-self.RECENT_HITS :]:
             grid.mark_points(ends[hits], OCCUPIED)
-        robot_cells = self.robot_cells(rear_axle_pose(self.pose["translation"], self.pose["orientation"]))
-        iz, ix, inside = grid.cell_index(robot_cells)
+        start = rear_axle_pose(pose["translation"], pose["orientation"])
+        iz, ix, inside = grid.cell_index(self.robot_cells(start))
         grid.cells[iz[inside], ix[inside]] = FREE
         costmap = build_costmap(grid, PLANNER.footprint, PLANNER.unknown_blocked, PLANNER.proximity_band)
-        start = rear_axle_pose(self.pose["translation"], self.pose["orientation"])
         frontiers = [
             frontier
             for frontier in find_frontiers(costmap)
