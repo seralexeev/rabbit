@@ -3,7 +3,6 @@ import {
   createUIMessageStreamResponse,
   toUIMessageStream,
 } from 'ai';
-import { timingSafeEqual } from 'node:crypto';
 import {
   type IncomingMessage,
   type ServerResponse,
@@ -27,21 +26,9 @@ const ALLOWED_HOSTS = new Set([
   `localhost:${config.chatPort}`,
 ]);
 
-export const TOKEN_HEADER = 'x-forge-token';
-
 const allowedOrigin = (request: IncomingMessage) => {
   const origin = request.headers.origin;
   return origin != null && ALLOWED_ORIGIN.test(origin);
-};
-
-const tokenMatches = (request: IncomingMessage) => {
-  const sent = request.headers[TOKEN_HEADER];
-  if (config.chatToken == null || typeof sent !== 'string') {
-    return false;
-  }
-  const expected = Buffer.from(config.chatToken);
-  const actual = Buffer.from(sent);
-  return actual.length === expected.length && timingSafeEqual(actual, expected);
 };
 
 const corsHeaders = (request: IncomingMessage): Record<string, string> => {
@@ -50,7 +37,7 @@ const corsHeaders = (request: IncomingMessage): Record<string, string> => {
     ? {
         'access-control-allow-origin': origin,
         'access-control-allow-methods': 'GET, POST, OPTIONS',
-        'access-control-allow-headers': `content-type, ${TOKEN_HEADER}`,
+        'access-control-allow-headers': 'content-type',
         'access-control-max-age': '600',
         vary: 'Origin',
       }
@@ -171,21 +158,14 @@ const rejection = (request: IncomingMessage, path: string) => {
   if (!ALLOWED_HOSTS.has(request.headers.host ?? '')) {
     return { status: 403, error: 'Host not allowed' };
   }
-  const needsOrigin =
-    (request.method === 'POST' && path === '/api/chat') ||
-    (request.method === 'GET' && path === '/api/session');
-  if (needsOrigin && !allowedOrigin(request)) {
+  if (request.method !== 'POST' || path !== '/api/chat') {
+    return null;
+  }
+  if (!allowedOrigin(request)) {
     return { status: 403, error: 'Origin not allowed' };
   }
-  if (request.method === 'POST' && path === '/api/chat') {
-    if (
-      !(request.headers['content-type'] ?? '').startsWith('application/json')
-    ) {
-      return { status: 415, error: 'Content type must be application/json' };
-    }
-    if (!tokenMatches(request)) {
-      return { status: 401, error: 'Missing or wrong chat token' };
-    }
+  if (!(request.headers['content-type'] ?? '').startsWith('application/json')) {
+    return { status: 415, error: 'Content type must be application/json' };
   }
   return null;
 };
@@ -200,13 +180,6 @@ const handle = async (request: IncomingMessage, response: ServerResponse) => {
   if (request.method === 'OPTIONS') {
     response.writeHead(204, corsHeaders(request));
     response.end();
-    return;
-  }
-  if (request.method === 'GET' && path === '/api/session') {
-    sendJson(request, response, 200, {
-      token: config.chatToken,
-      header: TOKEN_HEADER,
-    });
     return;
   }
   if (request.method === 'GET' && path === '/api/health') {

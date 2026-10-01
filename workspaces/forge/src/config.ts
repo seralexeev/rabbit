@@ -22,7 +22,6 @@ export const config = {
   chatListenHost: setting('FORGE_CHAT_LISTEN_HOST') ?? '127.0.0.1',
   openAiApiKey: setting('OPEN_AI_KEY'),
   tsfmApiKey: setting('TSFM_KEY'),
-  chatToken: setting('CHAT_TOKEN'),
   model: 'gpt-6-luna',
   chatPort: 18080,
 } as const;

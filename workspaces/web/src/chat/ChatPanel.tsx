@@ -23,7 +23,7 @@ import { Markdown } from './Markdown.tsx';
 import { StartScreen } from './StartScreen.tsx';
 import { clearMessages, loadMessages, saveMessages } from './persistence.ts';
 import { isChartLike, readResult } from './results.ts';
-import { CHAT_URL, chatFetch } from './session.ts';
+import { CHAT_URL } from './session.ts';
 import { useBackendHealth } from './useBackendHealth.ts';
 import { ResultView } from './widgets/ResultView.tsx';
 
@@ -40,7 +40,7 @@ type Layout = { open: boolean; expanded?: boolean; width: number; height: number
 const createChat = () => {
     const chat: Chat<UIMessage> = new Chat<UIMessage>({
         messages: loadMessages(),
-        transport: new DefaultChatTransport({ api: CHAT_URL, fetch: chatFetch }),
+        transport: new DefaultChatTransport({ api: CHAT_URL }),
         sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
         onFinish: () => saveMessages(chat.messages),
         onError: (error) => L.error('Chat request failed', error),

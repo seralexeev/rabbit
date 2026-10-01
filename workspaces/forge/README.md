@@ -58,7 +58,7 @@ The writer starts without the robot: it applies `clickhouse/schema.sql`, then ke
 
 For local development run `pnpm forge writer` or `pnpm forge serve` on the host after stopping the matching container (`docker compose stop writer` or `docker compose stop chat`): two writers would record every message twice, and two chat servers cannot share port 18080. `docker compose start writer chat` brings the services back.
 
-`ask`, `write-query` and `serve` need `OPEN_AI_KEY` in `.env`, `serve` also needs `CHAT_TOKEN` (any long random string), and `detect` needs `TSFM_KEY` (see `.env.example`). When `.env` exists Forge reads every setting from that file only, never from the shell environment; without it (the containers, which receive `.env` through `env_file`) it reads the process environment. Two settings exist for the containers: `FORGE_CLICKHOUSE_URL` (default `http://127.0.0.1:18123`) and `FORGE_CHAT_LISTEN_HOST` (default `127.0.0.1`; the chat container listens on `0.0.0.0` and Compose publishes it on `127.0.0.1:18080` only). The agent uses OpenAI `gpt-6-luna` with low reasoning effort through the Vercel AI SDK.
+`ask`, `write-query` and `serve` need `OPEN_AI_KEY` in `.env`, and `detect` needs `TSFM_KEY` (see `.env.example`). When `.env` exists Forge reads every setting from that file only, never from the shell environment; without it (the containers, which receive `.env` through `env_file`) it reads the process environment. Two settings exist for the containers: `FORGE_CLICKHOUSE_URL` (default `http://127.0.0.1:18123`) and `FORGE_CHAT_LISTEN_HOST` (default `127.0.0.1`; the chat container listens on `0.0.0.0` and Compose publishes it on `127.0.0.1:18080` only). The agent uses OpenAI `gpt-6-luna` with low reasoning effort through the Vercel AI SDK.
 
 ClickHouse users: `forge_writer` owns the `forge` database; `forge_reader` is read-only (`readonly=1`; 30 s, 300 MB, 16 concurrent queries, 200 M rows or 4 GB read and 10k result rows per query) and is the only user that runs slabs, ad-hoc queries and agent SQL. `clickhouse/config.xml` sizes the server for a laptop: system log tables off except a one-day `query_log`, two merge threads, a 1.5 GB memory cap.
 
@@ -231,8 +231,7 @@ A rejection returns a stable error plus a repair hint for the model (the columns
 
 The `chat` service (`pnpm forge serve` on the host) listens on `http://127.0.0.1:18080` for the rabbit web HUD, which calls it directly from the browser (`VITE_CHAT_URL`, default `http://127.0.0.1:18080`, in `workspaces/web/src/chat/session.ts`) with CORS rather than through a Vite proxy:
 
-- `POST /api/chat` takes `{ messages: UIMessage[] }` (stateless, the client sends the history; only `user` and `assistant` messages) and streams the AI SDK UI message stream. A client that disconnects aborts the agent run. It requires an allowed `Origin` (`https://localhost:*`, `https://dev.rabbit:*`), `content-type: application/json` and the `x-forge-token` header.
-- `GET /api/session` returns `{ token, header }` to an allowed origin, so the HUD can fetch the token on load.
+- `POST /api/chat` takes `{ messages: UIMessage[] }` (stateless, the client sends the history; only `user` and `assistant` messages) and streams the AI SDK UI message stream. A client that disconnects aborts the agent run. It requires an allowed `Origin` (`https://localhost:*`, `https://dev.rabbit:*`, `https://jetson.rabbit`) and `content-type: application/json`. There is no token: the chat is only reachable on the robot's local network, and the origin check keeps other websites from driving it.
 - Only the `Host` values `127.0.0.1:18080` and `localhost:18080` are served, which blocks DNS rebinding.
 - `GET /api/health` returns `{ ok, model, clickhouse, latest_data_age_s, run }`.
 
