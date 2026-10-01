@@ -463,15 +463,6 @@ nodes:
     hz: 30
     floor: 0.01
     slabs: [command_timeline]
-  drive_speed_command:
-    label: Drive topic speed
-    group: commands
-    unit: duty 0..1
-    description: Absolute speed on rabbit.cmd.drive, sent by navigation at 20 Hz and by the HUD and Forge stop buttons.
-    source: { table: drive, expr: "abs(speed)" }
-    hz: 20
-    floor: 0.01
-    slabs: [command_timeline]
   drive_steer_command:
     label: Drive topic steering
     group: commands
@@ -910,16 +901,6 @@ edges:
     to: steering_angle
     type: drives
     why: The steering node applies the gamepad stick directly while the gamepad is active.
-    evidence: design
-  - from: nav_speed_command
-    to: drive_speed_command
-    type: drives
-    why: Navigation publishes its governed speed on the drive topic at 20 Hz.
-    evidence: design
-  - from: drive_speed_command
-    to: drive_command
-    type: drives
-    why: The motor controller applies the drive topic speed unless the gamepad is active.
     evidence: design
   - from: drive_steer_command
     to: steering_angle

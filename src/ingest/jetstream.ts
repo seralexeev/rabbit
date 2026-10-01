@@ -173,10 +173,12 @@ export const consumeLogs = (
           last.ack();
         }
       } catch (error) {
-        log('Robot log consumer failed, retrying', {
-          error: errorMessage(error).slice(0, 300),
-        });
-        await sleep(RETRY_MS);
+        if (running()) {
+          log('Robot log consumer failed, retrying', {
+            error: errorMessage(error).slice(0, 300),
+          });
+          await sleep(RETRY_MS);
+        }
       }
     }
   })();
