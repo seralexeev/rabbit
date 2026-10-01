@@ -9,6 +9,7 @@ MAP_SAVE_SUBJECT = "rabbit.map.save"
 MAP_DIR = Path("/rabbit/data/map")
 AREA_FILE = MAP_DIR / "room.area"
 MESH_FILE = MAP_DIR / "room.ply"
+AREA_ARCHIVE_DIR = MAP_DIR / "archive"
 
 _CHUNK_HEADER = struct.Struct("<III")
 

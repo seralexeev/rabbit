@@ -10,6 +10,7 @@ from lib.geometry import CAMERA_HEIGHT, CENTERLINE_OFFSET, GRAVITY, quaternion_t
 from lib.model import CameraIntrinsics
 from lib.node import RabbitNode
 from lib.spatial_map import (
+    AREA_ARCHIVE_DIR,
     AREA_FILE,
     MESH_FILE,
     MAP_CHUNKS_SUBJECT,
@@ -72,7 +73,8 @@ class Node(RabbitNode):
     SENSOR_PUBLISH_S = 0.05
     IMU_WINDOW_NS = 10_000_000
     STATUS_EVERY_N_FRAMES = 30
-    RELOCALIZATION_TIMEOUT_S = 15.0
+    RELOCALIZATION_TIMEOUT_S = 30.0
+    AREA_ARCHIVE_KEEP = 5
     TILT_MISMATCH_DEG = 8.0
     FLOOR_SMOOTHING = 0.02
     FLOOR_MAX_VERTICAL_SPEED = 0.05
@@ -500,8 +502,7 @@ class Node(RabbitNode):
         self.logger.warning(f"Restarting tracking with a fresh map: {reason}")
         self.relocalizing_since = None
         self.map_requested = False
-        if AREA_FILE.exists():
-            AREA_FILE.replace(AREA_FILE.with_suffix(".area.previous"))
+        self._archive_area()
         if self.mapping_enabled:
             self.zed.disable_spatial_mapping()
             self.mapping_enabled = False
@@ -517,6 +518,16 @@ class Node(RabbitNode):
             self.encoded_chunks.clear()
             self.chunk_points.clear()
             self.snapshot_payload = b""
+
+    def _archive_area(self):
+        if not AREA_FILE.exists():
+            return
+        AREA_ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+        archived = AREA_ARCHIVE_DIR / f"room.{time.strftime('%Y%m%d-%H%M%S')}.area"
+        AREA_FILE.replace(archived)
+        self.logger.warning(f"Archived the previous area map to {archived}")
+        for stale in sorted(AREA_ARCHIVE_DIR.glob("room.*.area"))[: -self.AREA_ARCHIVE_KEEP]:
+            stale.unlink()
 
     def _read_status(self) -> dict:
         tracking = self.zed.get_positional_tracking_status()
