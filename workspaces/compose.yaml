@@ -19,12 +19,6 @@ services:
       - '4222:4222'
       - '9222:9222'
       - '8222:8222'
-    healthcheck:
-      test: ['CMD', 'nats', 'server', 'ping', '--server=nats://localhost:4222']
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
 
   nats-init:
     logging: *logging
