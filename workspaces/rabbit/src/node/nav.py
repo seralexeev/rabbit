@@ -152,22 +152,26 @@ class Node(RabbitNode):
         if jump < self.JUMP_DISTANCE and abs(math.degrees(rotation)) < self.JUMP_HEADING_DEG:
             return
         self.logger.warning(f"Pose jump {jump:.2f} m / {math.degrees(rotation):.1f} deg, re-anchoring the mission")
-        self.remembered.clear()
         cos, sin = math.cos(rotation), math.sin(rotation)
+        rotate = np.array([[cos, sin], [-sin, cos]])
 
-        def move(point: np.ndarray) -> np.ndarray:
-            offset = point - position
-            return new_position + np.array([cos * offset[0] - sin * offset[1], sin * offset[0] + cos * offset[1]])
+        def move(points) -> np.ndarray:
+            return new_position + (np.asarray(points, dtype=float) - position) @ rotate
 
+        self.remembered = deque((at, move(points)) for at, points in self.remembered)
         if self.goal is not None:
             self.goal = move(self.goal)
         if self.path is not None:
-            self.path[:, :2] = np.array([move(point) for point in self.path[:, :2]])
+            self.path[:, :2] = move(self.path[:, :2])
         if self.segment_start is not None:
             self.segment_start = move(self.segment_start)
         for step in self.steps:
             if step["type"] == "goto":
-                step["x"], step["z"] = (float(v) for v in move(np.array([step["x"], step["z"]])))
+                step["x"], step["z"] = (float(v) for v in move([step["x"], step["z"]]))
+            elif step["type"] == "path":
+                points = np.array(step["points"], dtype=float)
+                points[:, :2] = move(points[:, :2])
+                step["points"] = points.tolist()
         if self.last_heading is not None:
             self.last_heading += rotation
 
@@ -238,7 +242,7 @@ class Node(RabbitNode):
         return self.OPERATOR_TIMEOUT < silence < self.OPERATOR_PRESENCE
 
     async def trip(self, fault: str):
-        if self.fault is not None or self.mode in ("idle", "arrived"):
+        if self.mode in ("idle", "arrived", "fault"):
             return
         self.fault = fault
         self.logger.warning("Safety stop: %s", fault, extra={"fault": fault})
@@ -474,29 +478,32 @@ class Node(RabbitNode):
         points, directions = self.path[:, :2], self.path[:, 2]
         direction = directions[self.path_index]
         switch = next((i for i in range(self.path_index, len(points)) if directions[i] != direction), len(points))
+        segment_end = switch - 1
+        motion = self.forward * direction
+        end_offset = points[segment_end] - self.position
+        end_distance = float(np.linalg.norm(end_offset))
+        passed = end_distance < self.PATH_LOOKAHEAD and float(end_offset @ motion) <= 0.0
         self.distance = float(np.linalg.norm(points[-1] - self.position))
-        if switch == len(points) and self.distance < self.ARRIVE_DISTANCE:
+        if switch == len(points) and (self.distance < self.ARRIVE_DISTANCE or passed):
             self.finish_step()
             await self.command(0.0, 0.0)
             return
-        segment_end = switch - 1
         window = points[self.path_index : segment_end + 1]
         nearest = self.path_index + int(np.argmin(np.linalg.norm(window - self.position, axis=1)))
         self.path_index = nearest
-        if switch < len(points) and np.linalg.norm(points[segment_end] - self.position) < self.GEAR_SWITCH_TOLERANCE:
+        if switch < len(points) and (end_distance < self.GEAR_SWITCH_TOLERANCE or passed):
             self.path_index = switch
             await self.command(0.0, 0.0)
             return
 
         ahead = np.linalg.norm(points[nearest : segment_end + 1] - self.position, axis=1)
         target_index = nearest + int(np.argmax(ahead >= self.PATH_LOOKAHEAD)) if (ahead >= self.PATH_LOOKAHEAD).any() else segment_end
-        motion = self.forward * direction
         right = np.array([-motion[1], motion[0]])
         offset = points[target_index] - self.position
         lookahead = max(float(np.linalg.norm(offset)), 0.05)
         self.heading_error = math.degrees(math.atan2(float(offset @ right), float(offset @ motion)))
         curvature = 2.0 * math.sin(math.radians(self.heading_error)) / lookahead
-        steer = steer_for_curvature(curvature) * direction
+        steer = steer_for_curvature(curvature * direction)
         if direction > 0:
             await self.drive_forward(max(self.MIN_SPEED, self.CRUISE_SPEED * (1.0 - min(abs(steer), 1.0) * 0.3)), steer)
         else:
@@ -508,6 +515,8 @@ class Node(RabbitNode):
         travelled = float(np.linalg.norm(self.position - self.segment_start))
         if travelled > self.MANEUVER_SEGMENT:
             await self.flip_direction()
+            if self.mode == "fault":
+                return
 
         turn = math.copysign(1.0, self.heading_error)
         allowed = await self.command(
