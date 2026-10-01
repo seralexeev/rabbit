@@ -105,6 +105,7 @@ class Node(RabbitNode):
         self._sensors_thread = threading.Thread(target=self._poll_sensors, daemon=True)
         self.map = sl.Mesh()
         self._camera_lock = threading.Lock()
+        self._sensors_lock = threading.Lock()
         self._encoding: asyncio.Task | None = None
 
         self.runtime_params = sl.RuntimeParameters()
@@ -214,6 +215,8 @@ class Node(RabbitNode):
         self._sensors_stop.set()
         self._sensors_thread.join()
         with self._camera_lock:
+            if self.map_worker is not None:
+                self.map_worker.join()
             self._save_map()
             if self.mapping_enabled:
                 self.zed.disable_spatial_mapping()
@@ -503,21 +506,25 @@ class Node(RabbitNode):
         self.relocalizing_since = None
         self.map_requested = False
         self._archive_area()
-        if self.mapping_enabled:
-            self.zed.disable_spatial_mapping()
-            self.mapping_enabled = False
-        self.zed.disable_positional_tracking()
-        self.tracking_parameters.area_file_path = ""
-        status = self.zed.enable_positional_tracking(self.tracking_parameters)
-        if status != sl.ERROR_CODE.SUCCESS:
-            raise RuntimeError(f"Failed to restart positional tracking: {status}")
-        self.session = str(time.time_ns())
-        self.set_log_context(map_session=self.session)
-        with self.map_lock:
+        if self.map_worker is not None:
+            self.map_worker.join()
+        with self.map_lock, self._sensors_lock:
+            if self.mapping_enabled:
+                self.zed.disable_spatial_mapping()
+                self.mapping_enabled = False
+            self.zed.disable_positional_tracking()
+            self.tracking_parameters.area_file_path = ""
+            status = self.zed.enable_positional_tracking(self.tracking_parameters)
+            if status != sl.ERROR_CODE.SUCCESS:
+                raise RuntimeError(f"Failed to restart positional tracking: {status}")
+            self.map = sl.Mesh()
+            self.pending_map = None
             self.chunk_timestamps.clear()
             self.encoded_chunks.clear()
             self.chunk_points.clear()
             self.snapshot_payload = b""
+        self.session = str(time.time_ns())
+        self.set_log_context(map_session=self.session)
 
     def _archive_area(self):
         if not AREA_FILE.exists():
@@ -553,8 +560,9 @@ class Node(RabbitNode):
         last_imu = last_magnetometer = last_barometer = 0
         last_state = 0.0
         while not self._sensors_stop.wait(self.SENSOR_POLL_S):
-            if self.zed.get_sensors_data(data, sl.TIME_REFERENCE.CURRENT) != sl.ERROR_CODE.SUCCESS:
-                continue
+            with self._sensors_lock:
+                if self.zed.get_sensors_data(data, sl.TIME_REFERENCE.CURRENT) != sl.ERROR_CODE.SUCCESS:
+                    continue
 
             now = time.monotonic()
             if now - last_state >= 1.0:
