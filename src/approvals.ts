@@ -3,23 +3,21 @@ import { ForgeError } from './errors.ts';
 export const APPROVAL_TTL_MS = 60_000;
 
 const issued = new Map<string, number>();
-const used = new Set<string>();
 
 export const recordApprovalRequest = (toolCallId: string, now = Date.now()) => {
+  for (const [id, issuedAt] of issued) {
+    if (now - issuedAt > APPROVAL_TTL_MS) {
+      issued.delete(id);
+    }
+  }
   issued.set(toolCallId, now);
 };
 
 export const consumeApproval = (toolCallId: string, now = Date.now()) => {
-  if (used.has(toolCallId)) {
-    throw new ForgeError('Approval was already used', {
-      llm: 'This approved action already ran; ask the operator again for a new action.',
-      internal: { toolCallId },
-    });
-  }
   const issuedAt = issued.get(toolCallId);
   if (issuedAt == null) {
     throw new ForgeError('Action was not approved', {
-      llm: 'This action needs the operator to approve it in the chat panel first.',
+      llm: 'This action needs the operator to approve it in the chat panel first, and each approval runs once.',
       internal: { toolCallId },
     });
   }
@@ -30,5 +28,4 @@ export const consumeApproval = (toolCallId: string, now = Date.now()) => {
       internal: { toolCallId },
     });
   }
-  used.add(toolCallId);
 };

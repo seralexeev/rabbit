@@ -33,7 +33,7 @@ describe('mission approval', () => {
     recordApprovalRequest('call-once', 0);
     expect(() => consumeApproval('call-once', 1000)).not.toThrow();
     expect(() => consumeApproval('call-once', 2000)).toThrow(
-      'Approval was already used',
+      'Action was not approved',
     );
     recordApprovalRequest('call-late', 0);
     expect(() => consumeApproval('call-late', APPROVAL_TTL_MS + 1)).toThrow(

@@ -1,4 +1,5 @@
 import { type NatsConnection, connect } from '@nats-io/transport-node';
+import { randomUUID } from 'node:crypto';
 import z from 'zod';
 
 import { reader, select } from './clickhouse.ts';
@@ -13,8 +14,12 @@ const MAX_STEP_M = 3;
 const MAX_GOTO_M = 5;
 const MAX_MISSION_M = 10;
 const OBSTACLE_MARGIN_M = 0.3;
+const MISSION_ACK_MS = 3000;
+const MISSION_ACK_POLL_MS = 100;
+const NAV_STATE_SUBJECT = 'rabbit.nav.state';
 
 let connection: Promise<NatsConnection> | null = null;
+let liveStarted = false;
 
 const nats = async () => {
   if (connection == null) {
@@ -31,6 +36,7 @@ const nats = async () => {
         void nc.closed().then(() => {
           if (connection === pending) {
             connection = null;
+            liveStarted = false;
           }
         });
       },
@@ -119,52 +125,107 @@ const Step = z.discriminatedUnion('type', [
 
 type MissionStep = z.infer<typeof Step>;
 
-const checkMission = async (steps: MissionStep[]) => {
-  const status = await robotStatus();
-  const pose = status.pose;
-  if (pose == null || pose.age_s > MAX_STATUS_AGE_S) {
-    throw new ForgeError('Robot pose is stale', {
-      llm: 'Forge has no robot pose from the last 3 s, so the mission was not sent; check that the robot and the Forge writer are running.',
-    });
-  }
-  if (status.camera?.pose_state !== 'OK') {
-    throw new ForgeError('Camera tracking is not OK', {
-      llm: 'Positional tracking is not OK, so the robot cannot follow a mission; wait for tracking to recover.',
-    });
-  }
+type Pose2d = { x: number; z: number; heading_deg: number };
+
+const MAX_AHEAD_HEADING_DEG = 10;
+
+const radians = (degrees: number) => (degrees * Math.PI) / 180;
+
+const wrapDegrees = (degrees: number) =>
+  ((((degrees + 180) % 360) + 360) % 360) - 180;
+
+export const planMission = (start: Pose2d, steps: MissionStep[]) => {
+  let pose = start;
   let total = 0;
+  let firstLeg: { forward: number; turned_deg: number } | null = null;
   for (const step of steps) {
-    if (step.type === 'move') {
-      total += Math.hypot(step.forward, step.right);
+    if (step.type === 'turn') {
+      pose = { ...pose, heading_deg: pose.heading_deg + step.degrees };
+      continue;
     }
-    if (step.type === 'goto') {
-      const distance = Math.hypot(step.x - pose.x, step.z - pose.z);
-      if (distance > MAX_GOTO_M) {
-        throw new ForgeError('Goto target is too far', {
-          llm: `A goto target must be within ${MAX_GOTO_M} m of the robot; this one is ${distance.toFixed(2)} m away.`,
-        });
-      }
-      total += distance;
+    const h = radians(pose.heading_deg);
+    const target =
+      step.type === 'move'
+        ? {
+            x: pose.x + step.forward * Math.sin(h) + step.right * Math.cos(h),
+            z: pose.z - step.forward * Math.cos(h) + step.right * Math.sin(h),
+          }
+        : { x: step.x, z: step.z };
+    const dx = target.x - pose.x;
+    const dz = target.z - pose.z;
+    const distance = Math.hypot(dx, dz);
+    if (step.type === 'goto' && distance > MAX_GOTO_M) {
+      throw new ForgeError('Goto target is too far', {
+        llm: `A goto target must be within ${MAX_GOTO_M} m of where the robot is when that step starts; this one is ${distance.toFixed(2)} m away.`,
+      });
     }
+    if (distance === 0) {
+      continue;
+    }
+    const forward = dx * Math.sin(h) - dz * Math.cos(h);
+    firstLeg ??= {
+      forward,
+      turned_deg: wrapDegrees(pose.heading_deg - start.heading_deg),
+    };
+    total += distance;
+    const reversing = step.type === 'move' && step.forward < 0;
+    pose = {
+      ...target,
+      heading_deg:
+        (Math.atan2(reversing ? -dx : dx, reversing ? dz : -dz) * 180) /
+        Math.PI,
+    };
   }
   if (total > MAX_MISSION_M) {
     throw new ForgeError('Mission is too long', {
       llm: `A mission may cover at most ${MAX_MISSION_M} m in total; this one covers about ${total.toFixed(1)} m.`,
     });
   }
-  const [first] = steps;
-  const ahead = status.obstacle?.ahead_distance;
+  return { total, firstLeg };
+};
+
+const isFresh = (section: Section | null) =>
+  section != null && section.age_s <= MAX_STATUS_AGE_S;
+
+const checkMission = async (steps: MissionStep[]) => {
+  const status = await robotStatus();
+  const pose = status.pose;
   if (
-    first?.type === 'move' &&
-    first.forward > 0 &&
-    ahead != null &&
-    ahead < first.forward + OBSTACLE_MARGIN_M
+    pose == null ||
+    !isFresh(pose) ||
+    pose.x == null ||
+    pose.z == null ||
+    pose.heading_deg == null
   ) {
-    throw new ForgeError('Obstacle ahead', {
-      llm: `There is an obstacle ${ahead.toFixed(2)} m ahead, too close for a ${first.forward} m move; the mission was not sent.`,
+    throw new ForgeError('Robot pose is stale', {
+      llm: 'Forge has no complete robot pose from the last 3 s, so the mission was not sent; check that the robot and the Forge writer are running.',
     });
   }
-  return { pose, obstacle: status.obstacle };
+  if (!isFresh(status.camera) || status.camera?.pose_state !== 'OK') {
+    throw new ForgeError('Camera tracking is not OK', {
+      llm: 'Positional tracking is not reported OK within the last 3 s, so the robot cannot follow a mission; wait for tracking to recover.',
+    });
+  }
+  if (!isFresh(status.obstacle)) {
+    throw new ForgeError('Obstacle data is stale', {
+      llm: 'Forge has no obstacle reading from the last 3 s, so it cannot check the path ahead; the mission was not sent.',
+    });
+  }
+  const start = { x: pose.x, z: pose.z, heading_deg: pose.heading_deg };
+  const { firstLeg } = planMission(start, steps);
+  const ahead = status.obstacle?.ahead_distance;
+  if (
+    firstLeg != null &&
+    Math.abs(firstLeg.turned_deg) <= MAX_AHEAD_HEADING_DEG &&
+    firstLeg.forward > 0 &&
+    ahead != null &&
+    ahead < firstLeg.forward + OBSTACLE_MARGIN_M
+  ) {
+    throw new ForgeError('Obstacle ahead', {
+      llm: `There is an obstacle ${ahead.toFixed(2)} m ahead, too close for the first ${firstLeg.forward.toFixed(2)} m forward leg; the mission was not sent.`,
+    });
+  }
+  return { pose: start, obstacle: status.obstacle };
 };
 
 const obstaclePoints = (obstacle: ObstacleSection | null) =>
@@ -177,18 +238,78 @@ const obstaclePoints = (obstacle: ObstacleSection | null) =>
         ] as const
       ).flatMap(([x, z]) => (x == null || z == null ? [] : [{ x, z }]));
 
+type MissionOutcome =
+  | { status: 'accepted' }
+  | { status: 'rejected'; fault: string }
+  | { status: 'pending' };
+
+export const missionOutcome = (
+  missionId: string,
+  sentAt: number,
+  faultBefore: unknown,
+  state: { payload: Json; receivedAt: number } | undefined,
+): MissionOutcome => {
+  if (state == null || state.receivedAt <= sentAt) {
+    return { status: 'pending' };
+  }
+  if (field(state.payload, 'mission_id') === missionId) {
+    return { status: 'accepted' };
+  }
+  const fault = field(state.payload, 'fault');
+  return typeof fault === 'string' &&
+    fault.startsWith('rejected') &&
+    fault !== faultBefore
+    ? { status: 'rejected', fault }
+    : { status: 'pending' };
+};
+
+const awaitMission = async (
+  missionId: string,
+  sentAt: number,
+  faultBefore: unknown,
+) => {
+  const deadline = sentAt + MISSION_ACK_MS;
+  for (;;) {
+    const outcome = missionOutcome(
+      missionId,
+      sentAt,
+      faultBefore,
+      liveLatest.get(NAV_STATE_SUBJECT),
+    );
+    if (outcome.status === 'accepted' || Date.now() >= deadline) {
+      return outcome;
+    }
+    await new Promise((resolve) => setTimeout(resolve, MISSION_ACK_POLL_MS));
+  }
+};
+
 export const runMissionTool = forgeTool({
   title: 'Run mission',
   description:
-    "Sends the robot a mission: an ordered list of steps it executes on board, replacing any current mission. Steps: turn {degrees} (relative, + is right, 180 turns around), move {forward, right} (metres relative to the pose when the step starts, at most 3 m per step), goto {x, z} (world metres from robot_status, within 5 m). At most 10 steps and 10 m in total. Translate the user's words into the fewest steps, for example 'turn around and drive 1 m forward slightly to the right' is [turn 180, move forward 1.0 right 0.15]. The operator must approve the mission; Forge re-checks the pose, tracking and the obstacle ahead before sending. Use stop to cancel.",
+    "Sends the robot a mission: an ordered list of steps it executes on board, replacing any current mission. Steps: turn {degrees} (relative, + is right, 180 turns around), move {forward, right} (metres relative to the pose when the step starts, at most 3 m per step), goto {x, z} (world metres from robot_status, within 5 m). At most 10 steps and 10 m in total. Translate the user's words into the fewest steps, for example 'turn around and drive 1 m forward slightly to the right' is [turn 180, move forward 1.0 right 0.15]. The operator must approve the mission; Forge re-checks the pose, tracking and the obstacle ahead before sending, then waits up to 3 s for navigation to adopt the mission_id: accepted true means it is executing, false means no confirmation yet (check robot_status), and a refusal fails with the reason. Use stop to cancel.",
   input: z.object({ steps: z.array(Step).min(1).max(10) }),
   requiresApproval: true,
   run: async ({ steps }) => {
     const { pose, obstacle } = await checkMission(steps);
-    await publish('rabbit.nav.mission', { steps });
+    const missionId = `forge-${randomUUID()}`;
+    const faultBefore = field(
+      liveLatest.get(NAV_STATE_SUBJECT)?.payload,
+      'fault',
+    );
+    const sentAt = Date.now();
+    await publish('rabbit.nav.mission', { id: missionId, steps });
+    const outcome = await awaitMission(missionId, sentAt, faultBefore);
+    if (outcome.status === 'rejected') {
+      throw new ForgeError('Robot rejected the mission', {
+        llm: `Navigation refused the mission (${outcome.fault}), so it was not started.`,
+        internal: { missionId, fault: outcome.fault },
+      });
+    }
     return {
       ok: true,
       published: 'rabbit.nav.mission',
+      mission_id: missionId,
+      accepted: outcome.status === 'accepted',
       steps,
       start: { x: pose.x, z: pose.z, heading_deg: pose.heading_deg },
       obstacles: obstaclePoints(obstacle),
@@ -327,7 +448,7 @@ const LIVE_SECTIONS = {
     },
   },
   nav: {
-    subject: 'rabbit.nav.state',
+    subject: NAV_STATE_SUBJECT,
     read: (p) => ({
       mode: field(p, 'mode') ?? null,
       goal_x: num(field(field(p, 'goal'), 'x')),
@@ -338,6 +459,8 @@ const LIVE_SECTIONS = {
       step_index: num(field(p, 'step_index'), 0) ?? 0,
       steps_total: num(field(p, 'steps_total'), 0) ?? 0,
       turn_remaining_deg: num(field(p, 'turn_remaining_deg'), 1),
+      fault: field(p, 'fault') ?? null,
+      mission_id: field(p, 'mission_id') ?? null,
     }),
   },
   battery: {
@@ -388,8 +511,6 @@ type SectionName = keyof typeof LIVE_SECTIONS;
 
 const liveLatest = new Map<string, { payload: Json; receivedAt: number }>();
 
-let liveStarted = false;
-
 export const startLiveStatus = () => {
   if (liveStarted) {
     return;
@@ -426,7 +547,7 @@ const RECENT =
 
 const RECORDED: Record<SectionName, string> = {
   pose: `SELECT round(x, 3) AS x, round(y, 3) AS y, round(z, 3) AS z, round(yaw_deg, 1) AS yaw_deg, round(degrees(atan2(-2 * (qx * qz + qw * qy), 1 - 2 * (qx * qx + qy * qy))), 1) AS heading_deg, round(sqrt(vx * vx + vy * vy + vz * vz), 3) AS speed_mps, confidence, ${AGE} FROM pose ${RECENT}`,
-  nav: `SELECT mode, goal_x, goal_z, round(distance_to_goal, 3) AS distance_to_goal, heading_error_deg, step_type, step_index, steps_total, turn_remaining_deg, ${AGE} FROM nav_state ${RECENT}`,
+  nav: `SELECT mode, goal_x, goal_z, round(distance_to_goal, 3) AS distance_to_goal, heading_error_deg, step_type, step_index, steps_total, turn_remaining_deg, fault, mission_id, ${AGE} FROM nav_state ${RECENT}`,
   battery: `SELECT round(battery_voltage, 2) AS voltage, round(battery_current, 2) AS current_a, battery_charge_pct AS charge_pct, ${AGE} FROM power ${RECENT}`,
   obstacle: `SELECT nearest_distance, nearest_bearing_deg, round(nearest_x, 3) AS nearest_x, round(nearest_z, 3) AS nearest_z, ahead_distance, ahead_bearing_deg, round(ahead_x, 3) AS ahead_x, round(ahead_z, 3) AS ahead_z, ${AGE} FROM obstacle ${RECENT}`,
   camera: `SELECT current_fps, pose_state, tracking_state, spatial_memory_status, camera_moving_state, temp_imu, ${AGE} FROM zed_health ${RECENT}`,
@@ -475,7 +596,7 @@ const robotStatus = async () => {
   );
   return {
     kind: 'status' as const,
-    pose: pose as (Section & { x: number; z: number; heading_deg: Num }) | null,
+    pose: pose as (Section & { x: Num; z: Num; heading_deg: Num }) | null,
     nav,
     battery,
     obstacle: obstacle as ObstacleSection | null,

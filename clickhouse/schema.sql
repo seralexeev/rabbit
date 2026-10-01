@@ -314,7 +314,7 @@ CREATE TABLE IF NOT EXISTS forge.nav_state
     turn_remaining_deg Nullable(Float32) COMMENT 'Heading change left in a turn step, deg',
     free_distance Nullable(Float32) COMMENT 'Free travel along the commanded arc from the safety governor, m: below 0.3 it holds the robot, below 0.6 it slows to the minimum speed' CODEC(Gorilla, ZSTD(1)),
     fault LowCardinality(String) DEFAULT '' COMMENT 'Why navigation stopped: stall, collision, blocked, step timeout, operator link lost, control error, manoeuvre failed, manual override or rejected: ...; empty when none. It stays set until the next mission',
-    mission_id String DEFAULT '' COMMENT 'Mission the robot is executing (nav assigns it when it accepts a mission); empty between missions. Joins with logs.mission_id'
+    mission_id String DEFAULT '' COMMENT 'Mission nav accepted most recently: the id the sender gave (forge-... from chat, explore ids) or one nav assigned. It stays set after the mission ends (arrived, fault, idle after a cancel) until the next one, so use mode to tell whether a mission is running. Joins with logs.mission_id, which is empty between missions'
 )
 ENGINE = MergeTree
 ORDER BY (run_id, ts)
@@ -459,4 +459,5 @@ ENGINE = ReplacingMergeTree
 PARTITION BY toYYYYMM(ts)
 ORDER BY (run_id, ts, seq)
 TTL toDateTime(ts) + INTERVAL 30 DAY DELETE WHERE level < 'warning', toDateTime(ts) + INTERVAL 180 DAY
+SETTINGS non_replicated_deduplication_window = 1000
 COMMENT 'Log records of every robot node, shipped through the robot LOGS JetStream stream so nothing is lost while the Wi-Fi is down. Search words with hasAllTokens(message, ''word another''), case-insensitive. Info and debug are kept 30 days, warnings and worse 180 days';
