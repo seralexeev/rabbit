@@ -39,7 +39,7 @@ class Node(RabbitNode):
             self.current_angle = 0.0
             self.set_angle(0.0)
             self.last_command_at = None
-            self.logger.warning("Kill switch activated: no control input")
+            self.logger.debug("Kill switch activated: no control input")
             return
 
         self.current_angle *= self.DECAY_RATE

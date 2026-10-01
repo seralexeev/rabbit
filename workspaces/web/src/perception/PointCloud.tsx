@@ -1,5 +1,4 @@
 import { css } from '@emotion/css';
-import { decompress } from 'lz4js';
 import React from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -9,31 +8,19 @@ import { useNats, useWatchKV } from '../app/NatsProvider.tsx';
 import { L } from '../terminal/LogProvider.tsx';
 import { ui } from '../ui/index.ts';
 
-const VOXELS_DELTA_SUBJECT = 'rabbit.nvblox.voxels.delta';
-const VOXELS_SNAPSHOT_SUBJECT = 'rabbit.nvblox.voxels.snapshot';
-const VOXELS_REQUEST_SUBJECT = 'rabbit.nvblox.voxels.request';
+// --- Constants ---
 
-const MSG_TYPE_DELTA = 0x01;
-const MSG_TYPE_SNAPSHOT = 0x02;
+const NAV_COSTMAP_SUBJECT = 'rabbit.nav.local.costmap';
+const PERCEPTION_HEALTH_SUBJECT = 'rabbit.health.perception';
 
-const VOXEL_KIND_STRUCTURE = 2;
+const COSTMAP_UNKNOWN = 0;
+const COSTMAP_TRAVERSABLE = 1;
+const COSTMAP_CAUTION = 2;
+const COSTMAP_BLOCKED = 3;
 
-const BLOCK_SIDE_VOXELS = 8;
-const MAX_INSTANCES = 262_144;
-const EMPTY_PAYLOAD = new Uint8Array(0);
-const NVBLOX_HEALTH_SUBJECT = 'rabbit.health.map_local';
+const MAX_WALL_INSTANCES = 20_000;
+const WALL_HEIGHT = 0.40;
 
-type NvbloxHealth = {
-    received_bundle_count: number;
-    processed_bundle_count: number;
-    replaced_bundle_count: number;
-    lock_busy_skip_count: number;
-    last_integration_duration_ms: number;
-    last_esdf_update_duration_ms: number;
-    esdf_update_count: number;
-    num_blocks: number;
-    allocated_bytes: number;
-};
 
 const VIEW_MODES = [
     { id: 'fpv', label: 'FPV' },
@@ -43,296 +30,36 @@ const VIEW_MODES = [
 
 type ViewMode = (typeof VIEW_MODES)[number]['id'];
 
-const VOXEL_KIND_COLORS = [
-    new THREE.Color(0x00ff66),
-    new THREE.Color(0xff5533),
-    new THREE.Color(0x505064),
-    new THREE.Color(0x282844),
-];
+// --- Types ---
 
-type BlockIndex = [number, number, number];
-type PackedBlock = {
-    blockIndex: BlockIndex;
-    voxels: Uint8Array;
+type CostmapMessage = {
+    frame_number: number;
+    timestamp: number;
+    resolution: number;
+    width: number;
+    height: number;
+    origin_x: number;
+    origin_z: number;
+    cells: number[];
+    counts?: { unknown: number; traversable: number; caution: number; blocked: number };
 };
 
-type DeltaMessage = {
-    msgType: typeof MSG_TYPE_DELTA;
-    sequence: number;
-    voxelSize: number;
-    removeBlocks: BlockIndex[];
-    upsertBlocks: PackedBlock[];
+type PerceptionHealth = {
+    received_count: number;
+    processed_count: number;
+    last_process_ms: number;
+    last_points_count: number;
+    last_obstacle_count: number;
+    publish_count: number;
 };
 
-type SnapshotMessage = {
-    msgType: typeof MSG_TYPE_SNAPSHOT;
-    sequence: number;
-    voxelSize: number;
-    blocks: PackedBlock[];
-};
-
-type StoredBlock = {
-    blockIndex: BlockIndex;
-    voxels: Uint8Array;
-    slots: number[];
-};
-
-class VoxelMap {
-    private readonly blocks = new Map<string, StoredBlock>();
-    private readonly freeSlots: number[] = [];
-    private readonly capacity: number;
-    private nextSlot = 0;
-    private _voxelCount = 0;
-
-    lastSeq = 0;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-    }
-
-    get voxelCount() {
-        return this._voxelCount;
-    }
-
-    get blockCount() {
-        return this.blocks.size;
-    }
-
-    get activeCount() {
-        return this.nextSlot;
-    }
-
-    clear() {
-        this.blocks.clear();
-        this.freeSlots.length = 0;
-        this.nextSlot = 0;
-        this._voxelCount = 0;
-        this.lastSeq = 0;
-    }
-
-    applySnapshot(
-        mesh: THREE.InstancedMesh,
-        dummy: THREE.Object3D,
-        snapshot: SnapshotMessage,
-    ) {
-        this.clear();
-        mesh.count = 0;
-
-        for (const block of snapshot.blocks) {
-            this.upsertBlock(mesh, dummy, snapshot.voxelSize, block);
-        }
-
-        this.lastSeq = snapshot.sequence;
-        mesh.count = this.activeCount;
-    }
-
-    applyDelta(
-        mesh: THREE.InstancedMesh,
-        dummy: THREE.Object3D,
-        delta: DeltaMessage,
-    ) {
-        for (const blockIndex of delta.removeBlocks) {
-            this.removeBlock(mesh, dummy, toBlockKey(blockIndex));
-        }
-
-        for (const block of delta.upsertBlocks) {
-            this.upsertBlock(mesh, dummy, delta.voxelSize, block);
-        }
-
-        this.lastSeq = delta.sequence;
-        mesh.count = this.activeCount;
-    }
-
-    private upsertBlock(
-        mesh: THREE.InstancedMesh,
-        dummy: THREE.Object3D,
-        voxelSize: number,
-        block: PackedBlock,
-    ) {
-        const key = toBlockKey(block.blockIndex);
-        this.removeBlock(mesh, dummy, key);
-
-        const slots: number[] = [];
-        const [bx, by, bz] = block.blockIndex;
-        const voxelBlockOffsetX = bx * BLOCK_SIDE_VOXELS;
-        const voxelBlockOffsetY = by * BLOCK_SIDE_VOXELS;
-        const voxelBlockOffsetZ = bz * BLOCK_SIDE_VOXELS;
-
-        for (let offset = 0; offset < block.voxels.length; offset += 4) {
-            const slot = this.allocSlot();
-            const lx = block.voxels[offset]!;
-            const ly = block.voxels[offset + 1]!;
-            const lz = block.voxels[offset + 2]!;
-            const kind = block.voxels[offset + 3]!;
-
-            dummy.position.set(
-                (voxelBlockOffsetX + lx + 0.5) * voxelSize,
-                (voxelBlockOffsetY + ly + 0.5) * voxelSize,
-                (voxelBlockOffsetZ + lz + 0.5) * voxelSize,
-            );
-            dummy.scale.setScalar(voxelSize);
-            dummy.updateMatrix();
-
-            mesh.setMatrixAt(slot, dummy.matrix);
-            mesh.setColorAt(slot, VOXEL_KIND_COLORS[kind] ?? VOXEL_KIND_COLORS[VOXEL_KIND_STRUCTURE]!);
-            slots.push(slot);
-        }
-
-        this.blocks.set(key, {
-            blockIndex: block.blockIndex,
-            voxels: block.voxels,
-            slots,
-        });
-        this._voxelCount += slots.length;
-    }
-
-    private removeBlock(mesh: THREE.InstancedMesh, dummy: THREE.Object3D, key: string) {
-        const existing = this.blocks.get(key);
-        if (existing == null) {
-            return;
-        }
-
-        for (const slot of existing.slots) {
-            dummy.position.set(0, 0, 0);
-            dummy.scale.setScalar(0);
-            dummy.updateMatrix();
-            mesh.setMatrixAt(slot, dummy.matrix);
-            this.freeSlots.push(slot);
-        }
-
-        this._voxelCount -= existing.slots.length;
-        this.blocks.delete(key);
-    }
-
-    private allocSlot() {
-        const recycled = this.freeSlots.pop();
-        if (recycled != null) {
-            return recycled;
-        }
-
-        if (this.nextSlot >= this.capacity) {
-            throw new Error(`Voxel capacity exceeded (${this.capacity.toLocaleString()} instances)`);
-        }
-
-        const slot = this.nextSlot;
-        this.nextSlot += 1;
-        return slot;
-    }
-}
-
-function toBlockKey([x, y, z]: BlockIndex) {
-    return `${x},${y},${z}`;
-}
-
-function parseBlockIndex(view: DataView, offset: number): { blockIndex: BlockIndex; offset: number } {
-    const blockIndex: BlockIndex = [
-        view.getInt32(offset, true),
-        view.getInt32(offset + 4, true),
-        view.getInt32(offset + 8, true),
-    ];
-    return { blockIndex, offset: offset + 12 };
-}
-
-function parsePackedBlock(data: Uint8Array, view: DataView, offset: number): { block: PackedBlock; offset: number } {
-    const parsedIndex = parseBlockIndex(view, offset);
-    offset = parsedIndex.offset;
-
-    const numVoxels = view.getUint16(offset, true);
-    offset += 2;
-
-    const byteLength = numVoxels * 4;
-    const voxels = data.slice(offset, offset + byteLength);
-    offset += byteLength;
-
-    return {
-        block: {
-            blockIndex: parsedIndex.blockIndex,
-            voxels,
-        },
-        offset,
-    };
-}
-
-function parseVoxelMessage(payload: Uint8Array): DeltaMessage | SnapshotMessage {
-    const data = decompress(payload);
-    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-
-    let offset = 0;
-    const msgType = view.getUint8(offset);
-    offset += 1;
-
-    if (msgType === MSG_TYPE_DELTA) {
-        const sequence = view.getUint32(offset, true);
-        offset += 4;
-
-        const voxelSize = view.getFloat32(offset, true);
-        offset += 4;
-
-        const numRemoveBlocks = view.getUint32(offset, true);
-        offset += 4;
-
-        const numUpsertBlocks = view.getUint32(offset, true);
-        offset += 4;
-
-        const removeBlocks: BlockIndex[] = [];
-        for (let i = 0; i < numRemoveBlocks; i += 1) {
-            const parsedIndex = parseBlockIndex(view, offset);
-            removeBlocks.push(parsedIndex.blockIndex);
-            offset = parsedIndex.offset;
-        }
-
-        const upsertBlocks: PackedBlock[] = [];
-        for (let i = 0; i < numUpsertBlocks; i += 1) {
-            const parsedBlock = parsePackedBlock(data, view, offset);
-            upsertBlocks.push(parsedBlock.block);
-            offset = parsedBlock.offset;
-        }
-
-        return {
-            msgType,
-            sequence,
-            voxelSize,
-            removeBlocks,
-            upsertBlocks,
-        };
-    }
-
-    if (msgType === MSG_TYPE_SNAPSHOT) {
-        const sequence = view.getUint32(offset, true);
-        offset += 4;
-
-        const voxelSize = view.getFloat32(offset, true);
-        offset += 4;
-
-        const numBlocks = view.getUint32(offset, true);
-        offset += 4;
-
-        const blocks: PackedBlock[] = [];
-        for (let i = 0; i < numBlocks; i += 1) {
-            const parsedBlock = parsePackedBlock(data, view, offset);
-            blocks.push(parsedBlock.block);
-            offset = parsedBlock.offset;
-        }
-
-        return {
-            msgType,
-            sequence,
-            voxelSize,
-            blocks,
-        };
-    }
-
-    throw new Error(`Unknown voxel message type: ${msgType}`);
-}
+// --- Component ---
 
 export const PointCloud: React.FC = () => {
     const { nc } = useNats();
     const ref = React.useRef<HTMLCanvasElement | null>(null);
     const svgRef = React.useRef<SVGSVGElement | null>(null);
     const [pose, setPose] = React.useState<Pose | null>(null);
-    const [voxelCount, setVoxelCount] = React.useState<number | null>(null);
-    const [blockCount, setBlockCount] = React.useState<number | null>(null);
-    const [lastSeq, setLastSeq] = React.useState<number>(0);
     const [storedViewMode, setStoredViewMode] = useWatchKV<ViewMode>({
         key: 'rabbit.perception.view_mode',
         parse: (data) => {
@@ -342,7 +69,8 @@ export const PointCloud: React.FC = () => {
     });
     const viewMode = storedViewMode ?? 'third';
     const viewModeRef = React.useRef<ViewMode>(viewMode);
-    const [nvblox, setNvblox] = React.useState<NvbloxHealth | null>(null);
+    const [health, setHealth] = React.useState<PerceptionHealth | null>(null);
+    const [costmapStats, setCostmapStats] = React.useState<CostmapMessage['counts'] | null>(null);
 
     const setViewMode = (mode: ViewMode) => {
         viewModeRef.current = mode;
@@ -355,23 +83,32 @@ export const PointCloud: React.FC = () => {
 
     React.useLayoutEffect(() => {
         const canvas = ref.current;
-        if (canvas == null) {
-            return;
-        }
+        if (canvas == null) return;
 
         const { width, height } = canvas.getBoundingClientRect();
-        const renderer = new THREE.WebGLRenderer({
-            canvas,
-            antialias: true,
-        });
+
+        // --- Renderer ---
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setClearColor(0x1a1a2e);
+        renderer.setClearColor(0x111118);
         renderer.setSize(width, height);
 
         const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x111118, 0.06);
 
+        // --- Lights ---
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(3, 8, 5);
+        scene.add(dirLight);
+        const fillLight = new THREE.DirectionalLight(0x4488ff, 0.3);
+        fillLight.position.set(-3, 4, -5);
+        scene.add(fillLight);
+
+        // --- Ground grid (shader) ---
         const gridMaterial = new THREE.ShaderMaterial({
             transparent: true,
+            depthWrite: false,
             side: THREE.DoubleSide,
             uniforms: {
                 uColor: { value: new THREE.Color(0x00ff41) },
@@ -394,19 +131,13 @@ export const PointCloud: React.FC = () => {
                     vec2 line = fwidth(vWorldPos);
                     vec2 g = smoothstep(line * 0.5, line * 1.5, grid);
                     float gridLine = 1.0 - min(g.x, g.y);
-
-                    // Major grid every 1m, minor every 0.25m
                     vec2 gridMajor = abs(fract(vWorldPos * 0.25 - 0.5) - 0.5);
                     vec2 lineMajor = fwidth(vWorldPos * 0.25);
                     vec2 gM = smoothstep(lineMajor * 0.5, lineMajor * 1.5, gridMajor);
                     float majorLine = 1.0 - min(gM.x, gM.y);
-
-                    float a = max(gridLine * 0.15, majorLine * 0.35);
-
-                    // Fade with distance from origin
+                    float a = max(gridLine * 0.08, majorLine * 0.2);
                     float dist = length(vWorldPos);
                     a *= 1.0 - smoothstep(uFade * 0.3, uFade, dist);
-
                     if (a < 0.005) discard;
                     gl_FragColor = vec4(uColor, a);
                 }
@@ -414,20 +145,12 @@ export const PointCloud: React.FC = () => {
         });
         const grid = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), gridMaterial);
         grid.rotation.x = -Math.PI / 2;
+        grid.position.y = -0.001;
+        grid.renderOrder = -2;
         scene.add(grid);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
-
-        const light = new THREE.DirectionalLight(0xffffff, 0.8);
-        light.position.set(10, 10, 10);
-        scene.add(light);
-
-        const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
-        backLight.position.set(-5, 5, -5);
-        scene.add(backLight);
-
-        const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+        // --- Camera ---
+        const camera = new THREE.PerspectiveCamera(60, width / height, 0.05, 100);
         camera.position.set(0, 3, 5);
 
         const controls = new OrbitControls(camera, canvas);
@@ -435,6 +158,7 @@ export const PointCloud: React.FC = () => {
         controls.dampingFactor = 0.1;
         controls.target.set(0, 0.5, 0);
 
+        // --- Robot marker ---
         const robotMarker = new THREE.Group();
         const robotBody = new THREE.Mesh(
             new THREE.BoxGeometry(0.15, 0.06, 0.30),
@@ -442,19 +166,18 @@ export const PointCloud: React.FC = () => {
         );
         robotMarker.add(robotBody);
 
-        // Wheels
         const WHEEL_RADIUS = 0.04;
         const WHEEL_WIDTH = 0.02;
-        const HALF_TRACK = 0.1; // lateral offset from center
-        const FRONT_AXLE = -0.12; // forward from center (-Z is forward)
-        const REAR_AXLE = 0.12; // backward from center
+        const HALF_TRACK = 0.1;
+        const FRONT_AXLE = -0.12;
+        const REAR_AXLE = 0.12;
 
         const wheelGeometry = new THREE.CylinderGeometry(WHEEL_RADIUS, WHEEL_RADIUS, WHEEL_WIDTH, 12);
-        wheelGeometry.rotateZ(Math.PI / 2); // align cylinder axis to X (lateral)
+        wheelGeometry.rotateZ(Math.PI / 2);
         const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
 
         const createWheel = (x: number, z: number) => {
-            const pivot = new THREE.Group(); // pivot for steering
+            const pivot = new THREE.Group();
             pivot.position.set(x, -0.03 + WHEEL_RADIUS, z);
             const mesh = new THREE.Mesh(wheelGeometry, wheelMaterial);
             pivot.add(mesh);
@@ -469,10 +192,130 @@ export const PointCloud: React.FC = () => {
 
         let wheelRotation = 0;
         let steeringAngle = 0;
-        let wheelSpeed = 0; // rad/s derived from roboclaw speed
+        let wheelSpeed = 0;
 
         scene.add(robotMarker);
 
+        // --- Occupancy map: DataTexture on a single plane ---
+        // Much more efficient than instanced meshes: one draw call for the entire floor
+        const GRID_SIZE = 200; // must match Python OccupancyGrid.GRID_SIZE
+        const texData = new Uint8Array(GRID_SIZE * GRID_SIZE * 4); // RGBA
+        const floorTexture = new THREE.DataTexture(texData, GRID_SIZE, GRID_SIZE, THREE.RGBAFormat);
+        floorTexture.minFilter = THREE.NearestFilter;
+        floorTexture.magFilter = THREE.NearestFilter;
+        floorTexture.wrapS = THREE.ClampToEdgeWrapping;
+        floorTexture.wrapT = THREE.ClampToEdgeWrapping;
+
+        const floorMaterial = new THREE.ShaderMaterial({
+            transparent: false,
+            uniforms: {
+                uMap: { value: floorTexture },
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D uMap;
+                varying vec2 vUv;
+                void main() {
+                    vec4 c = texture2D(uMap, vUv);
+                    if (c.a < 0.01) discard;
+                    gl_FragColor = vec4(c.rgb, 1.0);
+                }
+            `,
+        });
+
+        const floorPlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), floorMaterial);
+        floorPlane.rotation.x = -Math.PI / 2;
+        floorPlane.position.y = 0.002;
+        floorPlane.renderOrder = -1;
+        scene.add(floorPlane);
+
+        // --- Walls: instanced boxes ---
+        const wallGeom = new THREE.BoxGeometry(1, 1, 1);
+        const wallMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff4444,
+            emissive: 0x661111,
+            emissiveIntensity: 0.6,
+            roughness: 0.5,
+            metalness: 0.0,
+            fog: false,
+        });
+        const wallMesh = new THREE.InstancedMesh(wallGeom, wallMaterial, MAX_WALL_INSTANCES);
+        wallMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        wallMesh.renderOrder = 1;
+        wallMesh.count = 0;
+        scene.add(wallMesh);
+
+        const dummy = new THREE.Object3D();
+
+        const updateCostmap = (msg: CostmapMessage) => {
+            const { resolution, width: w, height: h, origin_x, origin_z, cells } = msg;
+            const worldSize = w * resolution;
+
+            // Update floor plane transform to match grid world position
+            floorPlane.position.x = origin_x + worldSize * 0.5;
+            floorPlane.position.z = origin_z + worldSize * 0.5;
+            floorPlane.scale.set(worldSize, worldSize, 1);
+
+            // Fill texture data — encode cell colors into RGBA
+            let wallSlot = 0;
+
+            for (let row = 0; row < h; row++) {
+                for (let col = 0; col < w; col++) {
+                    const cell = cells[row * w + col]!;
+                    // DataTexture row 0 = bottom; plane rotated -PI/2 maps v=0 to +Z.
+                    // Grid row 0 = min Z, so flip rows to match.
+                    const texRow = h - 1 - row;
+                    const texIdx = (texRow * w + col) * 4;
+
+                    if (cell === COSTMAP_UNKNOWN) {
+                        texData[texIdx] = 0;
+                        texData[texIdx + 1] = 0;
+                        texData[texIdx + 2] = 0;
+                        texData[texIdx + 3] = 0;
+                    } else if (cell === COSTMAP_TRAVERSABLE) {
+                        texData[texIdx] = 34;    // 0x22
+                        texData[texIdx + 1] = 204; // 0xcc
+                        texData[texIdx + 2] = 85;  // 0x55
+                        texData[texIdx + 3] = 140;
+                    } else if (cell === COSTMAP_CAUTION) {
+                        texData[texIdx] = 238;   // 0xee
+                        texData[texIdx + 1] = 170; // 0xaa
+                        texData[texIdx + 2] = 0;
+                        texData[texIdx + 3] = 160;
+                    } else if (cell === COSTMAP_BLOCKED) {
+                        // No floor color — walls are 3D blocks only
+                        texData[texIdx] = 0;
+                        texData[texIdx + 1] = 0;
+                        texData[texIdx + 2] = 0;
+                        texData[texIdx + 3] = 0;
+                        if (wallSlot < MAX_WALL_INSTANCES) {
+                            const wx = origin_x + (col + 0.5) * resolution;
+                            const wz = origin_z + (row + 0.5) * resolution;
+                            dummy.position.set(wx, WALL_HEIGHT * 0.5, wz);
+                            dummy.scale.set(resolution, WALL_HEIGHT, resolution);
+                            dummy.updateMatrix();
+                            wallMesh.setMatrixAt(wallSlot, dummy.matrix);
+                            wallSlot++;
+                        }
+                    }
+                }
+            }
+
+            floorTexture.needsUpdate = true;
+
+            wallMesh.count = wallSlot;
+            wallMesh.instanceMatrix.needsUpdate = true;
+
+            setCostmapStats(msg.counts ?? null);
+        };
+
+        // --- Camera follow ---
         const RETURN_DELAY = 3000;
         const LERP_SPEED = 3;
         let lastInteraction = 0;
@@ -484,15 +327,11 @@ export const PointCloud: React.FC = () => {
         const targetCamPos = new THREE.Vector3();
         let hasPose = false;
 
-        const setViewModeFromLoop = (mode: ViewMode) => {
-            viewModeRef.current = mode;
-            setViewMode(mode);
-        };
-
         controls.addEventListener('start', () => {
             userControlling = true;
             if (viewModeRef.current === 'fpv') {
-                setViewModeFromLoop('third');
+                viewModeRef.current = 'third';
+                setViewMode('third');
             }
         });
         controls.addEventListener('end', () => {
@@ -500,47 +339,11 @@ export const PointCloud: React.FC = () => {
             userControlling = false;
         });
 
-        const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
-        const blockMaterial = new THREE.MeshStandardMaterial({ vertexColors: true });
-        const voxelMesh = new THREE.InstancedMesh(blockGeometry, blockMaterial, MAX_INSTANCES);
-        voxelMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        voxelMesh.instanceColor = new THREE.InstancedBufferAttribute(
-            new Float32Array(MAX_INSTANCES * 3),
-            3,
-        );
-        voxelMesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
-        voxelMesh.count = 0;
-        scene.add(voxelMesh);
-
-        const voxelMap = new VoxelMap(MAX_INSTANCES);
-        const dummy = new THREE.Object3D();
-        let awaitingSnapshot = false;
-
-        const publishSnapshotRequest = () => {
-            if (awaitingSnapshot) {
-                return;
-            }
-
-            try {
-                awaitingSnapshot = true;
-                nc.publish(VOXELS_REQUEST_SUBJECT, EMPTY_PAYLOAD);
-            } catch (error) {
-                awaitingSnapshot = false;
-                L.error('Failed to request voxel snapshot', error);
-            }
-        };
-
-        const syncOverlay = () => {
-            setVoxelCount(voxelMap.voxelCount);
-            setBlockCount(voxelMap.blockCount);
-            setLastSeq(voxelMap.lastSeq);
-        };
-
+        // --- Subscriptions ---
         let poseFrame = 0;
-        const poseWatcher = nc.subscribe('rabbit.zed.pose', {
+        const poseSub = nc.subscribe('rabbit.zed.pose', {
             callback: (_, msg) => {
                 const nextPose = Pose.parse(msg?.json());
-
                 const [px, py, pz] = nextPose.translation;
                 const [qx, qy, qz, qw] = nextPose.orientation;
 
@@ -553,97 +356,36 @@ export const PointCloud: React.FC = () => {
                 fpvLookTarget.copy(fpvPosition).add(forward);
                 hasPose = true;
 
-                if (poseFrame++ % 30 === 0) {
-                    setPose(nextPose);
-                }
+                if (poseFrame++ % 30 === 0) setPose(nextPose);
             },
         });
 
-        const deltaSub = nc.subscribe(VOXELS_DELTA_SUBJECT, {
+        const costmapSub = nc.subscribe(NAV_COSTMAP_SUBJECT, {
             callback: (_, msg) => {
                 try {
-                    const parsed = parseVoxelMessage(msg.data);
-                    if (parsed.msgType !== MSG_TYPE_DELTA) {
-                        return;
-                    }
-
-                    if (voxelMap.lastSeq === 0) {
-                        publishSnapshotRequest();
-                        return;
-                    }
-
-                    if (parsed.sequence <= voxelMap.lastSeq) {
-                        return;
-                    }
-
-                    if (parsed.sequence !== voxelMap.lastSeq + 1) {
-                        L.warn('Voxel delta gap detected, requesting snapshot', {
-                            expected: voxelMap.lastSeq + 1,
-                            received: parsed.sequence,
-                        });
-                        publishSnapshotRequest();
-                        return;
-                    }
-
-                    voxelMap.applyDelta(voxelMesh, dummy, parsed);
-                    voxelMesh.instanceMatrix.needsUpdate = true;
-                    if (voxelMesh.instanceColor != null) {
-                        voxelMesh.instanceColor.needsUpdate = true;
-                    }
-                    syncOverlay();
+                    updateCostmap(msg.json() as CostmapMessage);
                 } catch (error) {
-                    L.error('Failed to apply voxel delta', error);
+                    L.error('Failed to update costmap', error);
                 }
             },
         });
 
-        const snapshotSub = nc.subscribe(VOXELS_SNAPSHOT_SUBJECT, {
+        const healthSub = nc.subscribe(PERCEPTION_HEALTH_SUBJECT, {
             callback: (_, msg) => {
-                try {
-                    const parsed = parseVoxelMessage(msg.data);
-                    if (parsed.msgType !== MSG_TYPE_SNAPSHOT) {
-                        return;
-                    }
-
-                    awaitingSnapshot = false;
-
-                    if (parsed.sequence < voxelMap.lastSeq) {
-                        return;
-                    }
-
-                    voxelMap.applySnapshot(voxelMesh, dummy, parsed);
-                    voxelMesh.instanceMatrix.needsUpdate = true;
-                    if (voxelMesh.instanceColor != null) {
-                        voxelMesh.instanceColor.needsUpdate = true;
-                    }
-                    syncOverlay();
-                } catch (error) {
-                    awaitingSnapshot = false;
-                    L.error('Failed to apply voxel snapshot', error);
-                }
+                try { setHealth(msg.json() as PerceptionHealth); } catch {}
             },
         });
 
-        publishSnapshotRequest();
-
-        const nvbloxSub = nc.subscribe(NVBLOX_HEALTH_SUBJECT, {
-            callback: (_, msg) => {
-                try {
-                    setNvblox(msg.json() as NvbloxHealth);
-                } catch {}
-            },
-        });
-
-        let speedL = 0;
-        let speedR = 0;
+        let encoderL = 0;
+        let encoderR = 0;
 
         const roboclawSub = nc.subscribe('rabbit.roboclaw', {
             callback: (_, msg) => {
                 try {
                     const data = msg.json() as { m1: { speed: number; encoder: number }; m2: { speed: number; encoder: number } };
-                    speedL = data.m1.speed;
-                    speedR = data.m2.speed;
                     wheelSpeed = ((data.m1.speed + data.m2.speed) / 2) * 0.001;
+                    encoderL = data.m1.encoder;
+                    encoderR = data.m2.encoder;
                 } catch {}
             },
         });
@@ -652,12 +394,12 @@ export const PointCloud: React.FC = () => {
             callback: (_, msg) => {
                 try {
                     const data = msg.json() as { sticks: { left: { x: number } } };
-                    // Map stick [-1, 1] to steering angle (max ~30 degrees)
                     steeringAngle = -(data.sticks.left.x ?? 0) * (Math.PI / 6);
                 } catch {}
             },
         });
 
+        // --- Render loop ---
         let lastFrameTime = performance.now();
         renderer.setAnimationLoop(() => {
             const now = performance.now();
@@ -668,11 +410,7 @@ export const PointCloud: React.FC = () => {
             const idleMs = now - lastInteraction;
             const modeChanged = mode !== lastViewMode;
             lastViewMode = mode;
-
-            // On mode change, reset idle timer so camera moves immediately
-            if (modeChanged) {
-                lastInteraction = 0;
-            }
+            if (modeChanged) lastInteraction = 0;
 
             if (hasPose) {
                 const t = 1 - Math.exp(-LERP_SPEED * dt);
@@ -686,9 +424,7 @@ export const PointCloud: React.FC = () => {
                     }
                 } else if (mode === 'third') {
                     camera.up.lerp(defaultUp, t);
-                    // Always keep orbit target on the robot
                     controls.target.lerp(fpvPosition, t);
-
                     if (!userControlling) {
                         const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(robotMarker.quaternion);
                         targetCamPos.copy(fpvPosition).add(forward.multiplyScalar(-0.8)).setY(fpvPosition.y + 0.5);
@@ -697,10 +433,8 @@ export const PointCloud: React.FC = () => {
                 } else if (mode === 'top') {
                     targetCamPos.set(fpvPosition.x, fpvPosition.y + 2, fpvPosition.z);
                     controls.target.lerp(fpvPosition, t);
-
                     if (!userControlling && idleMs > RETURN_DELAY) {
                         camera.position.lerp(targetCamPos, t);
-                        // Align camera up vector with robot forward so top-down rotates with heading
                         const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(robotMarker.quaternion);
                         forward.y = 0;
                         forward.normalize();
@@ -709,18 +443,16 @@ export const PointCloud: React.FC = () => {
                 }
             }
 
-            // Animate wheels
+            // Wheels
             wheelRotation += wheelSpeed * dt;
             wheelFL.mesh.rotation.x = wheelRotation;
             wheelFR.mesh.rotation.x = wheelRotation;
             wheelRL.mesh.rotation.x = wheelRotation;
             wheelRR.mesh.rotation.x = wheelRotation;
-
-            // Front wheels steer
             wheelFL.pivot.rotation.y = steeringAngle;
             wheelFR.pivot.rotation.y = steeringAngle;
 
-            // Project wheel positions to screen for HUD annotations
+            // Wheel HUD
             const svg = svgRef.current;
             if (svg) {
                 const w = renderer.domElement.clientWidth;
@@ -738,14 +470,13 @@ export const PointCloud: React.FC = () => {
                 const fr = project(wheelFR.pivot);
                 const rl = project(wheelRL.pivot);
                 const rr = project(wheelRR.pivot);
-
-                const steerDeg = (steeringAngle * 180 / Math.PI).toFixed(1);
+                const steerDeg = ((steeringAngle * 180) / Math.PI).toFixed(1);
 
                 const annotations = [
-                    { wp: fl, label: `${speedL}`, offset: [-60, -30] as const },
-                    { wp: fr, label: `${speedR}`, offset: [60, -30] as const },
-                    { wp: rl, label: `${speedL}`, offset: [-60, 30] as const },
-                    { wp: rr, label: `${speedR}`, offset: [60, 30] as const },
+                    { wp: fl, label: `${encoderL}`, offset: [-60, -30] as const },
+                    { wp: fr, label: `${encoderR}`, offset: [60, -30] as const },
+                    { wp: rl, label: `${encoderL}`, offset: [-60, 30] as const },
+                    { wp: rr, label: `${encoderR}`, offset: [60, 30] as const },
                 ];
 
                 let svgContent = '';
@@ -758,7 +489,6 @@ export const PointCloud: React.FC = () => {
                     svgContent += `<text x="${tx}" y="${ty - 4}" fill="#00ff41" font-size="10" font-family="monospace" text-anchor="${offset[0] < 0 ? 'end' : 'start'}" opacity="0.85">${label}</text>`;
                 }
 
-                // Steering angle label between front wheels
                 if (!fl.behind && !fr.behind) {
                     const mx = (fl.x + fr.x) / 2;
                     const my = (fl.y + fr.y) / 2 - 20;
@@ -772,35 +502,36 @@ export const PointCloud: React.FC = () => {
             renderer.render(scene, camera);
         });
 
+        // --- Resize ---
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
-                if (entry.target !== canvas) {
-                    continue;
-                }
-
-                const nextWidth = entry.contentRect.width;
-                const nextHeight = entry.contentRect.height;
-                renderer.setSize(nextWidth, nextHeight);
-                camera.aspect = nextWidth / nextHeight;
+                if (entry.target !== canvas) continue;
+                const w = entry.contentRect.width;
+                const h = entry.contentRect.height;
+                renderer.setSize(w, h);
+                camera.aspect = w / h;
                 camera.updateProjectionMatrix();
             }
         });
         observer.observe(canvas);
 
+        // --- Cleanup ---
         return () => {
             observer.disconnect();
             renderer.setAnimationLoop(null);
             controls.dispose();
-            poseWatcher.unsubscribe();
-            deltaSub.unsubscribe();
-            snapshotSub.unsubscribe();
-            nvbloxSub.unsubscribe();
+            poseSub.unsubscribe();
+            costmapSub.unsubscribe();
+            healthSub.unsubscribe();
             roboclawSub.unsubscribe();
             joySub.unsubscribe();
+            floorTexture.dispose();
+            floorMaterial.dispose();
+            floorPlane.geometry.dispose();
+            wallGeom.dispose();
+            wallMaterial.dispose();
             wheelGeometry.dispose();
             wheelMaterial.dispose();
-            blockGeometry.dispose();
-            blockMaterial.dispose();
             grid.geometry.dispose();
             gridMaterial.dispose();
             renderer.dispose();
@@ -808,41 +539,19 @@ export const PointCloud: React.FC = () => {
     }, [nc]);
 
     return (
-        <div
-            className={css`
-                width: 100% !important;
-                height: 100% !important;
-                position: relative;
-            `}>
-            <canvas
-                ref={ref}
-                className={css`
-                    width: 100% !important;
-                    height: 100% !important;
-                `}
-            />
+        <div className={css`width: 100% !important; height: 100% !important; position: relative;`}>
+            <canvas ref={ref} className={css`width: 100% !important; height: 100% !important;`} />
             <svg
                 ref={svgRef}
-                className={css`
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    pointer-events: none;
-                `}
+                className={css`position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;`}
             />
-            {/* Top-right: view mode */}
-            <div
-                className={css`
-                    position: absolute;
-                    top: 8px;
-                    right: 8px;
-                `}>
+
+            {/* View mode */}
+            <div className={css`position: absolute; top: 8px; right: 8px;`}>
                 <ui.SegmentedControl segments={VIEW_MODES} value={viewMode} onChange={(id) => setViewMode(id as ViewMode)} />
             </div>
 
-            {/* Bottom-left: combined stats panel */}
+            {/* Stats */}
             <div
                 className={css`
                     position: absolute;
@@ -858,86 +567,46 @@ export const PointCloud: React.FC = () => {
                     gap: 6px;
                     min-width: 180px;
                 `}>
-                {/* Perception */}
-                <div
-                    className={css`
-                        display: flex;
-                        flex-direction: column;
-                        gap: 2px;
-                    `}>
-                    <OverlayRow label='ALT' value={`${pose?.translation[1].toFixed(2) ?? '—'}m`} />
-                    {voxelCount != null && <OverlayRow label='VOXELS' value={voxelCount.toLocaleString()} />}
-                    {blockCount != null && <OverlayRow label='BLOCKS' value={blockCount.toLocaleString()} />}
-                    <OverlayRow label='SEQ' value={lastSeq.toLocaleString()} />
+                <div className={css`display: flex; flex-direction: column; gap: 2px;`}>
+                    <OverlayRow label="ALT" value={`${pose?.translation[1].toFixed(2) ?? '—'}m`} />
                 </div>
 
-                {/* Nvblox mapper */}
-                {nvblox != null && (
-                    <div
-                        className={css`
-                            display: flex;
-                            flex-direction: column;
-                            gap: 2px;
-                            padding-top: 6px;
-                            border-top: 1px solid rgba(0, 255, 65, 0.1);
-                        `}>
-                        <OverlayRow label='RECV' value={`${nvblox.processed_bundle_count}/${nvblox.received_bundle_count}`} />
-                        <OverlayRow label='INTEGRATE' value={`${nvblox.last_integration_duration_ms.toFixed(0)}ms`} warn={nvblox.last_integration_duration_ms > 200} />
-                        <OverlayRow label='ESDF' value={`${nvblox.last_esdf_update_duration_ms.toFixed(0)}ms`} />
-                        <OverlayRow label='ALLOC' value={formatSize(nvblox.allocated_bytes)} />
-                        {nvblox.lock_busy_skip_count > 0 && (
-                            <OverlayRow label='LOCK SKIP' value={`${nvblox.lock_busy_skip_count}`} warn />
-                        )}
+                {/* Perception */}
+                {health != null && (
+                    <div className={css`display: flex; flex-direction: column; gap: 2px; padding-top: 6px; border-top: 1px solid rgba(0, 255, 65, 0.1);`}>
+                        <OverlayRow label="RECV" value={`${health.processed_count}/${health.received_count}`} />
+                        <OverlayRow label="PROCESS" value={`${health.last_process_ms}ms`} warn={health.last_process_ms > 200} />
+                        <OverlayRow label="POINTS" value={`${health.last_points_count}`} />
+                        <OverlayRow label="OBSTACLES" value={`${health.last_obstacle_count}`} />
+                    </div>
+                )}
+
+                {/* Costmap */}
+                {costmapStats != null && (
+                    <div className={css`display: flex; flex-direction: column; gap: 2px; padding-top: 6px; border-top: 1px solid rgba(0, 255, 65, 0.1);`}>
+                        <OverlayRow label="FREE" value={costmapStats.traversable.toLocaleString()} />
+                        <OverlayRow label="CAUTION" value={costmapStats.caution.toLocaleString()} />
+                        <OverlayRow label="BLOCKED" value={costmapStats.blocked.toLocaleString()} />
                     </div>
                 )}
 
                 {/* Legend */}
-                <div
-                    className={css`
-                        display: flex;
-                        flex-direction: column;
-                        gap: 1px;
-                        padding-top: 6px;
-                        border-top: 1px solid rgba(0, 255, 65, 0.1);
-                        font-size: 10px;
-                        opacity: 0.7;
-                    `}>
-                    <div><span style={{ color: '#00ff66' }}>■</span> FLOOR</div>
-                    <div><span style={{ color: '#ff5533' }}>■</span> OBSTACLE</div>
-                    <div><span style={{ color: '#505064' }}>■</span> STRUCTURE</div>
-                    <div><span style={{ color: '#282844' }}>■</span> BELOW</div>
+                <div className={css`display: flex; flex-direction: column; gap: 1px; padding-top: 6px; border-top: 1px solid rgba(0, 255, 65, 0.1); font-size: 10px; opacity: 0.7;`}>
+                    <div><span style={{ color: '#22cc55' }}>■</span> FREE</div>
+                    <div><span style={{ color: '#eeaa00' }}>■</span> CAUTION</div>
+                    <div><span style={{ color: '#cc3333' }}>■</span> WALL</div>
                 </div>
             </div>
         </div>
     );
 };
 
-function formatSize(bytes: number): string {
-    if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}G`;
-    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
-    if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)}K`;
-    return `${bytes}B`;
-}
+// --- Small components ---
 
 const OverlayRow: React.FC<{ label: string; value: string; warn?: boolean }> = ({ label, value, warn }) => (
-    <div
-        className={css`
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-        `}>
-        <span
-            className={css`
-                opacity: 0.5;
-            `}>
-            {label}
-        </span>
-        <span
-            className={css`
-                color: ${warn ? '#ff5533' : 'inherit'};
-            `}>
-            {value}
-        </span>
+    <div className={css`display: flex; justify-content: space-between; gap: 12px;`}>
+        <span className={css`opacity: 0.5;`}>{label}</span>
+        <span className={css`color: ${warn ? '#ff5533' : 'inherit'};`}>{value}</span>
     </div>
 );
 

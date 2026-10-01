@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "build123d-mcp": {
+      "command": "uv",
+      "args": ["tool", "run", "--python", "3.12", "build123d-mcp@latest"]
+    },
+    "konnect": {
+      "command": "/Users/sergeyalekseev/.local/bin/konnect",
+      "env": {
+        "KICAD_API_SOCKET": "ipc:///tmp/kicad/api.sock"
+      }
+    }
+  }
+}

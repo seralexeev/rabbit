@@ -18,6 +18,7 @@ class Node(RabbitNode):
         self.last_command_at: Optional[float] = None
         self.current_left = 0.0
         self.current_right = 0.0
+        self._rc_lock = asyncio.Lock()
 
     async def init(self):
         self.rc.open()
@@ -34,37 +35,48 @@ class Node(RabbitNode):
         if abs(self.current_left) < 0.01 and abs(self.current_right) < 0.01:
             self.current_left = 0.0
             self.current_right = 0.0
-            self.rc.move(0, 0)
+            async with self._rc_lock:
+                self.rc.move(0, 0)
             self.last_command_at = None
-            self.logger.warning("Kill switch activated: no control input")
+            self.logger.debug("Kill switch activated: no control input")
             return
 
         self.current_left *= self.DECAY_RATE
         self.current_right *= self.DECAY_RATE
-        self.rc.move(self.current_left, self.current_right)
+        async with self._rc_lock:
+            self.rc.move(self.current_left, self.current_right)
 
     async def publish_metrics(self):
+        speed_m1 = dir_m1 = speed_m2 = dir_m2 = 0
+        enc_m1 = enc_m2 = 0
+
         while True:
-            try:
-                speed_m1, dir_m1 = self.rc.read_raw_speed_m1()
-                speed_m2, dir_m2 = self.rc.read_raw_speed_m2()
-                enc_m1, _ = self.rc.read_encoder_m1()
-                enc_m2, _ = self.rc.read_encoder_m2()
+            async with self._rc_lock:
+                try:
+                    speed_m1, dir_m1 = self.rc.read_raw_speed_m1()
+                    speed_m2, dir_m2 = self.rc.read_raw_speed_m2()
+                    self.logger.debug(f"Speed: m1={speed_m1} dir={dir_m1}, m2={speed_m2} dir={dir_m2}")
+                except Exception as e:
+                    self.logger.error(f"Error reading speed: {e}")
+                try:
+                    enc_m1, _ = self.rc.read_encoder_m1()
+                    enc_m2, _ = self.rc.read_encoder_m2()
+                    self.logger.debug(f"Encoders: m1={enc_m1}, m2={enc_m2}")
+                except Exception as e:
+                    self.logger.error(f"Error reading encoders: {e}")
 
-                payload = json.dumps({
-                    "m1": {
-                        "speed": speed_m1 if dir_m1 == 0 else -speed_m1,
-                        "encoder": enc_m1,
-                    },
-                    "m2": {
-                        "speed": speed_m2 if dir_m2 == 0 else -speed_m2,
-                        "encoder": enc_m2,
-                    },
-                }).encode()
-                await self.nc.publish("rabbit.roboclaw", payload)
-            except Exception as e:
-                self.logger.error(f"Error reading metrics: {e}")
-
+            payload = json.dumps({
+                "m1": {
+                    "speed": speed_m1 if dir_m1 == 0 else -speed_m1,
+                    "encoder": enc_m1,
+                },
+                "m2": {
+                    "speed": speed_m2 if dir_m2 == 0 else -speed_m2,
+                    "encoder": enc_m2,
+                },
+            }).encode()
+            self.logger.debug(f"Publishing: {payload.decode()}")
+            await self.nc.publish("rabbit.roboclaw", payload)
             await asyncio.sleep(0.1)
 
     async def joy_handler(self, msg: Msg):
@@ -88,7 +100,11 @@ class Node(RabbitNode):
 
         self.current_left = left_speed
         self.current_right = right_speed
-        self.rc.move(left_speed, right_speed)
+        try:
+            async with self._rc_lock:
+                self.rc.move(left_speed, right_speed)
+        except RuntimeError as e:
+            self.logger.error(f"Error sending motor command: {e}")
         self.last_command_at = time.time()
 
 

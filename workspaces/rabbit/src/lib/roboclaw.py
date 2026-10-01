@@ -134,14 +134,16 @@ class RoboClawDriver:
             raise RuntimeError("Serial port not open")
 
         with self._lock:
-            self._send_command_unsafe(command, args)
-            response = self._serial.read(read_bytes)
-            if len(response) != read_bytes:
-                raise RuntimeError(
+            last_error = None
+            for _ in range(self.retry_count):
+                self._send_command_unsafe(command, args)
+                response = self._serial.read(read_bytes)
+                if len(response) == read_bytes:
+                    return response
+                last_error = RuntimeError(
                     f"Invalid response from command ({command}): expected {read_bytes}, got {len(response)}"
                 )
-
-            return response
+            raise last_error
 
     def _send_command_ack(self, cmd: int, args: bytes = b""):
         """Send command and wait for 0xFF acknowledgment.
@@ -153,12 +155,15 @@ class RoboClawDriver:
         Raises:
             RuntimeError: If acknowledgment is not received or is invalid.
         """
-        response = self._send_command(cmd, 1, args)
-
-        if len(response) != 1 or response[0] != 0xFF:
-            raise RuntimeError(
+        last_error = None
+        for _ in range(self.retry_count):
+            response = self._send_command(cmd, 1, args)
+            if len(response) == 1 and response[0] == 0xFF:
+                return
+            last_error = RuntimeError(
                 f"Invalid response: expected 0xFF, got {response[0]:02X}"
             )
+        raise last_error
 
     def _send_command_crc(
         self, cmd: int, response_size: int, args: bytes = b""
@@ -176,16 +181,17 @@ class RoboClawDriver:
         Raises:
             RuntimeError: If CRC validation fails.
         """
-        response = self._send_command(cmd, response_size, args)
-        crc = self._unpack_u16(response[-2:])
-        control_crc = self._get_response_crc(cmd, response)
-
-        if crc != control_crc:
-            raise RuntimeError(
+        last_error = None
+        for _ in range(self.retry_count):
+            response = self._send_command(cmd, response_size, args)
+            crc = self._unpack_u16(response[-2:])
+            control_crc = self._get_response_crc(cmd, response)
+            if crc == control_crc:
+                return response[:-2]
+            last_error = RuntimeError(
                 f"CRC mismatch: received {crc:04X}, expected {control_crc:04X}"
             )
-
-        return response[:-2]
+        raise last_error
 
     def _unpack_u16(self, data: bytes) -> int:
         return struct.unpack(">H", data)[0]
@@ -2866,6 +2872,22 @@ class RoboClaw:
         m1_speed = self._get_duty_cycle(m1_percent)
         m2_speed = self._get_duty_cycle(m2_percent)
         self._driver.drive_m1_m2_with_signed_duty_cycle(m1_speed, m2_speed)
+
+    def read_raw_speed_m1(self) -> Tuple[int, int]:
+        """Read M1 raw speed. Returns (speed, direction)."""
+        return self._driver.read_raw_speed_m1()
+
+    def read_raw_speed_m2(self) -> Tuple[int, int]:
+        """Read M2 raw speed. Returns (speed, direction)."""
+        return self._driver.read_raw_speed_m2()
+
+    def read_encoder_m1(self) -> Tuple[int, int]:
+        """Read M1 encoder count. Returns (count, status)."""
+        return self._driver.read_encoder_m1()
+
+    def read_encoder_m2(self) -> Tuple[int, int]:
+        """Read M2 encoder count. Returns (count, status)."""
+        return self._driver.read_encoder_m2()
 
     def stop(self):
         """Stop both motors by setting duty cycle to 0."""

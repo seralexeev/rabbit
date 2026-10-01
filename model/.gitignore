@@ -1,0 +1,6 @@
+.venv/
+.env
+ref/*.dxf
+onshape_*.json
+onshape_*.txt
+cache/

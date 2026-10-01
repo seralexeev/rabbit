@@ -140,9 +140,7 @@ class RabbitNode:
                         t = asyncio.create_task(safe_callback())
                         running.add(t)
                     else:
-                        self.logger.warning(
-                            f"Skipping tick: {len(running)}/{max_parallel} tasks running"
-                        )
+                        pass  # skip tick, previous still running
 
                     next_tick += delay
                     sleep_time = next_tick - loop.time()
