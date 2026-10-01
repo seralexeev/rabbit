@@ -13,11 +13,13 @@ from lib.safety import bin_scan
 from lib.spatial_map import (
     AREA_ARCHIVE_DIR,
     AREA_FILE,
+    CHUNKS_FILE,
     MESH_FILE,
     MAP_CHUNKS_SUBJECT,
     MAP_DIR,
     MAP_SAVE_SUBJECT,
     MAP_SNAPSHOT_SUBJECT,
+    decode_chunks,
     encode_chunk,
 )
 from nats.aio.msg import Msg
@@ -77,6 +79,8 @@ class Node(RabbitNode):
     IMU_WINDOW_NS = 10_000_000
     STATUS_EVERY_N_FRAMES = 30
     RELOCALIZATION_TIMEOUT_S = 30.0
+    BASE_INDEX_OFFSET = 1 << 20
+    BASE_REPLACE_MARGIN = 0.1
     AREA_ARCHIVE_KEEP = 5
     TILT_MISMATCH_DEG = 8.0
     FLOOR_SMOOTHING = 0.02
@@ -87,6 +91,7 @@ class Node(RabbitNode):
     HEALTH_SUBJECT = "rabbit.health.zed"
     PREVIEW_FPS = 10
     MAP_INTERVAL_S = 3.0
+    MAP_STATIC_INTERVAL_S = 15.0
     MAP_WORK_BUDGET = 0.05
     AREA_EXPORT_TIMEOUT_S = 15.0
     TEMPERATURE_LOCATIONS = (
@@ -141,6 +146,7 @@ class Node(RabbitNode):
         self.mapping_parameters.use_chunk_only = True
         self.mapping_parameters.stability_counter = 4
         self.map_lock = threading.Lock()
+        self._pending_lock = threading.Lock()
         self.map_worker: threading.Thread | None = None
         self.pending_map: bytes | None = None
         self.snapshot_payload = b""
@@ -155,6 +161,10 @@ class Node(RabbitNode):
         self.encoded_chunks: dict[int, bytes] = {}
         self.map_interval_s = self.MAP_INTERVAL_S
         self.chunk_points: dict[int, int] = {}
+        self.base_keys = np.empty(0, dtype=np.int64)
+        self.base_centers = np.empty((0, 3))
+        self.relocalization_motion_s = 0.0
+        self.relocalization_checked_at = 0.0
 
         self.frame_number = -1
         self.timestamp = 0
@@ -191,7 +201,7 @@ class Node(RabbitNode):
         MAP_DIR.mkdir(parents=True, exist_ok=True)
         if AREA_FILE.exists():
             self.tracking_parameters.area_file_path = str(AREA_FILE)
-            self.relocalizing_since = time.monotonic()
+            self.relocalizing_since = self.relocalization_checked_at = time.monotonic()
             self.logger.info(f"Relocalizing against {AREA_FILE}")
 
         status = self.zed.enable_positional_tracking(self.tracking_parameters)
@@ -235,6 +245,9 @@ class Node(RabbitNode):
             self.zed.close()
 
     def _save_map(self):
+        if self.relocalizing_since is not None:
+            self.logger.warning("Not saving the map before relocalizing against the saved one")
+            return
         status = self.zed.save_area_map(str(AREA_FILE))
         if status != sl.ERROR_CODE.SUCCESS:
             self.logger.error(f"Failed to save area map: {status}")
@@ -243,12 +256,16 @@ class Node(RabbitNode):
                 str(MESH_FILE), sl.MESH_FILE_FORMAT.PLY
             ):
                 self.logger.error(f"Failed to save mesh to {MESH_FILE}")
+            if self.snapshot_payload:
+                staging = CHUNKS_FILE.with_suffix(".tmp")
+                staging.write_bytes(self.snapshot_payload)
+                staging.replace(CHUNKS_FILE)
 
     async def on_map_save(self, msg: Msg):
         self.save_requested = True
 
     async def on_map_snapshot(self, msg: Msg):
-        await self.nc.publish(
+        await self.publish(
             msg.reply,
             self.snapshot_payload,
             headers={"session": self.session, "format": "mesh"},
@@ -302,6 +319,7 @@ class Node(RabbitNode):
                 "preview_skipped": self.preview_skipped,
                 "pose_messages": self.pose_messages,
                 "pose_drop_count": self.pose_drop_count,
+                "dropped_publishes": self.dropped_publishes,
                 "corrupted_frames": self.corrupted_frames,
                 "last_capture_duration_ms": self.last_capture_duration_ms,
                 "last_pose_state": self.last_pose_state,
@@ -338,12 +356,14 @@ class Node(RabbitNode):
             tracking_ok = (
                 self.zed.get_position(self.pose, sl.REFERENCE_FRAME.WORLD)
                 == sl.POSITIONAL_TRACKING_STATE.OK
+                and self.pose.pose_confidence > 0
             )
 
             if tracking_ok:
                 self._update_floor()
             self._update_map(tracking_ok)
-            map_update, self.pending_map = self.pending_map, None
+            with self._pending_lock:
+                map_update, self.pending_map = self.pending_map, None
 
             if self.save_requested:
                 self.save_requested = False
@@ -490,8 +510,13 @@ class Node(RabbitNode):
         if memory not in ("INITIALIZING", "SEARCHING"):
             self.relocalizing_since = None
             self.logger.info(f"Relocalized ({memory})")
+            self._load_base_map()
             return
-        if time.monotonic() - self.relocalizing_since < self.RELOCALIZATION_TIMEOUT_S:
+        now = time.monotonic()
+        if self.sensor_state.get("camera_moving_state") != "STATIC":
+            self.relocalization_motion_s += now - self.relocalization_checked_at
+        self.relocalization_checked_at = now
+        if self.relocalization_motion_s < self.RELOCALIZATION_TIMEOUT_S:
             return
 
         self._restart_tracking("relocalization timed out")
@@ -528,11 +553,17 @@ class Node(RabbitNode):
             status = self.zed.enable_positional_tracking(self.tracking_parameters)
             if status != sl.ERROR_CODE.SUCCESS:
                 raise RuntimeError(f"Failed to restart positional tracking: {status}")
+            self.zed.reset_positional_tracking(sl.Transform())
+            self.floor_y = None
+            self.last_camera_height = None
             self.map = sl.Mesh()
-            self.pending_map = None
+            with self._pending_lock:
+                self.pending_map = None
             self.chunk_timestamps.clear()
             self.encoded_chunks.clear()
             self.chunk_points.clear()
+            self.base_keys = np.empty(0, dtype=np.int64)
+            self.base_centers = np.empty((0, 3))
             self.snapshot_payload = b""
         self.session = str(time.time_ns())
         self.set_log_context(map_session=self.session)
@@ -543,9 +574,52 @@ class Node(RabbitNode):
         AREA_ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
         archived = AREA_ARCHIVE_DIR / f"room.{time.strftime('%Y%m%d-%H%M%S')}.area"
         AREA_FILE.replace(archived)
+        if CHUNKS_FILE.exists():
+            CHUNKS_FILE.replace(archived.with_suffix(".chunks"))
         self.logger.warning(f"Archived the previous area map to {archived}")
-        for stale in sorted(AREA_ARCHIVE_DIR.glob("room.*.area"))[: -self.AREA_ARCHIVE_KEEP]:
-            stale.unlink()
+        for pattern in ("room.*.area", "room.*.chunks"):
+            for stale in sorted(AREA_ARCHIVE_DIR.glob(pattern))[: -self.AREA_ARCHIVE_KEEP]:
+                stale.unlink()
+
+    def _load_base_map(self):
+        if not CHUNKS_FILE.exists():
+            return
+        saved = [chunk for chunk in decode_chunks(CHUNKS_FILE.read_bytes()).values() if len(chunk[0])]
+        keys = self.BASE_INDEX_OFFSET + np.arange(len(saved))
+        encoded = [encode_chunk(int(key), vertices, triangles) for key, (vertices, triangles) in zip(keys, saved)]
+        with self.map_lock:
+            for key, chunk, (vertices, _) in zip(keys, encoded, saved):
+                self.encoded_chunks[int(key)] = chunk
+                self.chunk_points[int(key)] = len(vertices)
+            self.base_keys = keys
+            self.base_centers = np.array([(vertices.min(axis=0) + vertices.max(axis=0)) / 2 for vertices, _ in saved]).reshape(-1, 3)
+            self.snapshot_payload = b"".join(self.encoded_chunks.values())
+        self._queue_map_update(b"".join(encoded))
+        self.logger.info(f"Loaded {len(saved)} saved map chunks")
+
+    def _queue_map_update(self, payload: bytes):
+        if not payload:
+            return
+        with self._pending_lock:
+            self.pending_map = payload if self.pending_map is None else self.pending_map + payload
+
+    def _retire_base_chunks(self, vertices: np.ndarray) -> list[bytes]:
+        if not len(self.base_keys) or not len(vertices):
+            return []
+        low = vertices.min(axis=0) - self.BASE_REPLACE_MARGIN
+        high = vertices.max(axis=0) + self.BASE_REPLACE_MARGIN
+        covered = np.all((self.base_centers >= low) & (self.base_centers <= high), axis=1)
+        if not covered.any():
+            return []
+        retired = self.base_keys[covered]
+        self.base_keys, self.base_centers = self.base_keys[~covered], self.base_centers[~covered]
+        empty = np.empty((0, 3))
+        tombstones = []
+        for key in retired.tolist():
+            self.encoded_chunks.pop(key, None)
+            self.chunk_points.pop(key, None)
+            tombstones.append(encode_chunk(key, empty, empty))
+        return tombstones
 
     def _read_status(self) -> dict:
         tracking = self.zed.get_positional_tracking_status()
@@ -663,7 +737,7 @@ class Node(RabbitNode):
 
     def _update_map(self, tracking_ok: bool) -> None:
         if not self.mapping_enabled:
-            if not tracking_ok:
+            if not tracking_ok or self.relocalizing_since is not None:
                 return None
             status = self.zed.enable_spatial_mapping(self.mapping_parameters)
             if status != sl.ERROR_CODE.SUCCESS:
@@ -677,7 +751,9 @@ class Node(RabbitNode):
             return None
         now = time.monotonic()
         if not self.map_requested:
-            if now - self.last_map_request >= self.map_interval_s:
+            static = self.sensor_state.get("camera_moving_state") == "STATIC"
+            interval = max(self.map_interval_s, self.MAP_STATIC_INTERVAL_S if static else 0.0)
+            if now - self.last_map_request >= interval:
                 self.zed.request_spatial_map_async()
                 self.map_requested = True
                 self.last_map_request = now
@@ -716,11 +792,11 @@ class Node(RabbitNode):
                 self.chunk_points[index] = len(vertices)
                 self.encoded_chunks[index] = encoded
                 updated.append(encoded)
+                updated.extend(self._retire_base_chunks(vertices))
             self.map_points = sum(self.chunk_points.values())
             self.snapshot_payload = b"".join(self.encoded_chunks.values())
             self.map_interval_s = max(self.MAP_INTERVAL_S, (time.monotonic() - started) / self.MAP_WORK_BUDGET)
-        if updated:
-            self.pending_map = b"".join(updated)
+        self._queue_map_update(b"".join(updated))
 
     async def capture(self):
         frame = await asyncio.to_thread(self._grab)
@@ -749,7 +825,7 @@ class Node(RabbitNode):
             )
 
         if frame.map_update is not None:
-            await self.nc.publish(
+            await self.publish(
                 MAP_CHUNKS_SUBJECT, frame.map_update, headers={"session": self.session, "format": "mesh"}
             )
             self.map_messages += 1
@@ -765,7 +841,7 @@ class Node(RabbitNode):
     async def _publish_preview(self, frame: CapturedFrame):
         assert frame.preview is not None
         payload = await asyncio.to_thread(self._encode_preview_frame, frame.preview)
-        await self.nc.publish(
+        await self.publish(
             self.PREVIEW_SUBJECT,
             payload,
             headers={

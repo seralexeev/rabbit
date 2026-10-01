@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const CHUNK_HEADER_BYTES = 12;
+const CHUNK_HEADER_BYTES = 24;
 const GROUP_SIZE = 16;
 const REBUILD_BUDGET_MS = 3;
 const NEAR_M = 0.3;
@@ -134,6 +134,9 @@ export const createRoomMap = (): RoomMap => {
             const index = view.getUint32(offset, true);
             const vertexCount = view.getUint32(offset + 4, true);
             const triangleCount = view.getUint32(offset + 8, true);
+            const originX = view.getFloat32(offset + 12, true);
+            const originY = view.getFloat32(offset + 16, true);
+            const originZ = view.getFloat32(offset + 20, true);
             const start = offset;
             offset += CHUNK_HEADER_BYTES;
             const vertices = offset;
@@ -153,9 +156,9 @@ export const createRoomMap = (): RoomMap => {
             for (let t = 0; t < triangleCount * 3; t++) {
                 const vertex = Math.min(view.getUint16(triangles + t * 2, true), vertexCount - 1);
                 const source = vertices + vertex * 6;
-                positions[t * 3] = view.getInt16(source, true) / 1000;
-                positions[t * 3 + 1] = view.getInt16(source + 2, true) / 1000;
-                positions[t * 3 + 2] = view.getInt16(source + 4, true) / 1000;
+                positions[t * 3] = originX + view.getInt16(source, true) / 1000;
+                positions[t * 3 + 1] = originY + view.getInt16(source + 2, true) / 1000;
+                positions[t * 3 + 2] = originZ + view.getInt16(source + 4, true) / 1000;
             }
             chunks.set(index, positions);
         }

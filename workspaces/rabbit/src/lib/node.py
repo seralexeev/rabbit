@@ -11,7 +11,7 @@ from typing import Any, Awaitable, Callable, Coroutine, Optional
 import nats
 from nats.aio.client import Client
 from nats.aio.msg import Msg
-from nats.errors import NoServersError
+from nats.errors import ConnectionClosedError, ConnectionReconnectingError, NoServersError, OutboundBufferLimitError
 from nats.js import JetStreamContext
 from nats.js.errors import BucketNotFoundError
 from nats.js.kv import KeyValue
@@ -43,6 +43,7 @@ class RabbitNode:
     def __init__(self, name: str):
         self.name = name
         self.__nc: Optional[Client] = None
+        self.dropped_publishes = 0
         self.__js: Optional[JetStreamContext] = None
         self.__kv: Optional[KeyValue] = None
         self.tasks: list[asyncio.Task] = []
@@ -58,7 +59,7 @@ class RabbitNode:
 
     async def publish_logs(self, final: bool = False):
         for payload in self.log_handler.drain(final):
-            await self.nc.publish(log_subject(self.name), json.dumps(finite(payload), default=str).encode())
+            await self.publish(log_subject(self.name), json.dumps(finite(payload), default=str).encode())
 
     async def watch_kv(
         self, key: str, fn: Callable[[KeyValue.Entry], Awaitable[None]]
@@ -130,11 +131,14 @@ class RabbitNode:
             raise RuntimeError("KeyValue store is not initialized")
         return self.__kv
 
+    async def publish(self, subject: str, data: bytes, headers: dict[str, str] | None = None):
+        try:
+            await self.nc.publish(subject, data, headers=headers)
+        except (ConnectionReconnectingError, ConnectionClosedError, OutboundBufferLimitError):
+            self.dropped_publishes += 1
+
     async def publish_json(self, subject: str, payload: dict[str, Any]):
-        await self.nc.publish(
-            subject,
-            json.dumps(finite({"ts": time.time_ns(), **payload}), allow_nan=False).encode(),
-        )
+        await self.publish(subject, json.dumps(finite({"ts": time.time_ns(), **payload}), allow_nan=False).encode())
 
     def set_interval(
         self,
