@@ -114,6 +114,7 @@ Only with the user's go-ahead in this session; see the rules in `AGENTS.md`.
   - pins the camera's USB interrupt to CPU2, the RoboClaw UART to CPU4 and I2C to CPU5. All interrupts used to land on CPU0 and kept it at 100%. The Wi-Fi interrupt (PCIe MSI) can't be moved on this platform.
 
   There is no throttling: the junction stays under 60 °C at about 12 W. Never run `nvpmodel -m 0`, which is the 15 W mode.
+- **Headless.** The Jetson boots to `multi-user.target`: the GNOME desktop and x11vnc are off, which frees about 300 MB of RAM and half the swap. `systemctl isolate graphical.target` brings the desktop back for one session.
 - **Wi-Fi:** `wlP1p1s0` (Realtek rtl88x2ce), NetworkManager connection `richbitch`, power save pinned off in that connection, regulatory domain AU. To check:
   - drops: `journalctl -b | grep CTRL-EVENT-DISCONNECTED`; reason 34 means the router kicked the robot;
   - link: `iw dev wlP1p1s0 link`;
