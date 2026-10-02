@@ -106,7 +106,14 @@ Only with the user's go-ahead in this session; see the rules in `AGENTS.md`.
 
 ## Power, Wi-Fi and shutdown
 
-- **Power mode:** MAXN_SUPER. The `rabbit-performance` systemd service runs `jetson_clocks` and turns off USB autosuspend and Wi-Fi power save. Never run `nvpmodel -m 0`, which is the 15 W mode.
+- **Power mode:** MAXN_SUPER. The `rabbit-performance` systemd service (versioned in `workspaces/jetson/`, installed to `/usr/local/bin` and `/etc/systemd/system`) does the following at boot:
+  - runs `jetson_clocks`, which locks the CPU at 1.728 GHz, the GPU at 1.02 GHz and EMC at 3.2 GHz, with idle states off;
+  - turns off USB autosuspend and Wi-Fi power save;
+  - sets PCIe ASPM to `performance`;
+  - sets `vm.swappiness` to 10;
+  - pins the camera's USB interrupt to CPU2, the RoboClaw UART to CPU4 and I2C to CPU5. All interrupts used to land on CPU0 and kept it at 100%. The Wi-Fi interrupt (PCIe MSI) can't be moved on this platform.
+
+  There is no throttling: the junction stays under 60 °C at about 12 W. Never run `nvpmodel -m 0`, which is the 15 W mode.
 - **Wi-Fi:** `wlP1p1s0` (Realtek rtl88x2ce), NetworkManager connection `richbitch`, power save pinned off in that connection, regulatory domain AU. To check:
   - drops: `journalctl -b | grep CTRL-EVENT-DISCONNECTED`; reason 34 means the router kicked the robot;
   - link: `iw dev wlP1p1s0 link`;

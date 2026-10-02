@@ -1,0 +1,15 @@
+#!/bin/sh
+jetson_clocks
+echo -1 > /sys/module/usbcore/parameters/autosuspend
+for control in /sys/bus/usb/devices/*/power/control; do echo on > "$control"; done
+for iface in /sys/class/net/wl*; do iw dev "$(basename "$iface")" set power_save off; done
+echo performance > /sys/module/pcie_aspm/parameters/policy
+sysctl -qw vm.swappiness=10
+pin_irq() {
+    for irq in $(awk -v name="$1" "index(\$0, name) {sub(\":\", \"\", \$1); print \$1}" /proc/interrupts); do
+        echo "$2" > "/proc/irq/$irq/smp_affinity_list"
+    done
+}
+pin_irq xhci-hcd 2
+pin_irq 3100000.serial 4
+pin_irq c250000.i2c 5

@@ -1,0 +1,12 @@
+[Unit]
+Description=Disable power saving for the Rabbit robot
+After=nvpmodel.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/rabbit-performance
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
