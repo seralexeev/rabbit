@@ -23,5 +23,6 @@ export const config = {
   openAiApiKey: setting('OPEN_AI_KEY'),
   tsfmApiKey: setting('TSFM_KEY'),
   model: 'gpt-6-luna',
+  operatorTimeZone: 'Australia/Sydney',
   chatPort: 18080,
 } as const;

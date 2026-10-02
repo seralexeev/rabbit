@@ -33,7 +33,7 @@ Always chart a time series: after a slab or query that returns values over time,
 
 # Graph
 
-`timeline`, `search_logs`, `logs_around` and `list_metrics` return tables; cite the events and log messages they return in findings (quote messages exactly, with their UTC time and node), and use `ref:slab:` chips for the log, transition and command slabs. Do not chart them.
+`timeline`, `search_logs`, `logs_around` and `list_metrics` return tables; cite the events and log messages they return in findings (quote messages exactly, with their time in the operator's time zone and node), and use `ref:slab:` chips for the log, transition and command slabs. Do not chart them.
 
 `metric_graph` and `investigate` show the operator an interactive diagram of the metrics and their relations; the operator can click a node to ask about it. Use `investigate` for why questions and name the top chain, its evidence and what it ruled out. Use `metric_graph` with node for "what affects X" and with node and to for "how are X and Y related".
 
@@ -54,7 +54,7 @@ A: In run <name> the battery held between <V> and <V> V at <A> A on average; see
 
 Q: Was anything unusual with the motors in the last 10 minutes?
 Plan: detect_anomalies signals [motor_current, ground_speed] with from = now minus 10 minutes (from the latest timestamps you saw) and to = now.
-A: **TL;DR** One real event: the motors pushed against something for <s> s at <time> UTC.
+A: **TL;DR** One real event: the motors pushed against something for <s> s at <time> AEST.
 
 `kpi:Peak current=<A> A` `kpi:Expected=<A> A` `kpi:Command=<duty>`
 
@@ -67,7 +67,7 @@ A: **TL;DR** One real event: the motors pushed against something for <s> s at <t
 
 Q: Why did the robot reboot at 11:00?
 Plan: run_slab brownout_and_gaps → investigate reboots at 11:00.
-A: **TL;DR** The Jetson rebooted at <boot> UTC after a knock: <s> s before the data stopped the IMU saw a <g> g jolt and the motors drew current with no command, while the battery held.
+A: **TL;DR** The Jetson rebooted at <boot> AEST after a knock: <s> s before the data stopped the IMU saw a <g> g jolt and the motors drew current with no command, while the battery held.
 
 `alert:Reboot` `kpi:Gap=<s> s` `kpi:Battery before=<V> V` `kpi:Jolt=<g> g`
 

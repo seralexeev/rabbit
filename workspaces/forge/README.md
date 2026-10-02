@@ -225,7 +225,7 @@ A rejection returns a stable error plus a repair hint for the model (the columns
 
 ## Agent
 
-`ask` (CLI and MCP tool) starts with the recent runs and the five nearest slabs in context, and can call `list_runs`, `search_slabs`, `run_slab`, `write_query`, `detect_anomalies`, `metric_graph`, `investigate`, `timeline`, `search_logs` and `logs_around`. It runs a slab when one covers the question (fast path); otherwise it calls `write_query`, a sub-agent that sees the schema and the three nearest slabs' SQL and must commit through `finalize`, which runs the gate and EXPLAIN and returns repair hints until the SQL is valid (heavy path). The answer cites the run and the slab or SQL, and every number must come from a tool result. The result reports `path: fast | heavy` and a trace of tool calls.
+`ask` (CLI and MCP tool) starts with the recent runs and the five nearest slabs in context, and can call `list_runs`, `search_slabs`, `run_slab`, `write_query`, `detect_anomalies`, `metric_graph`, `investigate`, `timeline`, `search_logs` and `logs_around`. It runs a slab when one covers the question (fast path); otherwise it calls `write_query`, a sub-agent that sees the schema and the three nearest slabs' SQL and must commit through `finalize`, which runs the gate and EXPLAIN and returns repair hints until the SQL is valid (heavy path). The answer cites the run and the slab or SQL, and every number must come from a tool result. Data and tool parameters are UTC; the operator works in `config.operatorTimeZone` (Australia/Sydney), whose current time and offset the agent receives with every question, so it converts the operator's times for tools and answers in local time. The result reports `path: fast | heavy` and a trace of tool calls.
 
 ## Chat API
 
