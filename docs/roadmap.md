@@ -40,28 +40,29 @@ Run these with `scripts/bringup.py` (`check`, `deploy`, `diet`, `forge-cutover`,
      - rewire the encoders, then `tools/roboclaw_encoders.py --distance 1.0` while rolling the robot 1 m by hand (19,014 counts/m ± 3%, forward counts up);
      - find what feeds the Jetson.
   2. Owner answers the open questions in the report (Pi RAM, plate output, UART vs USB for the RoboClaw, button, how `jetson.rabbit` resolves).
-  3. Body PCB (`reports/2026-10-03-body-pcb.md`, `pcb/rabbit-body/`): designed, reviewed and fixed (`reports/2026-10-03-body-pcb-review.md`), DRC clean, Gerbers/BOM/CPL in `pcb/rabbit-body/fab/`. Before ordering: source PCA9685 (0 at LCSC) and INA4235 (1 pc) — P15; owner answers §12 (deck 1 standoffs 45 mm, Pi cooler ≤ 35 mm, ribbon 5 V) and Q24–Q27; check CPL rotations in JLC's preview; redo the ZED grommet for the 11.1 × 18 mm cut-out.
-  4. Order the parts (~A$825); print the mounts (`cad/brackets/README.md`: 13 parts, ~7.5 h PETG + TPU grommets; brass 45 mm standoffs bought) after measuring the M-items in `docs/open-issues.md`; decide where the USB hub goes (the §10 place does not fit the real hub). Then phase 1: the Pi with NATS hub + leaf, moving ina/steering/roboclaw one at a time, `rabbit-safety` in shadow. The body software is written and simulated (`log/2026-10-03-body-software.md`): on the Pi run `scripts/body-setup.sh`, deploy with `scripts/deploy.sh --body --build`, then work through open-issues V7–V12, turning settings on in `workspaces/body/body.env` stage by stage (`SAFETY_MODE=shadow` → `active` with `DRIVE_INPUT=safety` at step 6, each sensor into `SAFETY_SENSORS` after its shadow run at step 8).
+  3. Body PCB **rev B** (`reports/2026-10-03-body-pcb-rev-b.md`, `pcb/rabbit-body/`, outputs `pcb/rabbit-body/fab/*revB*`): BLDC drive on board (STM32G474 + 2× DRV8316, hardware E-stop, brake chopper), on-board bucks, ideal-diode switch, Jetson eFuse, 4× INA226, all 93 BOM lines in JLC stock and JLC-assembled (~US$420–460 for 2 boards). Rev A (RoboClaw, Pololu modules) stays in git. Before ordering: owner answers Q32–Q34, Q38 and the old §12 ones (Q1 standoffs 45 mm, Q2 Pi cooler, Q3 ribbon 5 V, Q24 XT60/XT30 polarity, Q25 ZED plug); P19 (STM32 bootloader on USART2 per AN2606); check CPL rotations in JLC's preview (Q36); CAD agent updates the brackets (P20).
+  4. Order the parts (~A$825); print the mounts (`cad/brackets/README.md`: 13 parts, ~7.5 h PETG + TPU grommets; brass 45 mm standoffs bought) after measuring the M-items in `docs/open-issues.md`; no USB hub (P14 closed: the Pi's own ports suffice). Then phase 1: the Pi with NATS hub + leaf, moving ina/steering/roboclaw one at a time, `rabbit-safety` in shadow. The body software is written and simulated (`log/2026-10-03-body-software.md`): on the Pi run `scripts/body-setup.sh`, deploy with `scripts/deploy.sh --body --build`, then work through open-issues V7–V12, turning settings on in `workspaces/body/body.env` stage by stage (`SAFETY_MODE=shadow` → `active` with `DRIVE_INPUT=safety` at step 6, each sensor into `SAFETY_SENSORS` after its shadow run at step 8).
   5. Later code changes (per-channel shunts, the `clipped` flag and the duty cap 12 V / V_supply are done offline, see the phase 0 log; `rabbit.safety.drive` for roboclaw and steering (`DRIVE_INPUT=safety`), the safety, lidar, tof and power nodes with a fake hardware backend and simulator support, nav and planner taking the lidar scan, and `deploy.sh --body` are done offline, see `log/2026-10-03-body-software.md`):
      - ALERT registers and channels 3–4 in `ina.py`;
      - `roboclaw_config.py apply --yes --battery --estop` once the RoboClaw is on the pack and the E-stop line is wired (phase 2);
      - new nodes: video, odom; telemetry for the Pi (`rabbit.telemetry.body`); the HUD safety indicator; stall detection in safety once the encoders count;
      - switch the Jetson's NATS to the leaf config (`workspaces/jetson/nats-leaf.conf`) at phase 1 and install `rabbit-jetson-power.service` (venv `/opt/rabbit-host` with nats-py);
      - with the bumpers on, the footprint grows to front 0.2452 m, rear 0.072 m, half width 0.102 m (`lib/safety.py` `Footprint`, `lib/planner.py` `front_overhang`); sensor poses for `T_base_lidar` / ToF in `cad/brackets/README.md`;
-- **BLDC drive** (study 2026-10-03: `reports/2026-10-03-bldc-drive.md`, log `log/2026-10-03-bldc-drive.md`). The owner chose BLDC straight away, with 2–2.5 m/s potential and cruise set in software. In order:
-  1. Motor: XYT JGB37-3625-1260, 12 V, 10:1. It is ~53 mm long with the encoder cap and fits the 58 mm per side, so M10 no longer blocks. Remove the built-in driver and fit an MT6701 over SSI on the rear shaft stub. Ask Chihai whether its GM37-BL3525 comes as an 8-wire version with Halls. Measure the noise baseline (M11).
-  2. Order the prototype (~A$270, open-issues Q30):
-     - 3× XYT 3625 at 10:1 + 1× at 18.8:1;
-     - NUCLEO-G474RE (DigiKey AU);
-     - 3× SimpleFOC Mini v2.3 (Makerfabs; not the DRV8313 DFRobot board sold by Core/Little Bird);
-     - MT6701 boards and diametric magnets.
-  3. Bench one motor, then both on the robot via the modules. Firmware is SimpleFOC on the G474 and speaks the RoboClaw packet-serial subset, so `roboclaw.py` and `rabbit.roboclaw` stay unchanged. Acceptance tests in report §10, including ≥ 2.5 m/s free at 14 V, 0.01 m/s smooth and ≥ 0.28 N·m peak per wheel (otherwise 18.8:1).
-  4. Body PCB rev B to report §8 ("PCB rev B requirements for the motor drive"):
-     - STM32G474RET6 + 2× DRV8316CR (3x PWM) in the RoboClaw spot;
-     - BKIN + DRVOFF hardware E-stop;
-     - 17.6 V brake chopper;
-     - servo PWM and bumpers on the MCU;
-     - Pololu modules replaced by JLC-stocked ICs.
+- **Drive motors** (study 2026-10-03: `reports/2026-10-03-bldc-drive.md`, log `log/2026-10-03-bldc-drive.md`).
+
+  Owner's rules, set in the evening:
+  - motors bolt into the existing brackets;
+  - ready-made quality motors with built-in encoders;
+  - money is not a constraint.
+
+  Current motors are Pololu #4754 (37Dx70L, 70:1, 64 CPR). The widened chassis gives ~70 mm per motor.
+
+  Only the Pololu 37D family passes the bolt-on filter. Steps:
+  1. Owner decisions: open-issues Q39 (brushed Pololu #4751 as is, or BLDC Faulhaber/maxon with a new bracket), Q30 (order), Q31 (14 V "fast" mode).
+  2. Order 3× Pololu #4751 (19:1, 37Dx68L) from Core Electronics, A$144.95 each on lead time. Fit them on the current RoboClaw in speed mode (QPPS, 1,200 counts per wheel turn) with a 4 A current limit.
+  3. Measure the noise baseline (M11) before and after the swap.
+  4. Bench the rev B drive with TI DRV8316REVM + NUCLEO-G474RE (DigiKey AU): DRV8316 as an H-bridge for the brushed motor, own speed PI on the encoder.
+  5. Body PCB rev B to report §8. The block is unchanged: STM32G474RET6 + 2× DRV8316CR, BKIN/DRVOFF, brake chopper, servo and bumpers on the MCU. J_ENC is a 5 V incremental A/B/I input, so the same board can drive a Faulhaber/maxon BLDC later.
 - Wi-Fi in the far room (−74 dBm, AP disassociations with reason 34): external antennas or an AX210 card, or a second access point.
 - Power (see "Силовая часть" in `reports/2026-10-03-architecture-2.0.md`, diagram `reports/media/power-2.0.svg`): check whether the Jetson barrel shares the motors' 12 V buck (it hits its ~4.5 A limit, 11.3 V, and may explain the mid-manoeuvre reboot on 1 Oct); set RoboClaw current limit 3 A/channel (phase 0 tool) before ever feeding it straight from the battery (max duty 0.71 is now applied in `roboclaw.py` from the supply voltage); battery shunt 10 mΩ caps at 8.19 A (peak seen 7.64 A; `power.battery_clipped` flags readings from 7.37 A): use an external 2 mΩ on ch1 and 5 mΩ on ch3 (motors); wire INA channel 4 to the Jetson's 12 V side (channel plan in `reports/2026-10-03-architecture-2.0-wiring.md`); the Pi's DS3231 keeps time (the dev kit has no RTC connector fitted).
 - Encoders read 0 (speed comes from the pose); magnetometer uncalibrated.

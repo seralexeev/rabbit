@@ -71,14 +71,23 @@ def bldc(name: str, rpm_per_volt: float, phase_line_ohms: float, ratio: float, c
     )
 
 
+def from_two_points(name: str, no_load_rpm: float, rpm_at: float, torque_at: float, limit: float, color: str, dash: str = "-") -> Option:
+    stall = torque_at * no_load_rpm / (no_load_rpm - rpm_at)
+    return Option(name, no_load_rpm, stall, limit, color, dash)
+
+
 def options() -> list[Option]:
     result = []
     nl, st, lim = pololu(150, 270, 5.2, 12.0, 3.0)
-    result.append(Option("Today: Pololu 37D 70:1, 12 V duty cap, RoboClaw 3 A", nl, st, min(lim, 2.45), "#52514e", "--"))
-    result.append(bldc("Pick: JGB37-3625 12 V (500 rpm/V) 10:1, FOC, ~53 mm (estimate)", 500, 6.7, 10, 2.5, "#1baf7a"))
-    result.append(bldc("JGB37-3625 12 V 18.8:1 (more torque, slower)", 500, 6.7, 18.8, 2.5, "#2a78d6"))
-    result.append(bldc("Long: Chihai 3650 (346 rpm/V) 6.25:1, 5 A, ~76 mm (estimate)", 346, 2.0, 6.25, PEAK_AMPS, "#eb6834", "--"))
-    result.append(Option("Steadywin GIM4305-10 actuator (too wide, reference)", 16.75 * SAG, 3.82, 3.82, "#4a3aa7", ":"))
+    result.append(Option("Today: Pololu #4754 70:1, 12 V duty cap, RoboClaw 3 A", nl, st, min(lim, 2.45), "#52514e", "--"))
+    nl, st, lim = pololu(530, 85, 5.4, 12.0, 4.0)
+    result.append(Option("Pick (bolt-on): Pololu #4751 19:1, 12 V duty cap, 4 A", nl, st, lim, "#2a78d6"))
+    nl, st, lim = pololu(530, 85, 5.4, SAG, 4.0)
+    result.append(Option("Pololu #4751 19:1 at 14 V (no cap, shorter brush life)", nl, st, lim, "#2a78d6", ":"))
+    nl, st, lim = pololu(330, 140, 5.6, 12.0, 4.0)
+    result.append(Option("Bolt-on alternative: Pololu #4752 30:1, 12 V cap, 4 A", nl, st, lim, "#eb6834"))
+    result.append(from_two_points("Needs adapter: Faulhaber 3216BXTH + 22GPT 11:1 + IEF3-4096", 684, 634, 0.2, 0.83, "#1baf7a"))
+    result.append(from_two_points("Needs adapter: maxon ECX FLAT 22 L 18 V + GPX 22 LN 16:1", 590, 528, 0.2, 0.7, "#eda100"))
     return result
 
 

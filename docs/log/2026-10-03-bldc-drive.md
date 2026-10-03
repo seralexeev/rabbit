@@ -188,3 +188,58 @@ Changes:
   The rest of the controller block is unchanged.
 - **Prototype:** ~A$270, with XYT 3625 at A$28.39 + 6.56 each, delivered 14–24 Oct.
 - **Open issues:** M10 closed as C16; Q30 and Q31 updated.
+
+## Third update: bolt-on, built-in encoder, quality first (evening)
+
+New facts and rules from the owner:
+- **Chassis widened:** 142 mm between the motor brackets, ~70 mm per motor. The kit model's 58 mm is obsolete (M10 closed as C16).
+- **Current motors:** Pololu #4754, "70:1 Metal Gearmotor 37Dx70L mm 12V with 64 CPR Encoder (Helical Pinion)", 4,480 counts per wheel turn (M5 closed).
+- **Hard filter:** the motor bolts into the existing bracket — 6×M3 on Ø31, Ø15 boss hole, ≤ Ø37, 7 mm offset output, 6 mm D shaft.
+- **Ready-made quality motors with built-in encoders:** no DIY magnets, no removing integrated drivers.
+- **Money is not a constraint:** rank by fit, then quality, then cost.
+
+### Bolt-on screen
+
+| Candidate | Result |
+|---|---|
+| Pololu 37D (#4751 19:1, #4752 30:1, #4758 10:1) | Passes: same body, face, offset, shaft and hub; built-in 64 CPR encoder |
+| JGB37 BLDC | Fails: only built-in drivers with FG 6 pulses/rev, no encoder, template listings |
+| maxon / Faulhaber | Coaxial shaft and M2 flanges; need a new bracket |
+| DJI M2006 + C610 | ~1.2–1.4 m/s on 4S; the ESC is rated 24 V |
+| Dynamixel X | ≤ 95 rpm at 14.8 V |
+| Nidec 24H | No gearhead, no encoder |
+| Dunker BG 32 | Separate drive and encoder, > 100 mm |
+
+### Primary: Pololu #4751 (19:1, 37Dx68L, 64 CPR, helical first stage)
+
+- **Speed:** 2.08 m/s free at the 12 V duty cap, 2.43 m/s at 14 V uncapped (shorter brush life). Under 0.2 N·m: 1.58 / 1.93 m/s.
+- **Torque:** 0.62 N·m at 4 A.
+- **Encoder:** 1,200 counts per wheel turn.
+- **Noise:** the motor turns 3.7× slower than the 70:1 at the same robot speed, ≈ −11 dB(A) by the 6 dB-per-doubling rule (estimate).
+- **Price:** A$144.95 at Core Electronics (lead time).
+- **Same-fit alternative:** #4752 30:1.
+
+### Needs a bracket: quality BLDC, quieter and smoother at low speed
+
+| Drive | Length | At 14.5 V | Encoder | Notes |
+|---|---|---|---|---|
+| Faulhaber 3216W012BXTH + IEF3-4096 + 22GPT 11:1 | 49.2 mm | 2.69 m/s free, 2.49 m/s at 0.2 N·m; 0.35 N·m continuous / 1.1 N·m peak | 180k counts per wheel turn | |
+| maxon ECX FLAT 22 L 18 V + GPX 22 LN 16:1 + ENX 22 MILE | ~45–50 mm | 2.32 / 2.07 m/s | | LN gearhead ~5 dBA quieter; ~CHF 400 per axis; maxon Australia, Sydney |
+
+The Faulhaber AU distributor was not found.
+
+### Drive electronics
+
+PCB rev B keeps STM32G474 + 2× DRV8316:
+- the brushed motor runs on two half-bridges in 3x PWM mode;
+- a BLDC runs on three.
+
+Report §8 changes:
+- J_ENC is a 5 V incremental A/B/I input on TIM2/TIM5 (FT pins) instead of SSI;
+- MT6701 is dropped;
+- CSA gain is 0.3 V/A;
+- J_MOT pins 1–2 carry the brushed motor.
+
+DRV8874 (C1855818) is the backup H-bridge. Until rev B, the #4751 runs on the current RoboClaw.
+
+The bench uses TI DRV8316REVM (A$202.16) + NUCLEO-G474RE, not the SimpleFOC Mini.
