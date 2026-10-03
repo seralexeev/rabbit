@@ -2,6 +2,8 @@
 
 Приложение к [`2026-10-03-architecture-2.0.md`](2026-10-03-architecture-2.0.md). Проводка и выводы — в [`-wiring.md`](2026-10-03-architecture-2.0-wiring.md), покупки — в [`-bom.md`](2026-10-03-architecture-2.0-bom.md). Это проект: кода пока нет, робот выключен. Цифры без источника — оценки.
 
+> **Реализация (03.10):** код тела написан и проверен офлайн — [`log/2026-10-03-body-software.md`](../log/2026-10-03-body-software.md). Отличия от текста ниже: ядра Raspberry Pi по умолчанию **не отпускают** выход GPIO после падения процесса (`persist_gpio_outputs`), нужен параметр ядра и проверка в safety (open-issues P17); ToF — VL53L8CX по одному на шину без LPn (см. `-wiring.md`), `rabbit.tof` — JSON, кадр на датчик; ноль лидара C1 — со стороны, противоположной кабелю (P16).
+
 ## Принципы
 
 1. **Контракты NATS не меняются.** nav, planner и explore на Jetson продолжают слать `rabbit.cmd.drive`, HUD — `rabbit.cmd.joy`, а читать `rabbit.roboclaw`, `rabbit.ina`, `rabbit.steering`. Новое — только добавленные темы.

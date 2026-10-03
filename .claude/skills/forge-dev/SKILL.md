@@ -45,6 +45,7 @@ The SQL is ClickHouse's: every table is a view `forge.<table>` over its Parquet 
   - decisions: `events` (every node's decisions and state changes with `reason`, ids, `values` and `labels`; start here for "why"), `node_starts` (code revision, source hash, versions, environment and every constant at each node start);
   - system: `logs` (every node's log records), `node_metrics` (per node every 10 s: CPU, RSS, event-loop lag, NATS traffic, drops, error counters, loop timings in `values`), `nats_server` (slow consumers = message loss), `zed_health`, `jetson`, `jetson_containers`, `wifi`;
   - map and config: `map_chunks` (metadata only), `kv_changes`, `command_events`, `operator_heartbeat`;
+  - Rabbit 2.0 body (once the Pi runs): `safety_state` (10 Hz: mode, binding reason, requested vs allowed command, clearances, E-stop line), `power_state`, `lidar_health`, `tof_health`; slab `body_safety`; scans and ToF frames are not stored;
   - runs: `runs`, `run_events`.
 - **Words in logs:** `hasAllTokens(lower(message), 'roboclaw error')`; there is no text index, so the match is case-sensitive without `lower`.
 - **Pose angles.** ZED `euler_deg` is the rotation about x, y and z in the Y-up frame, that is pitch, yaw, roll (`ZED_EULER` in `src/streams.ts`). Rows recorded before the writer fix of 2026-10-03 hold yaw in `pitch_deg`, roll in `yaw_deg` and pitch in `roll_deg`; for heading across all rows use the quaternion (`robot_status` heading formula in `src/robot.ts`).
