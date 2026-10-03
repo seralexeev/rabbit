@@ -1,11 +1,11 @@
 ---
 name: rabbit-blog
-description: Add a post to the owner's Rabbit build log (rabbit0.dev, repo ~/projects/rabbit0) from a dictated message, notes or session results, in Russian and English, with media, then build and publish it. Use when the owner says "добавь в блог", "запиши в блог", dictates a post, or asks to publish a blog entry.
+description: Add a post to the owner's Rabbit build log (rabbit0.dev, source in ~/projects/rabbit/workspaces/blog) from a dictated message, notes or session results, in Russian and English, with media, then build and publish it. Use when the owner says "добавь в блог", "запиши в блог", dictates a post, or asks to publish a blog entry.
 ---
 
 # Posting to the blog
 
-The blog is `~/projects/rabbit0` (GitHub `seralexeev/rabbit0`, branch `main`), served at https://rabbit0.dev (English) and https://rabbit0.dev/ru.html (Russian). Cloudflare deploys `static/` on every push to `main`.
+The blog lives in this repo at `workspaces/blog` (imported with its history from `seralexeev/rabbit0` on 2026-10-03). It is served at https://rabbit0.dev (English) and https://rabbit0.dev/ru (Russian). Cloudflare Pages still builds from the `seralexeev/rabbit0` repo, which is now only a deploy mirror: `scripts/blog.sh publish` pushes `workspaces/blog` there with `git subtree push`. Never edit `~/projects/rabbit0` or push to it directly; that breaks the subtree history.
 
 **A dictated post is the order to publish.** Write it, build it and push it without asking again. Ask first only if the text names third parties, or looks private (addresses, faces, passwords, family).
 
@@ -73,13 +73,16 @@ The owner dictates by voice: the message has filler words ("э", "вот", "uh")
 ## Build and publish
 
 ```sh
-cd ~/projects/rabbit0
-npm ci --registry=https://registry.npmjs.org/      # only if node_modules is missing
-OPENAI_API_KEY=unused node src/index.ts            # prints "⚪ <id> - already exists in English" for every post
-git add README.md README.ru.md static/index.html static/ru.html static/media/<id>-* static/media/thumbnails/<id>-*
-git commit -m "feat: post <id> on <topic>"
+cd ~/projects/rabbit
+scripts/blog.sh build      # npm ci on first use; refuses if a README lost posts vs HEAD; prints the post counts
+B=workspaces/blog
+git add $B/README.md $B/README.ru.md $B/static/index.html $B/static/ru.html $B/static/media/<id>-* $B/static/media/thumbnails/<id>-*
+git commit -m "feat(blog): post <id> on <topic>"
 git push origin main
+scripts/blog.sh publish    # subtree push to the rabbit0 mirror; Cloudflare deploys it
 ```
+
+All paths in this skill below are relative to `workspaces/blog`.
 
 - **Check before committing:**
   - `grep -c "^id:" README.ru.md README.md` grew by exactly the number of new posts, and `git diff --numstat README.md README.ru.md` shows 0 deleted lines. On 2026-10-03 an append that opened the file for writing before reading it wiped posts 1–186 from the live blog. Read the whole file first, or append with `>>`;
@@ -87,5 +90,5 @@ git push origin main
   - the build printed `⚪ <id>` for the new id, not `🟢 … translating`;
   - `grep -c "<a distinctive word>" static/ru.html static/index.html` finds the new text in both pages.
 - **Registry.** The npm registry must be the public one. The default in `~/.npmrc` is a work registry, which fails with 401.
-- **What to stage.** Stage only these paths: the blog repo can hold the owner's unrelated work in progress.
-- **Reply.** Answer the owner with the post text and the link https://rabbit0.dev/ru.html. The page updates about a minute after the push.
+- **What to stage.** Stage only these paths: the repo holds other uncommitted work. `publish` refuses while `workspaces/blog` has uncommitted changes.
+- **Reply.** Answer the owner with the post text and the link https://rabbit0.dev/ru. The page updates a minute or two after `publish`; check with `curl -sL https://rabbit0.dev/ru | grep -c '<a distinctive word>'` (`/ru.html` redirects, so follow redirects).
