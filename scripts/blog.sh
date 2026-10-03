@@ -3,7 +3,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 BLOG=workspaces/blog
-REMOTE=${BLOG_REMOTE:-git@github.com:seralexeev/rabbit0.git}
 
 count() { grep -c '^id:' "$1" || true; }
 
@@ -21,15 +20,8 @@ case "${1:-}" in
     (cd "$BLOG" && OPENAI_API_KEY=unused node src/index.ts | grep -v 'already exists' || true)
     echo "posts: ru $(count "$BLOG/README.ru.md"), en $(count "$BLOG/README.md")"
     ;;
-  publish)
-    if ! git diff --quiet HEAD -- "$BLOG" || [ -n "$(git ls-files --others --exclude-standard "$BLOG")" ]; then
-      echo "commit $BLOG first" >&2
-      exit 1
-    fi
-    git subtree push --prefix="$BLOG" "$REMOTE" main
-    ;;
   *)
-    echo "usage: scripts/blog.sh build | publish" >&2
+    echo "usage: scripts/blog.sh build" >&2
     exit 1
     ;;
 esac

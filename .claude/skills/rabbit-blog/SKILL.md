@@ -5,7 +5,7 @@ description: Add a post to the owner's Rabbit build log (rabbit0.dev, source in 
 
 # Posting to the blog
 
-The blog lives in this repo at `workspaces/blog` (imported with its history from `seralexeev/rabbit0` on 2026-10-03) and is served at https://rabbit0.dev (English) and https://rabbit0.dev/ru (Russian). GitHub Pages deploys it: `.github/workflows/blog.yml` runs on every push to `main` that touches `workspaces/blog/**`, rebuilds the pages (`node src/index.ts`, thumbnails with cwebp/ffmpeg) and publishes `static/`. Until the DNS switch in `docs/open-issues.md` Q16 is done, rabbit0.dev is still served by Cloudflare Pages from the `seralexeev/rabbit0` mirror, so also run `scripts/blog.sh publish` after pushing. Never edit `~/projects/rabbit0` or push to it directly.
+The blog lives in this repo at `workspaces/blog` (imported with its history from `seralexeev/rabbit0` on 2026-10-03) and is served at https://rabbit0.dev (English) and https://rabbit0.dev/ru (Russian). GitHub Pages deploys it: `.github/workflows/blog.yml` runs on every push to `main` that touches `workspaces/blog/**`, rebuilds the pages (`node src/index.ts`, thumbnails with cwebp/ffmpeg) and publishes `static/`. The old `seralexeev/rabbit0` repo is archived; `~/projects/rabbit0` is a stale clone, never edit it.
 
 **A dictated post is the order to publish.** Write it, build it and push it without asking again. Ask first only if the text names third parties, or looks private (addresses, faces, passwords, family).
 
@@ -80,7 +80,6 @@ git add $B/README.md $B/README.ru.md $B/static/index.html $B/static/ru.html $B/s
 git commit -m "feat(blog): post <id> on <topic>"
 git push origin main
 gh run watch $(gh run list --workflow blog.yml -L 1 --json databaseId --jq '.[0].databaseId') --exit-status   # GitHub Pages deploy, ~2 min
-scripts/blog.sh publish    # only until Q16 (DNS switch) is done: pushes the rabbit0 mirror that Cloudflare still serves
 ```
 
 All paths in this skill below are relative to `workspaces/blog`.
@@ -91,5 +90,5 @@ All paths in this skill below are relative to `workspaces/blog`.
   - the build printed `⚪ <id>` for the new id, not `🟢 … translating`;
   - `grep -c "<a distinctive word>" static/ru.html static/index.html` finds the new text in both pages.
 - **Registry.** The npm registry must be the public one. The default in `~/.npmrc` is a work registry, which fails with 401.
-- **What to stage.** Stage only these paths: the repo holds other uncommitted work. `publish` refuses while `workspaces/blog` has uncommitted changes.
-- **Reply.** Answer the owner with the post text and the link https://rabbit0.dev/ru. The page updates a minute or two after `publish`; check with `curl -sL https://rabbit0.dev/ru | grep -c '<a distinctive word>'` (`/ru.html` redirects, so follow redirects).
+- **What to stage.** Stage only these paths: the repo holds other uncommitted work.
+- **Reply.** Answer the owner with the post text and the link https://rabbit0.dev/ru. The page updates a minute or two after the GitHub Pages run; check with `curl -sL https://rabbit0.dev/ru | grep -c '<a distinctive word>'` (`/ru.html` redirects, so follow redirects).
