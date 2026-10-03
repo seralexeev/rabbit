@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 WHEEL_RADIUS = 0.0375
 MASS = 4.5
 G = 9.81
-BUS = 14.5
 SAG = 14.0
 
 
@@ -55,23 +54,18 @@ def pololu(rpm12: float, stall12_kgmm: float, amps_stall12: float, volts: float,
     return rpm12 * scale, stall, torque_per_amp * current_limit
 
 
-def bldc(kv_rpm_per_v: float, kt_nm_per_a: float, phase_r: float, ratio: float, efficiency: float, volts: float, current_limit: float, gearbox_limit: float):
-    no_load = kv_rpm_per_v * volts * 0.9 / ratio
-    stall = kt_nm_per_a * (volts / math.sqrt(3) / phase_r) * ratio * efficiency
-    limit = min(kt_nm_per_a * current_limit * ratio * efficiency, gearbox_limit)
-    return no_load, stall, limit
-
-
-OPTIONS: list[Option] = []
-
-nl, st, lim = pololu(150, 270, 5.2, 12.0, 3.0)
-OPTIONS.append(Option("Today: Pololu 37D 70:1, 12 V cap, RoboClaw 3 A", nl, st, min(lim, 2.45), "#52514e", "--"))
-nl, st, lim = pololu(330, 140, 5.6, 12.0, 3.0)
-OPTIONS.append(Option("Pololu 37D 30:1 helical, 12 V cap, 3 A", nl, st, lim, "#2a78d6"))
-nl, st, lim = pololu(530, 85, 5.4, 12.0, 3.0)
-OPTIONS.append(Option("Pololu 37D 19:1 helical, 12 V cap, 3 A", nl, st, lim, "#eb6834"))
-
-# BLDC options are appended in build_options() once their parameters are fixed in the report.
+def options() -> list[Option]:
+    result = []
+    nl, st, lim = pololu(150, 270, 5.2, 12.0, 3.0)
+    result.append(Option("Today: Pololu 37D 70:1, 12 V duty cap, RoboClaw 3 A", nl, st, min(lim, 2.45), "#52514e", "--"))
+    nl, st, lim = pololu(530, 85, 5.4, 12.0, 4.0)
+    result.append(Option("Fallback: Pololu 37D 19:1 (#4751), 12 V cap, 4 A", nl, st, lim, "#2a78d6"))
+    nl, st, lim = pololu(330, 140, 5.6, 12.0, 4.0)
+    result.append(Option("Pololu 37D 30:1 (#4752), 12 V cap, 4 A", nl, st, lim, "#eb6834"))
+    result.append(Option("BLDC JGB37-3650 12 V, 18.8:1, FOC 5 A (listing)", 8000 * SAG / 12 * 0.95 / 18.8, 1.06 * SAG / 12, 0.75, "#1baf7a"))
+    result.append(Option("BLDC JGB37-3625 12 V, 18.8:1, FOC (short, listing)", 6000 * SAG / 12 * 0.95 / 18.8, 0.59 * 18.8 / 30 * SAG / 12, 0.59 * 18.8 / 30 * SAG / 12, "#eda100"))
+    result.append(Option("Steadywin GIM4305-10 actuator (too wide, reference)", 16.75 * SAG, 3.82, 3.82, "#4a3aa7", ":"))
+    return result
 
 
 def requirement_points():
@@ -114,9 +108,5 @@ def plot(options: list[Option], path: Path):
     fig.savefig(path, format="svg")
 
 
-def build_options() -> list[Option]:
-    return OPTIONS
-
-
 if __name__ == "__main__":
-    plot(build_options(), Path(__file__).with_suffix(".svg"))
+    plot(options(), Path(__file__).with_suffix(".svg"))
