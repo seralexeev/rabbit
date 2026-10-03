@@ -1,0 +1,43 @@
+name: blog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - workspaces/blog/**
+      - .github/workflows/blog.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: workspaces/blog
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq webp ffmpeg
+      - working-directory: workspaces/blog
+        run: npm ci && node src/index.ts
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'unused' }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: workspaces/blog/static
+      - id: deployment
+        uses: actions/deploy-pages@v4
