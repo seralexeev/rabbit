@@ -1,0 +1,320 @@
+{
+ "top_lift_mm": 46.58,
+ "top_plate_top_above_floor_mm": 122.0,
+ "footprint": {
+  "front_from_rear_axle_m": 0.2452,
+  "rear_from_rear_axle_m": 0.072,
+  "half_width_m": 0.102,
+  "was": {
+   "front": 0.2245,
+   "rear": 0.07,
+   "half_width": 0.1
+  }
+ },
+ "screws": [
+  {
+   "part": "bumper_front",
+   "plate": "bottom",
+   "screw": [
+    -12.52,
+    -133.8
+   ],
+   "M": 3.0,
+   "hole": [
+    2.48,
+    -133.8,
+    43.2,
+    3.2
+   ]
+  },
+  {
+   "part": "bumper_front",
+   "plate": "bottom",
+   "screw": [
+    17.48,
+    -133.8
+   ],
+   "M": 3.0,
+   "hole": [
+    2.48,
+    -133.8,
+    43.2,
+    3.2
+   ]
+  },
+  {
+   "part": "bumper_front",
+   "plate": "bottom",
+   "screw": [
+    2.48,
+    -127.55
+   ],
+   "M": 3.0,
+   "hole": [
+    2.48,
+    -127.55,
+    3.2,
+    3.2
+   ]
+  },
+  {
+   "part": "bumper_rear",
+   "plate": "bottom",
+   "screw": [
+    46.3,
+    124.54
+   ],
+   "M": 3.0,
+   "hole": [
+    46.3,
+    124.54,
+    3.2,
+    3.2
+   ]
+  },
+  {
+   "part": "bumper_rear",
+   "plate": "bottom",
+   "screw": [
+    -41.34,
+    124.54
+   ],
+   "M": 3.0,
+   "hole": [
+    -41.34,
+    124.54,
+    3.2,
+    3.2
+   ]
+  },
+  {
+   "part": "bumper_rear",
+   "plate": "bottom",
+   "screw": [
+    2.48,
+    124.63
+   ],
+   "M": 3.0,
+   "hole": [
+    2.48,
+    124.63,
+    73.41,
+    5.38
+   ]
+  },
+  {
+   "part": "lidar_mast",
+   "plate": "top",
+   "screw": [
+    -19.01,
+    -39.18
+   ],
+   "M": 3.0,
+   "hole": [
+    -19.01,
+    -39.18,
+    3.2,
+    3.2
+   ]
+  },
+  {
+   "part": "lidar_mast",
+   "plate": "top",
+   "screw": [
+    23.97,
+    -39.18
+   ],
+   "M": 3.0,
+   "hole": [
+    23.97,
+    -39.18,
+    3.2,
+    3.2
+   ]
+  },
+  {
+   "part": "lidar_mast",
+   "plate": "top",
+   "screw": [
+    -5.15,
+    -65.96
+   ],
+   "M": 2.5,
+   "hole": [
+    -5.15,
+    -65.96,
+    2.7,
+    2.7
+   ]
+  },
+  {
+   "part": "lidar_mast",
+   "plate": "top",
+   "screw": [
+    10.11,
+    -65.96
+   ],
+   "M": 2.5,
+   "hole": [
+    10.11,
+    -65.96,
+    2.7,
+    2.7
+   ]
+  },
+  {
+   "part": "rear_camera_mount",
+   "plate": "top",
+   "screw": [
+    -7.52,
+    124.63
+   ],
+   "M": 3.0,
+   "hole": [
+    2.48,
+    124.63,
+    73.41,
+    5.38
+   ]
+  },
+  {
+   "part": "rear_camera_mount",
+   "plate": "top",
+   "screw": [
+    12.48,
+    124.63
+   ],
+   "M": 3.0,
+   "hole": [
+    2.48,
+    124.63,
+    73.41,
+    5.38
+   ]
+  }
+ ],
+ "interference_mm3": [],
+ "steering": {
+  "+-35deg": {
+   "bumper_front": {
+    "min_gap_mm": 6.79,
+    "at_deg": 35.0
+   },
+   "bumper_front_bar_pushed": {
+    "min_gap_mm": 8.28,
+    "at_deg": -35.0
+   },
+   "tof_pair_front": {
+    "min_gap_mm": 15.3,
+    "at_deg": 35.0
+   },
+   "d2f_front": {
+    "min_gap_mm": 13.66,
+    "at_deg": -35.0
+   }
+  },
+  "+-40deg": {
+   "bumper_front": {
+    "min_gap_mm": 4.52,
+    "at_deg": 40.0
+   },
+   "bumper_front_bar_pushed": {
+    "min_gap_mm": 7.23,
+    "at_deg": -40.0
+   },
+   "tof_pair_front": {
+    "min_gap_mm": 11.93,
+    "at_deg": -40.0
+   },
+   "d2f_front": {
+    "min_gap_mm": 12.15,
+    "at_deg": 40.0
+   }
+  },
+  "tyre_forward_reach": [
+   {
+    "lock_deg": 35.0,
+    "tyre_front_y": -144.22
+   },
+   {
+    "lock_deg": 40.0,
+    "tyre_front_y": -145.27
+   }
+  ]
+ },
+ "views": {
+  "tof_front_a": {
+   "height_above_floor_mm": 60.0,
+   "yaw_deg": 22.0,
+   "pitch_up_deg": 15.0,
+   "floor_first_seen_mm": 456.0,
+   "obstructions": {}
+  },
+  "tof_front_b": {
+   "height_above_floor_mm": 60.0,
+   "yaw_deg": -22.0,
+   "pitch_up_deg": 15.0,
+   "floor_first_seen_mm": 456.0,
+   "obstructions": {}
+  },
+  "tof_rear_a": {
+   "height_above_floor_mm": 60.0,
+   "yaw_deg": 202.0,
+   "pitch_up_deg": 15.0,
+   "floor_first_seen_mm": 456.0,
+   "obstructions": {}
+  },
+  "tof_rear_b": {
+   "height_above_floor_mm": 60.0,
+   "yaw_deg": 158.0,
+   "pitch_up_deg": 15.0,
+   "floor_first_seen_mm": 456.0,
+   "obstructions": {}
+  },
+  "lidar": {
+   "scan_plane_above_floor_mm": 220.0,
+   "lidar_base_above_floor_mm": 190.2,
+   "robot_top_above_floor_mm": 231.5,
+   "band": "plane +- (3 mm + r tan 1.5 deg), r 31-500 mm",
+   "obstructions": {},
+   "tallest_other_items_mm": [
+    [
+     188.7,
+     "battery_envelope"
+    ],
+    [
+     169.5,
+     "power_button"
+    ],
+    [
+     168.0,
+     "power_button_panel"
+    ],
+    [
+     157.3,
+     "rear_camera_mount"
+    ],
+    [
+     153.5,
+     "camera_module_3_wide"
+    ]
+   ]
+  },
+  "zed_pitch_+0": {
+   "obstructions": {
+    "s132": 92.3
+   }
+  },
+  "zed_pitch_-10": {
+   "obstructions": {
+    "s132": 622.2
+   }
+  },
+  "rear_camera": {
+   "lens_above_floor_mm": 141.9,
+   "pitch_down_deg": 15.0,
+   "floor_first_seen_behind_lens_mm": 126.0,
+   "obstructions": {}
+  }
+ }
+}

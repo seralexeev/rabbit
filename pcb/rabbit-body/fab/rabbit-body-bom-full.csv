@@ -1,0 +1,58 @@
+Qty,Designator,Value,Footprint,LCSC,MPN / description,Assembly
+1,U4,D24V90F5,Pololu_D24V90F5,,Pololu D24V90F5 #2866,"owner's module, mounted on standoffs / pins"
+1,U5,D36V50F12,Pololu_D36V50Fx,,Pololu D36V50F12 #4095,"owner's module, mounted on standoffs / pins"
+1,U6,D36V50F6,Pololu_D36V50Fx,,Pololu D36V50F6 #4092,"owner's module, mounted on standoffs / pins"
+1,U2,Pololu 2813,Pololu_BigPushbutton_HP,,Pololu Big Pushbutton Power Switch HP #2813,"owner's module, mounted on standoffs / pins"
+1,MOD1,Raspberry Pi 4,RaspberryPi4_Standoffs,,Raspberry Pi 4 Model B + 4x M2.5x6 standoffs,"owner's module, mounted on standoffs / pins"
+1,U1,RoboClaw 2x30A,RoboClaw_2x30A,,Basicmicro RoboClaw 2x30A + 4x M3x6 standoffs,"owner's module, mounted on standoffs / pins"
+1,R37,1.5k,R_0603_1608Metric,C22843,0603 1.5k 1%,JLCPCB SMT
+5,"R10,R11,R12,R13,R16",100,R_0603_1608Metric,C22775,0603 100 1%,JLCPCB SMT
+6,"R17,R19,R21,R23,R25,R26",100k,R_0603_1608Metric,C25803,0603 100k 1%,JLCPCB SMT
+6,"C2,C3,C5,C10,C11,C12",100nF,C_0603_1608Metric,C14663,100nF X7R/X5R,JLCPCB SMT
+3,"R28,R31,R39",10k,R_0603_1608Metric,C25804,0603 10k 1%,JLCPCB SMT
+2,"R2,R4",10mR 2W,R_Shunt_2512_Kelvin,C105366,FMF25FPJR010-LH,JLCPCB SMT
+1,C8,10nF,C_0603_1608Metric,C57112,10nF X7R/X5R,JLCPCB SMT
+5,"C4,C6,C7,C9,C13",10uF,C_0805_2012Metric,C15850,10uF X7R/X5R,JLCPCB SMT
+7,"R14,R15,R18,R20,R22,R24,R36",1k,R_0603_1608Metric,C21190,0603 1k 1%,JLCPCB SMT
+4,"R32,R33,R34,R35",220,R_0603_1608Metric,C22962,0603 220 1%,JLCPCB SMT
+1,R1,2mR 3W,R_Shunt_2512_Kelvin,C154685,LR2512-23R002F4,JLCPCB SMT
+2,"R27,R40",330,R_0603_1608Metric,C23138,0603 330 1%,JLCPCB SMT
+3,"R29,R30,R38",4.7k,R_0603_1608Metric,C23162,0603 4.7k 1%,JLCPCB SMT
+1,R3,5mR 3W,R_Shunt_2512_Kelvin,C154688,LR2512-23R005F4,JLCPCB SMT
+3,"Q1,Q2,Q3",AO3400A,SOT-23,C20917,AO3400A,JLCPCB SMT
+1,U9,DS3231SN,SOIC-16W_7.5x10.3mm_P1.27mm,C9866,DS3231SN#T&R,JLCPCB SMT
+1,U3,INA4235,TI_DSBGA-16_YBJ_1.5x1.5mm_P0.4mm,C33440856,INA4235AIYBJR,JLCPCB SMT
+5,"D2,D3,D4,D5,D6",LED green,LED_0603_1608Metric,C12624,KT-0603G,JLCPCB SMT
+1,U8,PCA9685PW,TSSOP-28_4.4x9.7mm_P0.65mm,C2678753,"PCA9685PW,118",JLCPCB SMT
+1,D1,SMBJ20A,D_SMB,C151922,SMBJ20A,JLCPCB SMT
+1,U7,TPS73733,SOT-223-6,C31334,TPS73733DCQR,JLCPCB SMT
+1,C1,1000uF 35V,CP_Radial_D12.5mm_P5.00mm,C346962,NXB 35V 1000uF 12.5x25 (or Panasonic EEU-FR1V102),hand-solder (order from LCSC/JLC parts)
+1,C14,470uF 16V,CP_Radial_D8.0mm_P3.50mm,C19270651,470uF 16V polymer 8x12,hand-solder (order from LCSC/JLC parts)
+1,F7,ATO (spare),Fuseholder_ATO_Keystone_3557x2,C2680614,2x Keystone 3557 + ATO (spare),hand-solder (order from LCSC/JLC parts)
+1,F2,ATO 10A,Fuseholder_ATO_Keystone_3557x2,C2680614,2x Keystone 3557 + ATO 10A,hand-solder (order from LCSC/JLC parts)
+1,F1,ATO 15A,Fuseholder_ATO_Keystone_3557x2,C2680614,2x Keystone 3557 + ATO 15A,hand-solder (order from LCSC/JLC parts)
+1,F6,ATO 2A,Fuseholder_ATO_Keystone_3557x2,C2680614,2x Keystone 3557 + ATO 2A,hand-solder (order from LCSC/JLC parts)
+2,"F3,F4",ATO 5A,Fuseholder_ATO_Keystone_3557x2,C2680614,2x Keystone 3557 + ATO 5A,hand-solder (order from LCSC/JLC parts)
+1,F5,ATO 7.5A,Fuseholder_ATO_Keystone_3557x2,C2680614,2x Keystone 3557 + ATO 7.5A,hand-solder (order from LCSC/JLC parts)
+1,BT1,CR1220,BatteryHolder_Keystone_3001_1x12mm,C238098,Keystone 3001 holder + CR1220 cell,hand-solder (order from LCSC/JLC parts)
+1,J5,E-stop loop,PinHeader_1x02_P2.54mm_Vertical,C53055672,1x2 header + jumper,hand-solder (order from LCSC/JLC parts)
+1,J6,ENC left,JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,C144395,JST B4B-XH-A,hand-solder (order from LCSC/JLC parts)
+1,J7,ENC right,JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,C144395,JST B4B-XH-A,hand-solder (order from LCSC/JLC parts)
+1,J17,Jetson UART,JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical,C131339,JST B3B-PH-K-S,hand-solder (order from LCSC/JLC parts)
+1,J3,Pi 40-pin,IDC-Header_2x20_P2.54mm_Vertical,C48687632,BH254V-40P box header,hand-solder (order from LCSC/JLC parts)
+1,J18,Pi fan 5V,JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,C131337,JST B2B-PH-K-S,hand-solder (order from LCSC/JLC parts)
+1,J4,RoboClaw I/O,PinHeader_2x05_P2.54mm_Vertical,C225520,2x5 2.54 pin header,hand-solder (order from LCSC/JLC parts)
+4,"J8,J9,J10,J11",ToF,JST_PH_B5B-PH-K_1x05_P2.00mm_Vertical,C157993,JST B5B-PH-K-S,hand-solder (order from LCSC/JLC parts)
+1,J19,USB hub 7-36V,JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,C158012,JST B2B-XH-A,hand-solder (order from LCSC/JLC parts)
+1,J21,XT30 JETSON,AMASS_XT30PW-F_1x02_P2.50mm_Horizontal,C2913282,AMASS XT30PW-F,hand-solder (order from LCSC/JLC parts)
+1,J1,XT60 BAT,AMASS_XT60-M_1x02_P7.20mm_Vertical,C19268037,AMASS XT60PB-M vertical,hand-solder (order from LCSC/JLC parts)
+1,J13,bumpers front,JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,C158012,JST B2B-XH-A,hand-solder (order from LCSC/JLC parts)
+1,J14,bumpers rear,JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,C158012,JST B2B-XH-A,hand-solder (order from LCSC/JLC parts)
+1,J15,button,JST_XH_B5B-XH-A_1x05_P2.50mm_Vertical,C157991,JST B5B-XH-A,hand-solder (order from LCSC/JLC parts)
+1,J12,lidar C1,JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical,C131334,JST B4B-PH-K-S,hand-solder (order from LCSC/JLC parts)
+1,J22,servo 0,PinHeader_1x03_P2.54mm_Vertical,C49257,1x3 2.54 pin header,hand-solder (order from LCSC/JLC parts)
+1,J23,servo 1,PinHeader_1x03_P2.54mm_Vertical,C49257,1x3 2.54 pin header,hand-solder (order from LCSC/JLC parts)
+1,J24,servo 2,PinHeader_1x03_P2.54mm_Vertical,C49257,1x3 2.54 pin header,hand-solder (order from LCSC/JLC parts)
+1,J25,servo 3,PinHeader_1x03_P2.54mm_Vertical,C49257,1x3 2.54 pin header,hand-solder (order from LCSC/JLC parts)
+1,J20,spare out,"TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",C474952,KF128-5.08-2P,hand-solder (order from LCSC/JLC parts)
+1,J16,status LED,JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,C131337,JST B2B-PH-K-S,hand-solder (order from LCSC/JLC parts)
