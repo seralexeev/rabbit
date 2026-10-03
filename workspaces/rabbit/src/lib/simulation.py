@@ -4,6 +4,8 @@ import math
 from dataclasses import dataclass
 
 import numpy as np
+from lib import lidar, tof
+from lib.drive import METRES_PER_SECOND_PER_DUTY
 from lib.geometry import CAMERA_TO_REAR_AXLE, camera_point, curvature_for_steer
 from lib.navmap import clear_unknown, mark_known
 from lib.planner import FREE, OCCUPIED, UNKNOWN, CostMap, OccupancyGrid, build_costmap
@@ -11,7 +13,6 @@ from lib.safety import Footprint
 from lib.trip import PARAMS
 
 RES = 0.05
-METRES_PER_SECOND_PER_DUTY = 0.464
 STEER_LAG = 0.05
 SPEED_LAG = 0.05
 ACTUATION_DELAY = 0.06
@@ -21,6 +22,10 @@ BLIND_RANGE = 0.3
 SCAN_RANGE = 5.0
 CAMERA_FOV_DEG = 87.0
 DEPTH_RANGE = 5.0
+LIDAR_SAMPLES = 500
+LIDAR_RANGE = 8.0
+BUMPER_TRAVEL = 0.012
+BUMPER_BOTTOM = 0.023
 
 
 def room_grid(width_m: float, height_m: float) -> OccupancyGrid:
@@ -162,3 +167,60 @@ def body_free(world: OccupancyGrid, robot: Robot) -> bool:
     body = np.array([robot.x, robot.z]) + np.outer(along.ravel(), forward) + np.outer(across.ravel(), right)
     iz, ix, inside = world.cell_index(body)
     return bool(inside.all() and not (world.cells[iz, ix] == OCCUPIED).any())
+
+
+def heights_at(world: OccupancyGrid, heights: np.ndarray, points: np.ndarray) -> np.ndarray:
+    iz, ix, inside = world.cell_index(points)
+    found = np.full(len(iz), np.inf)
+    found[inside] = heights[iz[inside], ix[inside]]
+    return found
+
+
+def base_to_world(robot: Robot, along: np.ndarray, left: np.ndarray) -> np.ndarray:
+    forward = np.array([math.cos(robot.theta), math.sin(robot.theta)])
+    leftward = np.array([forward[1], -forward[0]])
+    return np.array([robot.x, robot.z]) + np.outer(along, forward) + np.outer(left, leftward)
+
+
+def lidar_rotation(world: OccupancyGrid, heights: np.ndarray, poses: list[Robot], mount: lidar.Mount = lidar.Mount()) -> tuple[np.ndarray, np.ndarray]:
+    angles_q6 = np.round(np.arange(LIDAR_SAMPLES) * 360.0 * 64.0 / LIDAR_SAMPLES).astype(int)
+    distances = np.arange(0.05, LIDAR_RANGE, 0.5 * RES)
+    found = np.zeros(LIDAR_SAMPLES)
+    for chunk, robot in zip(np.array_split(np.arange(LIDAR_SAMPLES), len(poses)), poses):
+        origin = base_to_world(robot, np.array([mount.x]), np.array([mount.y]))[0]
+        alpha = np.radians(mount.yaw_deg - angles_q6[chunk] / 64.0)
+        world_angle = robot.theta - alpha
+        directions = np.stack([np.cos(world_angle), np.sin(world_angle)], axis=1)
+        samples = origin + distances[None, :, None] * directions[:, None, :]
+        hit = (heights_at(world, heights, samples.reshape(-1, 2)) >= mount.z).reshape(len(chunk), -1)
+        first = hit.argmax(axis=1)
+        found[chunk] = np.where(hit.any(axis=1), distances[first], 0.0)
+    return np.round(found * 1000.0), angles_q6
+
+
+def tof_frame(world: OccupancyGrid, heights: np.ndarray, robot: Robot, mount: tof.Mount) -> tuple[list[int], list[int]]:
+    directions = tof.base_directions(mount)
+    origin = base_to_world(robot, np.array([mount.x]), np.array([mount.y]))[0]
+    ranges = np.arange(0.02, tof.MAX_RANGE_M, 0.5 * RES)
+    horizontal = base_to_world(Robot(0.0, 0.0, robot.theta), directions[:, 0], directions[:, 1])
+    samples = origin + ranges[None, :, None] * horizontal[:, None, :]
+    height = mount.z + ranges[None, :] * directions[:, 2:3]
+    hit = (height <= 0.0) | (height <= heights_at(world, heights, samples.reshape(-1, 2)).reshape(len(directions), -1))
+    first = hit.argmax(axis=1)
+    found = hit.any(axis=1)
+    radial = ranges[first]
+    reported = radial * tof.ZONES[:, 0] if tof.PERPENDICULAR else radial
+    distance = np.where(found, np.round(reported * 1000.0), 0).astype(int)
+    status = np.where(found, 5, tof.NO_TARGET).astype(int)
+    return distance.tolist(), status.tolist()
+
+
+def bumpers(world: OccupancyGrid, heights: np.ndarray, robot: Robot) -> dict[str, bool]:
+    footprint = Footprint()
+    across = np.linspace(-footprint.half_width, footprint.half_width, 9)
+    pressed = {}
+    for end, edge in (("front", footprint.front), ("rear", -footprint.rear)):
+        along = edge + np.sign(edge) * np.linspace(0.0, BUMPER_TRAVEL, 4)
+        a, c = np.meshgrid(along, across)
+        pressed[end] = bool((heights_at(world, heights, base_to_world(robot, a.ravel(), c.ravel())) >= BUMPER_BOTTOM).any())
+    return pressed

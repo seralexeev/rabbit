@@ -1,9 +1,11 @@
+import json
+import os
 import time
 
 import board
 import busio
 from adafruit_pca9685 import PCA9685
-from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, CommandArbiter
+from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, SAFETY_DRIVE_SUBJECT, CommandArbiter
 from lib.node import RabbitNode
 from nats.aio.msg import Msg
 
@@ -30,8 +32,11 @@ class Node(RabbitNode):
         self.errors = 0
 
     async def init(self):
-        await self.subscribe(JOY_SUBJECT, self.on_command)
-        await self.subscribe(DRIVE_SUBJECT, self.on_command)
+        if os.environ.get("DRIVE_INPUT") == "safety":
+            await self.subscribe(SAFETY_DRIVE_SUBJECT, self.on_safety_drive)
+        else:
+            await self.subscribe(JOY_SUBJECT, self.on_command)
+            await self.subscribe(DRIVE_SUBJECT, self.on_command)
         self.set_angle(0.0)
         self.set_interval(self.kill_switch, 0.05)
         self.set_interval(self.publish_state, self.PUBLISH_INTERVAL)
@@ -61,6 +66,10 @@ class Node(RabbitNode):
             return
         self.last_command_at = time.monotonic()
         self.set_angle(command[1])
+
+    async def on_safety_drive(self, msg: Msg):
+        self.last_command_at = time.monotonic()
+        self.set_angle(float(json.loads(msg.data)["steer"]))
 
     def set_angle(self, angle: float):
         try:

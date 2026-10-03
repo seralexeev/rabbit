@@ -28,7 +28,7 @@ EVENT_BURST = 100.0
 MAX_QUEUED_EVENTS = 2000
 MAX_CONFIG_VALUE = 2000
 PACKAGES = ("numpy", "numba", "nats-py", "pydantic", "opencv-python", "opencv-python-headless", "jetson-stats", "docker", "smbus2", "pyserial")
-ENV_PREFIXES = ("SIM_", "LOC_", "USE_", "ROBOCLAW_", "INA_", "RABBIT_", "WIFI_", "NATS_URL")
+ENV_PREFIXES = ("SIM_", "LOC_", "USE_", "ROBOCLAW_", "INA_", "RABBIT_", "WIFI_", "NATS_URL", "SAFETY_", "LIDAR_", "TOF_", "POWER_", "DRIVE_", "I2C_")
 SECRET_WORDS = ("KEY", "TOKEN", "SECRET", "PASSWORD")
 
 

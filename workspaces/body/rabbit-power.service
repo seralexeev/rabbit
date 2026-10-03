@@ -1,0 +1,18 @@
+[Unit]
+Description=Rabbit power supervisor: power button, status LED, Jetson power, battery policy and clean shutdown
+After=local-fs.target
+Before=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/rabbit/workspaces/rabbit
+EnvironmentFile=/root/rabbit/workspaces/body/body.env
+Environment=NATS_URL=nats://127.0.0.1:4222
+Environment=PYTHONPATH=src
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/rabbit-host/bin/python src/node/power.py
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

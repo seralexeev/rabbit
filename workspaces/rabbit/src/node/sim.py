@@ -7,11 +7,14 @@ from collections import deque
 
 import numpy as np
 from lib.detector import OBJECTS_SUBJECT, DetectedObject, DetectedObjects
-from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, CommandArbiter, slew
+from lib import lidar, tof
+from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, METRES_PER_SECOND_PER_DUTY, SAFETY_DRIVE_SUBJECT, CommandArbiter, slew
 from lib.geometry import CAMERA_HEIGHT, CAMERA_TO_REAR_AXLE, GRAVITY, quaternion_to_matrix
+from lib.hardware import SIM_GPIO_IN_SUBJECT, SIM_GPIO_OUT_SUBJECT
 from lib.node import RabbitNode
 from lib.planner import OCCUPIED, UNKNOWN, OccupancyGrid, build_costmap
-from lib.simulation import ACTUATION_DELAY, CAMERA_FOV_DEG, DEPTH_RANGE, METRES_PER_SECOND_PER_DUTY, POSE_LATENCY, SCAN_LATENCY, WORLDS, Robot, ScannedMap, body_free, scan_ranges
+from lib.safety_loop import ROBOCLAW_ESTOP_FLAG
+from lib.simulation import ACTUATION_DELAY, CAMERA_FOV_DEG, DEPTH_RANGE, POSE_LATENCY, SCAN_LATENCY, WORLDS, Robot, ScannedMap, body_free, bumpers, lidar_rotation, scan_ranges, tof_frame
 from lib.spatial_map import GRID_UNKNOWN, MAP_CHUNKS_SUBJECT, MAP_GRID_SNAPSHOT_SUBJECT, MAP_GRID_SUBJECT, MAP_RESET_SUBJECT, MAP_SNAPSHOT_SUBJECT, encode_chunk, encode_grid
 from nats.aio.msg import Msg
 
@@ -23,11 +26,13 @@ ROBOCLAW_SUBJECT = "rabbit.roboclaw"
 MAP_EXTEND_SUBJECT = "rabbit.map.extend"
 RESTART_SUBJECT = "rabbit.sim.restart"
 SIM_STATE_SUBJECT = "rabbit.sim.state"
+SIM_SETUP_SUBJECT = "rabbit.sim.setup"
 TELEMETRY_SUBJECT = "rabbit.telemetry"
 STEERING_SUBJECT = "rabbit.steering"
 INA_SUBJECT = "rabbit.ina"
 BLOCK_CELLS = 8
 WALL_HEIGHT = 1.2
+BUMPER_PINS = {"front": "BUMPER_FRONT", "rear": "BUMPER_REAR"}
 
 STARTS = {"apartment": (1.0, 1.5, 90.0), "corridor": (1.5, 1.5, 0.0), "open-plan": (1.5, 4.0, 90.0)}
 OBJECTS = {
@@ -82,6 +87,9 @@ class Node(RabbitNode):
     DECEL = 5.0
     STALL_CURRENT = 1.0
     CURRENT_PER_DUTY = 1.2
+    LIDAR_PERIOD = 0.1
+    LIDAR_SLICES = 10
+    TOF_RATE = 15.0
 
     def __init__(self):
         super().__init__("sim")
@@ -114,11 +122,24 @@ class Node(RabbitNode):
         self.heights = self.object_heights()
         self.chunks: dict[tuple[int, int], tuple[int, bytes, bytes]] = {}
         self.chunk_bytes = 0
+        self.body = os.environ.get("SIM_BODY") == "1"
+        self.sensors = {"lidar": self.body, "tof": self.body, "bumpers": self.body}
+        self.estop_run = not self.body
+        self.bumped = {"front": False, "rear": False}
+        self.lidar_seq = 0
+        self.tof_seq = 0
 
     async def init(self):
         self.set_log_context(odom_session=self.session, map_session=self.session, map_id=self.map_id)
-        await self.subscribe(DRIVE_SUBJECT, self.on_command)
-        await self.subscribe(JOY_SUBJECT, self.on_command)
+        if self.body:
+            await self.subscribe(SAFETY_DRIVE_SUBJECT, self.on_safety_drive)
+            await self.subscribe(SIM_GPIO_OUT_SUBJECT, self.on_gpio_out)
+            self.set_interval(self.publish_lidar, self.LIDAR_PERIOD, max_parallel=1)
+            self.set_interval(self.publish_tof, 1.0 / self.TOF_RATE, max_parallel=1)
+        else:
+            await self.subscribe(DRIVE_SUBJECT, self.on_command)
+            await self.subscribe(JOY_SUBJECT, self.on_command)
+        await self.subscribe(SIM_SETUP_SUBJECT, self.on_setup)
         await self.subscribe(MAP_GRID_SNAPSHOT_SUBJECT, self.on_snapshot)
         await self.subscribe(MAP_EXTEND_SUBJECT, self.on_extend)
         await self.subscribe(RESTART_SUBJECT, self.on_restart)
@@ -147,6 +168,60 @@ class Node(RabbitNode):
             self.target = resolved
             self.command_at = time.monotonic()
 
+    async def on_safety_drive(self, msg: Msg):
+        command = json.loads(msg.data)
+        self.target = (float(command["speed"]), float(command["steer"]))
+        self.command_at = time.monotonic()
+
+    async def on_gpio_out(self, msg: Msg):
+        pins = json.loads(msg.data).get("pins", {})
+        if "ESTOP_RUN" in pins:
+            self.estop_run = bool(pins["ESTOP_RUN"])
+
+    async def on_setup(self, msg: Msg):
+        request = json.loads(msg.data or b"{}")
+        if request.get("robot") is not None:
+            x, z, heading = (float(v) for v in request["robot"])
+            self.robot = Robot(x, z, heading_to_theta(heading))
+            self.history.clear()
+            self.duty, self.target = 0.0, (0.0, 0.0)
+        for x0, z0, x1, z1, height in request.get("blocks", []):
+            iz, ix, _ = self.world.cell_index(np.array([[x0, z0], [x1 - 1e-6, z1 - 1e-6]]))
+            self.world.cells[iz[0] : iz[1] + 1, ix[0] : ix[1] + 1] = OCCUPIED
+            self.heights[iz[0] : iz[1] + 1, ix[0] : ix[1] + 1] = float(height)
+        for name in self.sensors:
+            if name in request:
+                self.sensors[name] = bool(request[name])
+        self.event("sim.setup", "test hook", severity="info", request=json.dumps(request))
+        if msg.reply:
+            await self.publish(msg.reply, json.dumps({"x": self.robot.x, "z": self.robot.z, "theta": self.robot.theta, "sensors": self.sensors}).encode())
+
+    async def publish_lidar(self):
+        if not self.sensors["lidar"]:
+            return
+        now = time.time_ns()
+        poses = [self.past(self.LIDAR_PERIOD * (1.0 - (i + 0.5) / self.LIDAR_SLICES)) for i in range(self.LIDAR_SLICES)]
+        distance, angle = lidar_rotation(self.world, self.heights, poses)
+        valid = distance > 0
+        self.lidar_seq += 1
+        payload = lidar.encode_scan(now - int(self.LIDAR_PERIOD * 1e9), now, self.lidar_seq, lidar.Mount(), distance[valid], angle[valid])
+        await self.publish(lidar.SCAN_SUBJECT, payload)
+
+    async def publish_tof(self):
+        if not self.sensors["tof"]:
+            return
+        self.tof_seq += 1
+        for mount in tof.MOUNTS.values():
+            distance, status = tof_frame(self.world, self.heights, self.robot, mount)
+            await self.publish_json(tof.TOF_SUBJECT, tof.frame_message(mount, self.tof_seq, time.time_ns(), distance, status))
+
+    async def publish_bumpers(self):
+        pressed = bumpers(self.world, self.heights, self.robot) if self.sensors["bumpers"] else {"front": False, "rear": False}
+        changed = {BUMPER_PINS[end]: value for end, value in pressed.items() if value != self.bumped[end]}
+        if changed:
+            self.bumped = pressed
+            await self.publish_json(SIM_GPIO_IN_SUBJECT, {"pins": changed})
+
     async def physics(self):
         now = time.monotonic()
         dt = min(max(now - self.stepped_at, 0.0), 0.05)
@@ -155,7 +230,7 @@ class Node(RabbitNode):
             self.event("motors.command_timeout", "no drive command, stopping the motors", severity="warning", every_s=1.0, command_age_s=now - self.command_at, timeout_s=self.COMMAND_TIMEOUT, owner=self.owner)
             self.target = (0.0, 0.0)
         speed, steer = self.target if now - self.command_at <= self.COMMAND_TIMEOUT else (0.0, 0.0)
-        self.duty = slew(self.duty, speed, dt, self.ACCEL, self.DECEL)
+        self.duty = slew(self.duty, speed, dt, self.ACCEL, self.DECEL) if self.estop_run else 0.0
         self.commands.append((now, self.duty, steer))
         due = next((c for c in reversed(self.commands) if c[0] <= now - ACTUATION_DELAY), (now, 0.0, 0.0))
         before = (self.robot.x, self.robot.z, self.robot.theta)
@@ -166,6 +241,8 @@ class Node(RabbitNode):
             self.contacts += 1
             self.event("sim.contact", "the simulated body touched a wall", severity="warning", every_s=2.0, x=self.robot.x, z=self.robot.z, duty=self.duty, contacts=self.contacts)
         self.history.append((now, self.robot.x, self.robot.z, self.robot.theta))
+        if self.body:
+            await self.publish_bumpers()
 
     def past(self, ago: float) -> Robot:
         at = time.monotonic() - ago
@@ -358,7 +435,8 @@ class Node(RabbitNode):
     async def publish_roboclaw(self):
         current = self.STALL_CURRENT if self.contact else self.CURRENT_PER_DUTY * abs(self.duty)
         side = {"command": round(self.duty, 3), "pwm": round(self.duty, 3), "current": round(current, 3), "speed": 0, "encoder": 0}
-        await self.publish_json(ROBOCLAW_SUBJECT, {"left": side, "right": side, "supply_voltage": 11.9, "duty_max": 1.0, "temperature": 30.0, "status": 0, "errors": 0, "simulated": True})
+        status = 0 if self.estop_run else ROBOCLAW_ESTOP_FLAG
+        await self.publish_json(ROBOCLAW_SUBJECT, {"left": side, "right": side, "supply_voltage": 11.9, "duty_max": 1.0, "temperature": 30.0, "status": status, "errors": 0, "simulated": True})
         battery_current = 0.9 + 2 * current * 12.0 / 15.6
         voltage = round(15.8 - 0.08 * battery_current, 3)
         channels = [

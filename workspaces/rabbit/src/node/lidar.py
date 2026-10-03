@@ -33,6 +33,7 @@ class Node(RabbitNode):
         self.latency_ns = int(float(os.environ.get("LIDAR_LATENCY_MS", "0")) * 1e6)
         self.device = None
         self.info: rplidar.DeviceInfo | None = None
+        self.sample_hz: float | None = None
         self.health: rplidar.Health | None = None
         self.stream = rplidar.NodeStream(self.latency_ns)
         self.assembler = rplidar.ScanAssembler()
@@ -74,6 +75,14 @@ class Node(RabbitNode):
             data += self.device.read(size - len(data))
         return bytes(data)
 
+    def read_sample_rate(self) -> float | None:
+        try:
+            data = self.exchange(rplidar.GET_SAMPLERATE, rplidar.SAMPLERATE_REPLY)
+        except (LidarError, rplidar.ProtocolError):
+            self.stop_scan()
+            return None
+        return 1e6 / max(int.from_bytes(data[:2], "little"), 1)
+
     def stop_scan(self):
         assert self.device is not None
         self.device.write(rplidar.request(rplidar.STOP))
@@ -100,6 +109,7 @@ class Node(RabbitNode):
             self.device = open_serial(self.port, rplidar.BAUD)
             self.stop_scan()
             self.info = rplidar.decode_info(self.exchange(rplidar.GET_INFO, rplidar.INFO_REPLY))
+            self.sample_hz = self.read_sample_rate()
             self.start_scan()
         except Exception as e:
             self.errors += 1
@@ -117,6 +127,7 @@ class Node(RabbitNode):
             hardware=self.info.hardware,
             serial=self.info.serial,
             device_health=self.health.status,
+            sample_hz=self.sample_hz,
             reconnects=self.reconnects,
         )
         self.last_scan_at = time.monotonic()

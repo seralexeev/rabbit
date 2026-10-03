@@ -1,0 +1,98 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: '3'
+
+x-body: &body
+  logging: *logging
+  image: rabbit-body
+  pull_policy: never
+  working_dir: /rabbit
+  restart: unless-stopped
+  env_file: ./body.env
+  volumes:
+    - &rabbit-src ../rabbit:/rabbit
+  depends_on:
+    - nats-init
+
+x-hardware: &hardware
+  privileged: true
+  volumes:
+    - *rabbit-src
+    - /dev:/dev
+    - /sys:/sys
+
+services:
+  nats:
+    logging: *logging
+    image: nats:latest
+    container_name: nats
+    command: -c /etc/nats/nats-server.conf
+    volumes:
+      - ./nats-hub.conf:/etc/nats/nats-server.conf:ro
+      - ./nats-data:/data/nats
+      - ../../cert:/etc/cert:ro
+    restart: unless-stopped
+    ports:
+      - '4222:4222'
+      - '9222:9222'
+      - '8222:8222'
+      - '10.77.0.1:7422:7422'
+
+  nats-init:
+    logging: *logging
+    image: bitnami/natscli
+    depends_on:
+      - nats
+    volumes:
+      - ../nats/init.sh:/init.sh
+    entrypoint: ['/bin/bash', '/init.sh']
+    restart: 'no'
+
+  rabbit-roboclaw:
+    <<: [*hardware, *body]
+    container_name: rabbit-roboclaw
+    environment:
+      ROBOCLAW_PORT: /dev/ttyAMA0
+    command: ['python', 'src/node/roboclaw.py']
+
+  rabbit-steering:
+    <<: [*hardware, *body]
+    container_name: rabbit-steering
+    command: ['python', 'src/node/steering.py']
+
+  rabbit-ina:
+    <<: [*hardware, *body]
+    container_name: rabbit-ina
+    environment:
+      I2C_BUS: '1'
+    command: ['python', 'src/node/ina.py']
+
+  rabbit-lidar:
+    <<: [*hardware, *body]
+    container_name: rabbit-lidar
+    depends_on:
+      - nats-init
+      - rabbit-roboclaw
+    command: ['python', 'src/node/lidar.py']
+
+  rabbit-tof:
+    <<: [*hardware, *body]
+    container_name: rabbit-tof
+    depends_on:
+      - nats-init
+      - rabbit-roboclaw
+    command: ['python', 'src/node/tof.py']
+
+  rabbit-safety:
+    <<: [*hardware, *body]
+    container_name: rabbit-safety
+    stop_grace_period: 5s
+    depends_on:
+      - nats-init
+      - rabbit-roboclaw
+      - rabbit-ina
+      - rabbit-lidar
+      - rabbit-tof
+    command: ['python', 'src/node/safety.py']

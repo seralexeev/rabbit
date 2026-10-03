@@ -18,10 +18,10 @@ SECTORS = 12
 
 @dataclass(frozen=True, slots=True)
 class Mount:
-    x: float = 0.1342
+    x: float = 0.1597
     y: float = 0.0
-    z: float = 0.22
-    yaw_deg: float = 0.0
+    z: float = 0.23
+    yaw_deg: float = 180.0
 
 
 def mount_from_env() -> Mount:
@@ -62,7 +62,8 @@ def encode_scan(ts_start: int, ts_end: int, seq: int, mount: Mount, distance_mm,
 def decode_scan(data: bytes) -> Scan:
     ts_start, ts_end, seq, count, _, x, y, z, yaw = HEADER.unpack_from(data)
     points = np.frombuffer(data, dtype=POINT, count=count, offset=HEADER.size)
-    return Scan(ts_start, ts_end, seq, Mount(x, y, z, yaw), points["distance_mm"].astype(float), points["angle_q6"] / ANGLE_SCALE)
+    mount = Mount(*(round(value, 4) for value in (x, y, z, yaw)))
+    return Scan(ts_start, ts_end, seq, mount, points["distance_mm"].astype(float), points["angle_q6"] / ANGLE_SCALE)
 
 
 def masked(angle_deg: np.ndarray, sectors: list[tuple[float, float]]) -> np.ndarray:

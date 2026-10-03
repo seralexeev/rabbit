@@ -1,0 +1,13 @@
+FROM python:3.10-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=src
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
+
+RUN uv pip install --system \
+        "numpy>=2.0,<3" nats-py pydantic pyserial smbus2 "gpiod>=2.2" \
+        adafruit-blinka adafruit-circuitpython-pca9685 adafruit-circuitpython-busdevice \
+        circuitpython-vl53lxcx==0.0.5
+
+WORKDIR /rabbit

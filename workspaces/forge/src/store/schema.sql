@@ -484,7 +484,7 @@ CREATE TABLE IF NOT EXISTS forge.command_events
 (
     run_id LowCardinality(String),
     ts DateTime64(9, 'UTC') COMMENT 'Robot wall clock when the robot sent it, else receive time on the Forge host',
-    subject LowCardinality(String) COMMENT 'rabbit.nav.explore (start an exploration), rabbit.planner.goal (a planned trip to an object, place or point, see planner_state), rabbit.map.save (save the spatial map) or rabbit.map.reset',
+    subject LowCardinality(String) COMMENT 'rabbit.nav.explore (start an exploration), rabbit.planner.goal (a planned trip to an object, place or point, see planner_state), rabbit.map.save (save the spatial map), rabbit.map.reset, rabbit.safety.estop and rabbit.safety.reset (latched software E-stop and its release), rabbit.power.request (shutdown, reboot_jetson, power_cycle_jetson)',
     source LowCardinality(String) COMMENT 'Who sent it: explore, forge or hud',
     payload String COMMENT 'The command as JSON, e.g. the exploration limits'
 )
@@ -556,8 +556,8 @@ CREATE TABLE IF NOT EXISTS forge.events
 (
     run_id LowCardinality(String),
     ts DateTime64(9, 'UTC') COMMENT 'Robot wall clock when the node decided',
-    node LowCardinality(String) COMMENT 'Node that emitted it: nav, planner, explore, rabbit-zed, roboclaw, steering, ina4235, telemetry, sim',
-    name LowCardinality(String) COMMENT 'What happened, <area>.<what>: node.start, node.stop, nav.mission_started, nav.mission_arrived, nav.mission_cancelled, nav.mission_rejected, nav.safety_stop, nav.hold, nav.manual_override, nav.pose_jump, nav.odometry_reset, nav.blocked_at_goal, planner.trip_started, planner.trip_rejected, planner.plan, planner.waiting, planner.recovery, planner.recovery_ended, planner.bump, planner.trip_finished, explore.started, explore.goal_chosen, explore.trip_outcome, explore.frontier_abandoned, explore.finished, camera.opened, camera.restart, camera.relocalization_started, camera.relocalized, camera.relocalization_failed, camera.tracking_failed, camera.implausible_poses, map.saved, map.save_skipped, map.loaded, map.archived, map.reset, map.rebuilt, map.extend_requested, map.session_changed, mapping.enabled, motors.command_timeout, motors.connected, motors.port_lost, power.calibrated, drive.owner_changed, drive.command_ignored and others',
+    node LowCardinality(String) COMMENT 'Node that emitted it: nav, planner, explore, rabbit-zed, roboclaw, steering, ina4235, telemetry, sim; on the Raspberry Pi safety, power, lidar, tof',
+    name LowCardinality(String) COMMENT 'What happened, <area>.<what>: node.start, node.stop, nav.mission_started, nav.mission_arrived, nav.mission_cancelled, nav.mission_rejected, nav.safety_stop, nav.hold, nav.manual_override, nav.pose_jump, nav.odometry_reset, nav.blocked_at_goal, planner.trip_started, planner.trip_rejected, planner.plan, planner.waiting, planner.recovery, planner.recovery_ended, planner.bump, planner.trip_finished, explore.started, explore.goal_chosen, explore.trip_outcome, explore.frontier_abandoned, explore.finished, camera.opened, camera.restart, camera.relocalization_started, camera.relocalized, camera.relocalization_failed, camera.tracking_failed, camera.implausible_poses, map.saved, map.save_skipped, map.loaded, map.archived, map.reset, map.rebuilt, map.extend_requested, map.session_changed, mapping.enabled, motors.command_timeout, motors.connected, motors.port_lost, power.calibrated, drive.owner_changed, drive.command_ignored; on the Raspberry Pi (Rabbit 2.0) safety.started, safety.self_test, safety.estop_line, safety.limit, safety.bump, safety.bump_released, safety.brain_lost, safety.brain_restored, safety.input_stale, safety.input_restored, safety.roboclaw_lost, safety.roboclaw_ready, safety.overcurrent, safety.battery_low, safety.battery_critical, safety.estop, safety.reset, power.state_changed, power.request, power.button_short, power.battery_low, power.brain_lost, power.jetson_reboot, power.jetson_cycle_skipped, lidar.connected, lidar.connect_failed, lidar.device_error, lidar.stalled, lidar.port_lost, tof.sensor_ready, tof.sensor_reset, tof.read_failed, tof.power_cycled; and others',
     severity Enum8('debug' = 10, 'info' = 20, 'warning' = 30, 'error' = 40, 'critical' = 50) COMMENT 'Compare as severity >= ''warning''',
     reason String COMMENT 'Why, in words: the fault (stall, collision, stuck, blocked), the replan trigger (path blocked 1.2 m ahead, off the path by 0.40 m), the restart reason, who cancelled',
     mission_id String DEFAULT '' COMMENT 'Nav mission at the time; joins with nav_state.mission_id',
@@ -647,3 +647,107 @@ CREATE TABLE IF NOT EXISTS forge.nats_server
 ENGINE = MergeTree
 ORDER BY (run_id, ts)
 COMMENT 'Robot NATS server from its monitoring endpoint (/varz) every 5 s, sampled by the telemetry node at 1 Hz';
+
+CREATE TABLE IF NOT EXISTS forge.lidar_health
+(
+    run_id LowCardinality(String),
+    ts DateTime64(9, 'UTC') COMMENT 'Robot wall clock (Raspberry Pi of Rabbit 2.0)',
+    connected Bool COMMENT 'The RPLIDAR C1 answered and is scanning',
+    model Nullable(UInt8) COMMENT 'Device model byte from GET_INFO (0x41 for a C1)',
+    firmware LowCardinality(String) DEFAULT '' COMMENT 'Device firmware major.minor',
+    device_health LowCardinality(String) DEFAULT '' COMMENT 'GET_HEALTH status: good, warning or error (protection stop; rabbit-lidar resets the device)',
+    error_code Nullable(UInt16) COMMENT 'GET_HEALTH error code',
+    scan_hz Float32 COMMENT 'Full rotations per second over the last 2 s; 10 nominal, the safety loop treats a scan older than 0.3 s as stale',
+    points Float32 COMMENT 'Mean points per rotation with a return and outside the masked sectors (about 450-500 at 5 kHz and 10 Hz)',
+    measurements Float32 COMMENT 'Mean measurements per rotation including the ones without a return',
+    rotation_s Nullable(Float32) COMMENT 'Duration of the last rotation, s (ts_end - ts_start of the scan)',
+    scan_age_s Nullable(Float32) COMMENT 'Seconds since the last full rotation was published',
+    rotations UInt64 COMMENT 'Rotations published since the node started (the scan seq)',
+    bad_nodes UInt64 COMMENT 'Cumulative 5-byte nodes that failed the start-flag or check-bit test (UART noise or a lost byte); each costs a one-byte resync',
+    skipped_bytes UInt64 COMMENT 'Cumulative bytes skipped while resynchronising',
+    short_rotations UInt64 COMMENT 'Cumulative rotations dropped because they had fewer than 50 measurements (motor spin-up, restarts)',
+    restarts UInt32 COMMENT 'Scan restarts after 1 s without a full rotation',
+    reconnects UInt32 COMMENT 'Times the serial port was reopened',
+    errors UInt32 COMMENT 'Cumulative failed starts and I/O errors',
+    sector_min_m Array(Nullable(Float32)) DEFAULT [] COMMENT 'Nearest return per 30 deg sector of the last scan, m, in the robot frame: sector 0 starts straight ahead and sectors run counter-clockwise (left) seen from above, so 5-6 are behind; NULL when the sector is empty'
+)
+ENGINE = MergeTree
+ORDER BY (run_id, ts)
+COMMENT 'RPLIDAR C1 health at 1 Hz from rabbit-lidar. The scans themselves (rabbit.lidar.scan, 10 Hz, ~2 kB) are not stored: ~70 MB/h raw; the per-second sector minimums and the safety_state clearances answer "what did the lidar see"';
+
+CREATE TABLE IF NOT EXISTS forge.tof_health
+(
+    run_id LowCardinality(String),
+    ts DateTime64(9, 'UTC') COMMENT 'Robot wall clock (Raspberry Pi)',
+    sensor LowCardinality(String) COMMENT 'FL, FR (front left and right, on i2c-3 and i2c-4), RL, RR (rear, on i2c-5 and i2c-6)',
+    bus UInt8 COMMENT 'Linux I2C bus number',
+    state LowCardinality(String) COMMENT 'starting (firmware upload, ~2 s), ranging or failed',
+    hz Float32 COMMENT 'Frames in the last second; 15 nominal for 8x8 zones',
+    frame_age_s Nullable(Float32) COMMENT 'Seconds since the last frame; the safety loop treats a sensor older than 0.25 s as stale',
+    valid Nullable(UInt8) COMMENT 'Zones of the last frame with a valid range (target status 5 or 9, 2 cm - 4 m), of 64',
+    floor Nullable(UInt8) COMMENT 'Valid zones rejected as floor (point lower than 3 cm); the sensors look 15 deg up from 6 cm, so the floor appears from ~0.46 m',
+    overhead Nullable(UInt8) COMMENT 'Valid zones rejected as higher than the robot (above 0.26 m)',
+    obstacles UInt8 COMMENT 'Zones of the last frame reported as near-field obstacles in the robot frame',
+    nearest_m Nullable(Float32) COMMENT 'Horizontal distance from the sensor to the nearest obstacle point of the last frame, m',
+    errors UInt32 COMMENT 'Cumulative read and start errors of this sensor',
+    resets UInt32 COMMENT 'Cumulative re-initialisations after a failed start or 0.5 s without a frame',
+    init_s Nullable(Float32) COMMENT 'Seconds the last start took (firmware upload and configuration)',
+    power_cycles UInt32 COMMENT 'Cumulative power cycles of all four sensors (TOF_PWR_OFF) after one failed three times in a row'
+)
+ENGINE = MergeTree
+ORDER BY (run_id, sensor, ts)
+COMMENT 'VL53L8CX near-field ToF sensors, one row per sensor at 1 Hz from rabbit-tof. The frames (rabbit.tof, 4 x 15 Hz, zones and obstacle points) are not stored';
+
+CREATE TABLE IF NOT EXISTS forge.safety_state
+(
+    run_id LowCardinality(String),
+    ts DateTime64(9, 'UTC') COMMENT 'Robot wall clock (Raspberry Pi)',
+    mode LowCardinality(String) COMMENT 'ok, limited (the command was slowed), stopped (the command was cut to zero) or estop (the E-stop line is low: hard stop)',
+    reason LowCardinality(String) COMMENT 'What limited or stopped the current command: obstacle ahead/behind <m> m, lidar stale, tof <sensor> stale, front/rear bumper, crawling off the bumper, ina stale, battery low/critical, brain lost, estop by <source>, power stopping, roboclaw lost, overcurrent, estop_line_fault, self test <phase>; empty when the command passed',
+    reasons Array(String) COMMENT 'Every active constraint, also the ones not binding the current command',
+    shadow Bool COMMENT 'Shadow mode: rabbit-safety computes and reports but roboclaw and steering still obey rabbit.cmd.* and the E-stop line is not driven',
+    estop_line Bool COMMENT 'ESTOP_RUN (GPIO16) high: the RoboClaw may drive. Low on any hard stop, before the self-test passes and whenever the process is not running',
+    estop_latched Bool COMMENT 'A software E-stop (rabbit.safety.estop) is latched until rabbit.safety.reset',
+    estop_source LowCardinality(String) DEFAULT '' COMMENT 'Who latched it: hud, forge, power',
+    self_test LowCardinality(String) COMMENT 'E-stop line self-test: waiting (inputs not fresh yet), line_low, line_high, passed, failed (estop_line_fault: motors never allowed) or skipped (shadow)',
+    speed Float32 COMMENT 'Allowed speed sent on rabbit.safety.drive, duty -1..1 (0.464 m/s per unit)',
+    steer Float32 COMMENT 'Steering sent on rabbit.safety.drive, -1..1',
+    requested_speed Float32 COMMENT 'Speed of the winning command before the limits, duty',
+    requested_steer Float32,
+    source LowCardinality(String) COMMENT 'Winning command: joystick, nav, forge, hud, e2e; none without a fresh command; nav rejected while the brain is lost',
+    owner LowCardinality(String) COMMENT 'joystick for 1 s after active gamepad input, else auto',
+    cap_fwd Float32 COMMENT 'Highest forward speed allowed right now, duty',
+    cap_rev Float32 COMMENT 'Highest reverse speed allowed right now, duty',
+    clearance_fwd_m Nullable(Float32) COMMENT 'Free travel forward along the commanded arc with the 2.0 footprint, from fresh lidar and ToF points, m (capped at 1 m); NULL without a fresh range sensor',
+    clearance_rev_m Nullable(Float32) COMMENT 'Free travel in reverse, m',
+    brain_ok Bool COMMENT 'rabbit.nav.state (the Jetson) heard within 0.5 s',
+    bumper_front Bool COMMENT 'Front bumper pressed (or its wire broken)',
+    bumper_rear Bool,
+    battery_low Bool COMMENT 'Battery mean over 5 s at or below 13.2 V: speed halved',
+    battery_critical Bool COMMENT 'Battery at or below 12.8 V for 10 s: stopped; rabbit-power shuts down',
+    power_state LowCardinality(String) COMMENT 'Last rabbit.power.state',
+    input_age_s Map(LowCardinality(String), Float32) COMMENT 'Age of each input, s: command, brain, roboclaw, ina, lidar, tof_FL, tof_FR, tof_RL, tof_RR; a missing key was never heard'
+)
+ENGINE = MergeTree
+ORDER BY (run_id, ts)
+COMMENT 'rabbit-safety (Raspberry Pi, the independent safety loop of Rabbit 2.0) at 10 Hz: mode, the binding reason, allowed vs requested command, per-direction caps and clearances, E-stop line and input freshness. rabbit.safety.drive (50 Hz) is not stored: these rows carry the same command. Decisions are events from node safety';
+
+CREATE TABLE IF NOT EXISTS forge.power_state
+(
+    run_id LowCardinality(String),
+    ts DateTime64(9, 'UTC') COMMENT 'Robot wall clock (Raspberry Pi)',
+    state LowCardinality(String) COMMENT 'booting, body_ready (safety self-tested), running (brain heard), jetson_cycle (Jetson power off 5 s), stopping (E-stop, nav cancel, map save), jetson_halt (waiting for the Jetson to power off), jetson_off, pi_halt',
+    reason String COMMENT 'Why the supervisor entered the state: button held 2 s, battery below 12.8 V for 10 s, requested by <source>, map saved, Jetson current ...',
+    state_s Float32 COMMENT 'Seconds in the state',
+    battery_v Nullable(Float32) COMMENT 'Last battery voltage from rabbit.ina, V',
+    battery_low Bool COMMENT 'Battery mean over 5 s at or below 13.2 V',
+    charge_pct Nullable(Float32) COMMENT 'Battery charge estimate from rabbit.ina, percent',
+    jetson_a Nullable(Float32) COMMENT 'Jetson 12 V current (INA channel jetson_12v), A; NULL until that channel exists',
+    brain_ok Bool COMMENT 'rabbit.nav.state heard within 1 s',
+    safety_ready Bool COMMENT 'rabbit-safety reports a passed (or skipped) self-test',
+    button Bool COMMENT 'Power button pressed',
+    jetson_cycles_last_hour UInt8 COMMENT 'Jetson power cycles in the last hour (at most 2 automatic ones)'
+)
+ENGINE = MergeTree
+ORDER BY (run_id, ts)
+COMMENT 'rabbit-power (host service on the Raspberry Pi) at 1 Hz and on every state change: the shutdown state machine, battery policy and Jetson power. Transitions are also power.state_changed events';

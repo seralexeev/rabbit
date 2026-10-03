@@ -5,6 +5,8 @@ from collections import deque
 
 import numpy as np
 from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, is_active, parse_joy
+from lib.lidar import SCAN_SUBJECT as LIDAR_SUBJECT
+from lib.lidar import decode_scan, point_times, points_xy
 from lib.log import time_id
 from lib.node import RabbitNode
 from lib.geometry import (
@@ -56,6 +58,7 @@ class Node(RabbitNode):
     BLOCKED_ARRIVE = 0.12
     BLOCKED_TIMEOUT = 10.0
     SCAN_TIMEOUT = 0.5
+    LIDAR_TIMEOUT = 0.3
     STALL_CURRENT = 1.8
     STALL_SPEED = 0.02
     STALL_TIME = 1.0
@@ -101,6 +104,7 @@ class Node(RabbitNode):
         self.retained_since: float | None = None
         self.bump_window: deque[tuple[float, np.ndarray]] = deque()
         self.scan_at = 0.0
+        self.lidar: tuple[float, np.ndarray] | None = None
         self.free = self.SAFETY_LOOKAHEAD
         self.ground_speed = 0.0
         self.blind = False
@@ -143,6 +147,7 @@ class Node(RabbitNode):
     async def init(self):
         await self.subscribe(POSE_SUBJECT, self.on_pose)
         await self.subscribe(OBSTACLE_SUBJECT, self.on_obstacle)
+        await self.subscribe(LIDAR_SUBJECT, self.on_lidar)
         await self.subscribe(ROBOCLAW_SUBJECT, self.on_roboclaw)
         await self.subscribe(IMU_SUBJECT, self.on_imu)
         await self.subscribe(JOY_SUBJECT, self.on_joy)
@@ -227,6 +232,7 @@ class Node(RabbitNode):
         self.track.clear()
         self.last_heading = None
         self.remembered.clear()
+        self.lidar = None
         self.retained_since = None
         await self.trip("odometry reset")
 
@@ -254,6 +260,8 @@ class Node(RabbitNode):
             return new_position + (np.asarray(points, dtype=float) - position) @ rotate
 
         self.remembered = deque((at, move(points)) for at, points in self.remembered)
+        if self.lidar is not None:
+            self.lidar = (self.lidar[0], move(self.lidar[1]))
         if self.goal is not None:
             self.goal = move(self.goal)
         if self.path is not None:
@@ -296,10 +304,13 @@ class Node(RabbitNode):
                     self.remembered.append((now, np.concatenate(unseen)))
             else:
                 self.retained_since = None
-        if not self.remembered or self.position is None:
+        seen = [points for _, points in self.remembered]
+        if self.lidar is not None and now - self.lidar[0] <= self.LIDAR_TIMEOUT:
+            seen.append(self.lidar[1])
+        if not seen or self.position is None:
             return np.empty((0, 2))
         origin, forward, right = self.rear_axle()
-        world = np.concatenate([points for _, points in self.remembered]) - origin
+        world = np.concatenate(seen) - origin
         return np.stack([world @ forward, world @ right], axis=1)
 
     async def on_obstacle(self, msg: Msg):
@@ -315,6 +326,26 @@ class Node(RabbitNode):
         world = origin + np.outer(local[:, 0], forward) + np.outer(local[:, 1], right)
         self.remembered.append((time.monotonic(), world))
         self.scan_at = time.monotonic()
+
+    def poses_at(self, at: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        times = np.array([t for t, _, _ in self.track])
+        positions = np.array([p for _, p, _ in self.track])
+        headings = np.unwrap([math.atan2(f[1], f[0]) for _, _, f in self.track])
+        heading = np.interp(at, times, headings)
+        position = np.stack([np.interp(at, times, positions[:, 0]), np.interp(at, times, positions[:, 1])], axis=1)
+        return position, np.stack([np.cos(heading), np.sin(heading)], axis=1)
+
+    async def on_lidar(self, msg: Msg):
+        if self.position is None or not self.track:
+            return
+        scan = decode_scan(msg.data)
+        now = time.monotonic()
+        ages = np.clip((time.time_ns() - point_times(scan)) * 1e-9, 0.0, self.MAX_MESSAGE_AGE)
+        position, forward = self.poses_at(now - ages)
+        right = np.stack([-forward[:, 1], forward[:, 0]], axis=1)
+        local = points_xy(scan)
+        origin = rear_axle_point(position, forward)
+        self.lidar = (now, origin + local[:, :1] * forward - local[:, 1:] * right)
 
     async def on_roboclaw(self, msg: Msg):
         data = json.loads(msg.data)

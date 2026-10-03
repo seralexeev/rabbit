@@ -6,7 +6,8 @@ description: >-
   (obstacle ahead or behind, blind, no fresh scan, no fresh pose); cancels and who sent them;
   manual overrides from the gamepad; rejected missions; the motors stopping because drive commands
   stopped arriving; the joystick taking the motors; failed or cancelled planner trips; and camera
-  restarts that end a mission. Use it for "why did it stop", "why did it not move" and "why did
+  restarts that end a mission; on Rabbit 2.0 also the body safety loop limiting or stopping a
+  command, bumper hits and the E-stop line dropping (body_safety has its second-by-second state). Use it for "why did it stop", "why did it not move" and "why did
   the trip fail".
 tags:
   [
@@ -54,7 +55,9 @@ sql: |
     AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
     AND (name IN ('nav.safety_stop', 'nav.hold', 'nav.mission_cancelled', 'nav.manual_override',
                   'nav.mission_rejected', 'nav.odometry_reset', 'motors.command_timeout',
-                  'drive.owner_changed', 'drive.command_ignored', 'camera.restart')
+                  'drive.owner_changed', 'drive.command_ignored', 'camera.restart', 'safety.limit',
+                  'safety.bump', 'safety.estop', 'safety.estop_line', 'safety.brain_lost',
+                  'safety.roboclaw_lost', 'safety.overcurrent', 'safety.battery_critical')
       OR (name = 'planner.trip_finished' AND labels['outcome'] IN ('failed', 'cancelled')))
   ORDER BY t DESC
 columns:

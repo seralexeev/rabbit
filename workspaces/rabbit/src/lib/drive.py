@@ -6,12 +6,14 @@ from nats.aio.msg import Msg
 
 JOY_SUBJECT = "rabbit.cmd.joy"
 DRIVE_SUBJECT = "rabbit.cmd.drive"
+SAFETY_DRIVE_SUBJECT = "rabbit.safety.drive"
 HEARTBEAT_SUBJECT = "rabbit.operator.heartbeat"
 CAMERA_WAKE_SUBJECT = "rabbit.zed.wake"
 
 JOY_DEADZONE = 0.08
 JOY_HOLD = 1.0
 JOY_SPEED_LIMIT = 0.5
+METRES_PER_SECOND_PER_DUTY = 0.464
 
 MOTOR_VOLTAGE = 12.0
 MAX_SUPPLY_VOLTAGE = 16.8
@@ -49,13 +51,14 @@ class CommandArbiter:
     def __init__(self):
         self.joy_until = 0.0
 
-    def owner(self) -> str:
-        return "joystick" if time.monotonic() < self.joy_until else "auto"
+    def owner(self, now: float | None = None) -> str:
+        return "joystick" if (time.monotonic() if now is None else now) < self.joy_until else "auto"
 
     def resolve(self, msg: Msg) -> tuple[float, float] | None:
-        data = json.loads(msg.data)
-        now = time.monotonic()
-        if msg.subject == JOY_SUBJECT:
+        return self.decide(msg.subject, json.loads(msg.data), time.monotonic())
+
+    def decide(self, subject: str, data: dict, now: float) -> tuple[float, float] | None:
+        if subject == JOY_SUBJECT:
             speed, steer = parse_joy(data)
             if is_active(speed, steer):
                 self.joy_until = now + JOY_HOLD

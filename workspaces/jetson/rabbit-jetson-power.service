@@ -1,0 +1,17 @@
+[Unit]
+Description=Rabbit Jetson power agent: powers the Jetson off or reboots it on rabbit.power.jetson from the Pi
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/rabbit/workspaces/rabbit
+Environment=NATS_URL=nats://127.0.0.1:4222
+Environment=PYTHONPATH=src
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/rabbit-host/bin/python src/node/jetson_power.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

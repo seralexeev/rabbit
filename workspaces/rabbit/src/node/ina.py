@@ -6,7 +6,7 @@ from lib.ina4235 import CLIP_FRACTION, channel_calibrations, is_clipped
 from lib.node import RabbitNode
 from smbus2 import SMBus
 
-I2C_BUS = 7
+I2C_BUS = int(os.environ.get("I2C_BUS", "7"))
 INA_ADDR = 0x41
 
 LSB_VBUS = 1.6e-3  # V/LSB

@@ -1,16 +1,20 @@
 from __future__ import annotations
 
+import asyncio
+import json
 import math
 import os
 import threading
 import time
 from datetime import timedelta
+from pathlib import Path
 from typing import Callable
 
 from lib import rplidar
 
 SIM_GPIO_IN_SUBJECT = "rabbit.sim.gpio.in"
 SIM_GPIO_OUT_SUBJECT = "rabbit.sim.gpio.out"
+PERSIST_PARAMETER = Path("/sys/module/pinctrl_bcm2835/parameters/persist_gpio_outputs")
 
 PINS = {
     "ESTOP_RUN": 16,
@@ -73,6 +77,9 @@ class FakeGpio:
         if changed and callback is not None:
             callback(name, level, time.time_ns())
 
+    def outputs_persist(self) -> bool:
+        return False
+
     def close(self) -> None:
         with self.lock:
             self.outputs.clear()
@@ -122,6 +129,12 @@ class PiGpio:
     def read(self, name: str) -> bool:
         return self.requests[name].get_value(PINS[name]) == self.Value.ACTIVE
 
+    def outputs_persist(self) -> bool:
+        try:
+            return PERSIST_PARAMETER.read_text().strip().upper() in ("Y", "1")
+        except OSError:
+            return False
+
     def level(self, value: bool):
         return self.Value.ACTIVE if value else self.Value.INACTIVE
 
@@ -139,9 +152,6 @@ def open_gpio(consumer: str) -> FakeGpio | PiGpio:
 
 
 async def bridge_fake_gpio(node, gpio: FakeGpio) -> None:
-    import asyncio
-    import json
-
     loop = asyncio.get_running_loop()
 
     async def on_input(msg):
@@ -198,6 +208,9 @@ class FakeC1:
             elif command == rplidar.GET_HEALTH:
                 status = {value: key for key, value in rplidar.HEALTH_STATUS.items()}[self.health.status]
                 self.pending += rplidar.encode_descriptor(rplidar.HEALTH_REPLY) + bytes([status]) + self.health.error_code.to_bytes(2, "little")
+            elif command == rplidar.GET_SAMPLERATE:
+                period_us = round(1e6 / self.SAMPLE_RATE).to_bytes(2, "little")
+                self.pending += rplidar.encode_descriptor(rplidar.SAMPLERATE_REPLY) + period_us + period_us
             elif command == rplidar.GET_INFO:
                 self.pending += rplidar.encode_descriptor(rplidar.INFO_REPLY) + rplidar.encode_info(self.INFO)
             elif command == rplidar.SCAN:

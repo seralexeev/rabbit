@@ -5,6 +5,9 @@ import time
 
 import numpy as np
 from lib.drive import CAMERA_WAKE_SUBJECT
+from lib.geometry import rear_axle_point
+from lib.lidar import SCAN_SUBJECT as LIDAR_SUBJECT
+from lib.lidar import decode_scan, points_xy
 from lib.log import time_id
 from lib.navmap import USE_GRID, ObstacleMemory, ScanHistory, camera_frame, forward_of, map_source, scan_rays, warm_up
 from lib.node import RabbitNode
@@ -36,6 +39,8 @@ class Node(RabbitNode):
     POSE_FRESH = 1.0
     WAKE_SECONDS = 30.0
     WAKE_WAIT = 3.0
+    LIDAR_RAYS = 360
+    LIDAR_EVERY = 2
 
     def __init__(self):
         super().__init__("planner")
@@ -43,6 +48,8 @@ class Node(RabbitNode):
         self.map = map_source()
         self.scans = ScanHistory()
         self.obstacles = ObstacleMemory()
+        self.lidar_obstacles = ObstacleMemory()
+        self.lidar_scans = 0
         self.pose: dict | None = None
         self.pose_at = 0.0
         self.odom_session: str | None = None
@@ -62,6 +69,7 @@ class Node(RabbitNode):
         await asyncio.to_thread(self.warm_up)
         await self.subscribe(POSE_SUBJECT, self.on_pose)
         await self.subscribe(OBSTACLE_SUBJECT, self.on_obstacle)
+        await self.subscribe(LIDAR_SUBJECT, self.on_lidar)
         await self.subscribe(NAV_STATE_SUBJECT, self.on_nav)
         await self.subscribe(HEALTH_SUBJECT, self.on_health)
         await self.subscribe(MAP_GRID_SUBJECT if USE_GRID else MAP_CHUNKS_SUBJECT, self.on_map)
@@ -98,6 +106,7 @@ class Node(RabbitNode):
         if self.map.apply(session, msg.data, snapshot):
             self.scans.clear()
             self.obstacles.clear()
+            self.lidar_obstacles.clear()
             self.navigator.forget_trail()
             self.set_log_context(map_session=session)
             self.event(
@@ -150,7 +159,7 @@ class Node(RabbitNode):
             self.map_ms = round((time.monotonic() - began) * 1000.0)
             self.observe("map_build_ms", self.map_ms)
             if costmap is not None:
-                self.navigator.on_map(costmap, self.obstacles.points(time.monotonic()))
+                self.navigator.on_map(costmap, self.obstacle_points(time.monotonic()))
             self.built_version = version
             self.built_at = time.monotonic()
         finally:
@@ -182,6 +191,22 @@ class Node(RabbitNode):
         ends, hits = scan_rays(scan, origin, forward, right)
         self.scans.add(origin, forward, ends, hits)
         self.obstacles.add(time.monotonic(), origin, ends, hits)
+
+    def obstacle_points(self, now: float) -> np.ndarray:
+        return np.vstack([self.obstacles.points(now), self.lidar_obstacles.points(now)])
+
+    async def on_lidar(self, msg: Msg):
+        self.lidar_scans += 1
+        if self.pose is None or self.lidar_scans % self.LIDAR_EVERY:
+            return
+        scan = decode_scan(msg.data)
+        local = points_xy(scan)[:: max(1, len(scan) // self.LIDAR_RAYS)]
+        forward = forward_of(self.pose["orientation"])
+        right = np.array([-forward[1], forward[0]])
+        rear = rear_axle_point(np.array([self.pose["translation"][0], self.pose["translation"][2]]), forward)
+        origin = rear + scan.mount.x * forward - scan.mount.y * right
+        ends = rear + np.outer(local[:, 0], forward) - np.outer(local[:, 1], right)
+        self.lidar_obstacles.add(time.monotonic(), origin, ends, np.ones(len(ends), dtype=bool))
 
     async def on_nav(self, msg: Msg):
         self.navigator.on_nav(json.loads(msg.data))
@@ -271,7 +296,7 @@ class Node(RabbitNode):
     async def tick(self):
         now = time.monotonic()
         if self.navigator.costmap is not None:
-            self.navigator.on_map(self.navigator.costmap, self.obstacles.points(now))
+            self.navigator.on_map(self.navigator.costmap, self.obstacle_points(now))
         before = self.navigator.trip.phase if self.navigator.trip else None
         job = self.navigator.tick(now)
         await self.flush()

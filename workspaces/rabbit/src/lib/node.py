@@ -245,6 +245,10 @@ class RabbitNode:
         await self.nc.subscribe(subject, cb=safe_cb)
 
     @property
+    def connected(self) -> bool:
+        return self.__nc is not None and self.__nc.is_connected
+
+    @property
     def nc(self) -> Client:
         if self.__nc is None:
             raise RuntimeError("NATS client is not connected")
@@ -360,6 +364,7 @@ class RabbitNode:
                 await asyncio.sleep(self.CONNECT_RETRY_S)
 
     async def __run(self):
+        await self.prepare()
         self.__nc, self.__js, self.__kv = await self.__connect()
 
         asyncio.get_running_loop().set_exception_handler(self.on_loop_exception)
@@ -414,6 +419,9 @@ class RabbitNode:
             exc_info=context.get("exception"),
             extra={"asyncio_message": context.get("message", "")},
         )
+
+    async def prepare(self):
+        pass
 
     async def init(self):
         pass

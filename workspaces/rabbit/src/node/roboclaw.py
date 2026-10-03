@@ -1,10 +1,11 @@
 import asyncio
+import json
 import os
 from collections import deque
 import threading
 import time
 
-from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, CommandArbiter, duty_limit, slew
+from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, SAFETY_DRIVE_SUBJECT, CommandArbiter, duty_limit, slew
 from lib.geometry import wheel_speeds
 from lib.node import RabbitNode
 from lib.roboclaw import SERIAL_ERRORS, RoboClaw, RoboClawError
@@ -55,8 +56,11 @@ class Node(RabbitNode):
         self._io = threading.Thread(target=self._io_loop, daemon=True)
 
     async def init(self):
-        await self.subscribe(JOY_SUBJECT, self.on_command)
-        await self.subscribe(DRIVE_SUBJECT, self.on_command)
+        if os.environ.get("DRIVE_INPUT") == "safety":
+            await self.subscribe(SAFETY_DRIVE_SUBJECT, self.on_safety_drive)
+        else:
+            await self.subscribe(JOY_SUBJECT, self.on_command)
+            await self.subscribe(DRIVE_SUBJECT, self.on_command)
         self._io.start()
         self.set_interval(self.publish_motion, self.IO_PERIOD, max_parallel=1)
 
@@ -200,6 +204,11 @@ class Node(RabbitNode):
             return
         left, right = wheel_speeds(*command)
         self.target = (left, right)
+        self.last_command_at = time.monotonic()
+
+    async def on_safety_drive(self, msg: Msg):
+        command = json.loads(msg.data)
+        self.target = wheel_speeds(float(command["speed"]), float(command["steer"]))
         self.last_command_at = time.monotonic()
 
 

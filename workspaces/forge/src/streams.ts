@@ -106,6 +106,97 @@ const channel = (channels: Array<z.infer<typeof Channel>>, name: string) => {
   return found;
 };
 
+const LidarHealth = z.object({
+  connected: z.boolean(),
+  model: z.number().nullish(),
+  firmware: z.string().nullish(),
+  device_health: z.string().nullish(),
+  error_code: z.number().nullish(),
+  scan_hz: z.number(),
+  points: z.number(),
+  measurements: z.number(),
+  rotation_s: z.number().nullish(),
+  scan_age_s: z.number().nullish(),
+  rotations: z.number(),
+  bad_nodes: z.number(),
+  skipped_bytes: z.number(),
+  short_rotations: z.number(),
+  restarts: z.number(),
+  reconnects: z.number(),
+  errors: z.number(),
+  sector_min_m: z.array(z.number().nullable()),
+});
+
+const TofHealth = z.object({
+  power_cycles: z.number(),
+  sensors: z.array(
+    z.object({
+      sensor: z.string(),
+      bus: z.number(),
+      state: z.string(),
+      hz: z.number(),
+      frame_age_s: z.number().nullish(),
+      valid: z.number().nullish(),
+      floor: z.number().nullish(),
+      overhead: z.number().nullish(),
+      obstacles: z.number(),
+      nearest_m: z.number().nullish(),
+      errors: z.number(),
+      resets: z.number(),
+      init_s: z.number().nullish(),
+    }),
+  ),
+});
+
+const SafetyState = z.object({
+  mode: z.string(),
+  reason: z.string(),
+  reasons: z.array(z.string()),
+  shadow: z.boolean(),
+  estop_line: z.boolean(),
+  estop_latched: z.boolean(),
+  estop_source: z.string().nullish(),
+  self_test: z.string(),
+  speed: z.number(),
+  steer: z.number(),
+  requested_speed: z.number(),
+  requested_steer: z.number(),
+  source: z.string(),
+  owner: z.string(),
+  cap_fwd: z.number(),
+  cap_rev: z.number(),
+  clearance_fwd_m: z.number().nullish(),
+  clearance_rev_m: z.number().nullish(),
+  brain_ok: z.boolean(),
+  bumper_front: z.boolean(),
+  bumper_rear: z.boolean(),
+  battery_low: z.boolean(),
+  battery_critical: z.boolean(),
+  power_state: z.string(),
+  input_age_s: z.record(z.string(), z.number().nullable()),
+});
+
+const PowerState = z.object({
+  state: z.string(),
+  reason: z.string(),
+  state_s: z.number(),
+  battery_v: z.number().nullish(),
+  battery_low: z.boolean(),
+  charge_pct: z.number().nullish(),
+  jetson_a: z.number().nullish(),
+  brain_ok: z.boolean(),
+  safety_ready: z.boolean(),
+  button: z.boolean(),
+  jetson_cycles_last_hour: z.number(),
+});
+
+const known = (ages: Record<string, number | null>) =>
+  Object.fromEntries(
+    Object.entries(ages).filter(
+      (entry): entry is [string, number] => entry[1] != null,
+    ),
+  );
+
 const Steering = z.object({
   angle: z.number(),
   pulse_us: z.number(),
@@ -1187,6 +1278,79 @@ export const STREAMS: Stream[] = [
   commandEvent('rabbit.nav.explore'),
   commandEvent('rabbit.map.save'),
   commandEvent('rabbit.map.reset'),
+  commandEvent('rabbit.safety.estop'),
+  commandEvent('rabbit.safety.reset'),
+  commandEvent('rabbit.power.request'),
+  {
+    subject: 'rabbit.health.lidar',
+    table: 'lidar_health',
+    toRows: (msg) => {
+      const { text, payload } = json(LidarHealth, msg);
+      return [
+        {
+          ts: nanos(text),
+          ...payload,
+          model: payload.model ?? null,
+          firmware: payload.firmware ?? '',
+          device_health: payload.device_health ?? '',
+          error_code: payload.error_code ?? null,
+          rotation_s: payload.rotation_s ?? null,
+          scan_age_s: payload.scan_age_s ?? null,
+        },
+      ];
+    },
+  },
+  {
+    subject: 'rabbit.health.tof',
+    table: 'tof_health',
+    toRows: (msg) => {
+      const { text, payload } = json(TofHealth, msg);
+      return payload.sensors.map((sensor) => ({
+        ts: nanos(text),
+        ...sensor,
+        frame_age_s: sensor.frame_age_s ?? null,
+        valid: sensor.valid ?? null,
+        floor: sensor.floor ?? null,
+        overhead: sensor.overhead ?? null,
+        nearest_m: sensor.nearest_m ?? null,
+        init_s: sensor.init_s ?? null,
+        power_cycles: payload.power_cycles,
+      }));
+    },
+  },
+  {
+    subject: 'rabbit.safety.state',
+    table: 'safety_state',
+    toRows: (msg) => {
+      const { text, payload } = json(SafetyState, msg);
+      return [
+        {
+          ts: nanos(text),
+          ...payload,
+          estop_source: payload.estop_source ?? '',
+          clearance_fwd_m: payload.clearance_fwd_m ?? null,
+          clearance_rev_m: payload.clearance_rev_m ?? null,
+          input_age_s: known(payload.input_age_s),
+        },
+      ];
+    },
+  },
+  {
+    subject: 'rabbit.power.state',
+    table: 'power_state',
+    toRows: (msg) => {
+      const { text, payload } = json(PowerState, msg);
+      return [
+        {
+          ts: nanos(text),
+          ...payload,
+          battery_v: payload.battery_v ?? null,
+          charge_pct: payload.charge_pct ?? null,
+          jetson_a: payload.jetson_a ?? null,
+        },
+      ];
+    },
+  },
   {
     subject: 'rabbit.map.chunks',
     table: 'map_chunks',

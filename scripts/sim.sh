@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Full-stack simulator on the Mac: NATS + rabbit-sim (camera and motors) + the real nav, planner and explore nodes.
 #   scripts/sim.sh start [--hud]    SIM_WORLD=apartment|corridor|open-plan|/path/to/map.npz, SIM_START=x,z,heading_deg, SIM_KNOWN_MAP=1
+#   SIM_BODY=1 adds the Rabbit 2.0 body: simulated lidar, ToF and bumpers, and the real safety and power nodes on fake GPIO
 #   scripts/sim.sh restart <node> | stop | status
 set -euo pipefail
 
@@ -9,6 +10,9 @@ RUN=${SIM_RUN_DIR:-/tmp/rabbit-sim}
 PORT=${SIM_NATS_PORT:-14222}
 WS_PORT=${SIM_WS_PORT:-19222}
 NODES=(sim nav planner explore)
+if [ "${SIM_BODY:-}" = "1" ]; then
+  NODES+=(safety power)
+fi
 PYTHON=(uv run --no-project --python 3.10 --with numpy --with numba --with pydantic --with nats-py python)
 
 nats_server() {
@@ -28,7 +32,7 @@ nats_server() {
 }
 
 launch() {
-  (cd "$ROOT/workspaces/rabbit" && RABBIT_BOOT_ID=$(cat "$RUN/boot_id" 2> /dev/null) NATS_URL="nats://127.0.0.1:$PORT" PYTHONPATH=src exec nohup "${PYTHON[@]}" "src/node/$1.py") > "$RUN/$1.log" 2>&1 < /dev/null &
+  (cd "$ROOT/workspaces/rabbit" && RABBIT_HW=fake RABBIT_BOOT_ID=$(cat "$RUN/boot_id" 2> /dev/null) NATS_URL="nats://127.0.0.1:$PORT" PYTHONPATH=src exec nohup "${PYTHON[@]}" "src/node/$1.py") > "$RUN/$1.log" 2>&1 < /dev/null &
   echo $! > "$RUN/$1.pid"
 }
 
@@ -84,15 +88,21 @@ stop() {
   for pidfile in "$RUN"/*.pid; do
     [ -e "$pidfile" ] || continue
     [ "$(basename "$pidfile")" = nats.pid ] && continue
-    pids+=("$(cat "$pidfile")" $(pgrep -P "$(cat "$pidfile")"))
+    pids+=("$(cat "$pidfile")" $(pgrep -P "$(cat "$pidfile")" || true))
     rm -f "$pidfile"
   done
-  [ ${#pids[@]} -gt 0 ] && kill "${pids[@]}" 2> /dev/null || true
-  for _ in $(seq 50); do
-    kill -0 "${pids[@]}" 2> /dev/null || break
-    sleep 0.1
-  done
-  [ ${#pids[@]} -gt 0 ] && kill -9 "${pids[@]}" 2> /dev/null || true
+  if [ ${#pids[@]} -gt 0 ]; then
+    kill "${pids[@]}" 2> /dev/null || true
+    for _ in $(seq 50); do
+      local alive=0
+      for pid in "${pids[@]}"; do
+        kill -0 "$pid" 2> /dev/null && alive=1
+      done
+      [ "$alive" = 1 ] || break
+      sleep 0.1
+    done
+    kill -9 "${pids[@]}" 2> /dev/null || true
+  fi
   if [ -e "$RUN/nats.pid" ]; then
     kill "$(cat "$RUN/nats.pid")" 2> /dev/null || true
     rm -f "$RUN/nats.pid"

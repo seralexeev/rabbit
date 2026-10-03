@@ -1,0 +1,106 @@
+title: Body safety loop
+description: >-
+  What the Rabbit 2.0 safety loop on the Raspberry Pi did, second by second: its mode (ok,
+  limited, stopped, estop), the reasons that limited or stopped the command (obstacle ahead or
+  behind with the clearance, stale lidar or ToF, bumpers, a silent brain, low battery, a latched
+  E-stop, a lost RoboClaw, overcurrent), the requested and allowed speed, the clearance forward and
+  in reverse from lidar and ToF, the E-stop line and the safety events of that second. Use it for
+  "why did the body stop the robot", "was the robot slowed by the safety", "did the bumper hit"
+  and "was the E-stop line down".
+tags:
+  [
+    safety,
+    body,
+    estop,
+    bumper,
+    lidar,
+    tof,
+    clearance,
+    limited,
+    stopped,
+    brain lost,
+    reverse,
+    why,
+  ]
+prompts:
+  - Why did the safety stop the robot?
+  - Was the robot slowed down by the body safety?
+  - When did the bumper hit something?
+  - Was the E-stop line down?
+guidelines: >-
+  Speeds are duty (0.464 m/s per unit); a negative speed is reverse. mode estop means the E-stop
+  line was low (hard stop); stopped and limited are software limits on the command, which lift by
+  themselves when the reason clears. clearance_rev_m near 0.05 with mode stopped is the loop
+  holding the robot off a wall behind it. Rows exist only where safety_state was recorded (Rabbit
+  2.0 with rabbit-safety running).
+dims: [t]
+sql: |
+  WITH
+    s AS (
+      SELECT
+        run_id,
+        toStartOfSecond(ts) AS t,
+        multiIf(countIf(mode = 'estop') > 0, 'estop', countIf(mode = 'stopped') > 0, 'stopped',
+                countIf(mode = 'limited') > 0, 'limited', 'ok') AS worst_mode,
+        arrayStringConcat(arrayFilter(r -> r != '', groupUniqArray(reason)), '; ') AS limits,
+        argMax(source, abs(requested_speed)) AS sender,
+        round(argMax(requested_speed, abs(requested_speed)), 3) AS requested,
+        round(argMax(speed, abs(requested_speed)), 3) AS allowed,
+        round(min(clearance_fwd_m), 3) AS fwd_m,
+        round(min(clearance_rev_m), 3) AS rev_m,
+        round(avg(NOT estop_line), 2) AS line_low,
+        max(bumper_front) AS front_pressed,
+        max(bumper_rear) AS rear_pressed,
+        min(brain_ok) AS brain,
+        max(shadow) AS shadowed
+      FROM safety_state
+      WHERE run_id = {run_id:String}
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    ),
+    e AS (
+      SELECT run_id, toStartOfSecond(ts) AS t, arrayStringConcat(groupArray(concat(name, ': ', reason)), '; ') AS events
+      FROM events
+      WHERE run_id = {run_id:String}
+        AND node = 'safety'
+        AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+        AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      GROUP BY run_id, t
+    )
+  SELECT s.t AS t, worst_mode, limits AS reasons, sender AS source, requested AS requested_speed,
+    allowed AS allowed_speed, fwd_m AS min_clearance_fwd_m, rev_m AS min_clearance_rev_m,
+    line_low AS line_low_share, front_pressed AS bumper_front, rear_pressed AS bumper_rear,
+    brain AS brain_ok, shadowed AS shadow, e.events AS events
+  FROM s
+  LEFT JOIN e ON e.run_id = s.run_id AND e.t = s.t
+  WHERE worst_mode != 'ok' OR e.events != ''
+  ORDER BY t
+columns:
+  t: { kind: time }
+  worst_mode:
+    {
+      kind: attribute,
+      description: "Worst mode in the second: estop, stopped, limited",
+    }
+  reasons:
+    {
+      kind: attribute,
+      description: "Reasons that limited or stopped the command",
+    }
+  source:
+    {
+      kind: attribute,
+      description: "Sender of the strongest command: joystick, nav, forge, hud",
+    }
+  requested_speed: { measure: gauge, unit: duty }
+  allowed_speed: { measure: gauge, unit: duty }
+  min_clearance_fwd_m: { measure: gauge, unit: m }
+  min_clearance_rev_m: { measure: gauge, unit: m }
+  line_low_share:
+    { measure: ratio, description: "Share of samples with the E-stop line low" }
+  bumper_front: { kind: attribute }
+  bumper_rear: { kind: attribute }
+  brain_ok: { kind: attribute }
+  shadow: { kind: attribute }
+  events: { kind: attribute, description: "Safety events in the second" }
