@@ -85,5 +85,46 @@ With the bumpers on, the footprint grows:
 
 ## Open
 
-- **PCB-dependent parts.** The body PCB (`pcb/rabbit-body/`) had an outline and footprints but no `rabbit-body.step` and no mounting-parts list yet. The inter-deck spacers and strain reliefs wait for it.
+- **PCB-dependent parts.** Done in the update below, except the USB hub bracket.
 - **Measurements on the robot.** The list is in the README, "Measure before printing": top plate and battery heights, the ZED and V-mount positions, free plate edges, the button's size.
+
+## Update: the 3-deck stack and the body PCB (same day)
+
+The owner confirmed a 3-deck stack, and the body PCB was finished (`reports/2026-10-03-body-pcb.md`):
+- deck 1 is the lower kit plate;
+- 45 mm brass standoffs;
+- deck 2 is the PCB (bottom 69.8 mm above the floor);
+- another 45 mm;
+- deck 3 is the upper kit plate (top 118.4 mm).
+
+Heights now use the PCB report's floor (front tyres, deck 1 top 24.8 mm). The assembly rebuilds the stack:
+- deck 3 is lifted 41.6 mm from the kit;
+- the steering posts are cut to 18 mm under the PCB;
+- `pcb/rabbit-body/rabbit-body.step` is the board, all 266 solids, in every check.
+
+What changed and why:
+- **V-mount plate is long.** The 2026-10-03 side photo shows the owner's plate from ~26 to ~180 mm from deck 3's rear edge, about 17 mm thick. Its front end sat where the mast foot was (y −70…−33).
+  - The mast moved forward into the strip between the ZED and the plate: foot at y −98…−57, screws in the 3.2 mm holes at y −92.55 and the 2.7 mm holes at y −65.96.
+  - The battery top is now ~192 mm, so the scan plane went up to **230 mm**: lidar base at 200.2 mm, robot 241.5 mm tall.
+  - The ZED is modelled from the same photo, with its back face 23 mm behind deck 3's front edge. That puts the lens ~0.24 m ahead of the rear axle; `CAMERA_TO_REAR_AXLE` says 0.1845, so the ZED position is still a measurement to make.
+- **ToF heads under the PCB.** The PCB's nose and tail pass over the ToF pairs, and its edge connectors' pins reach 1.81 mm below the board. The first-run heads came up to ~80 mm above the floor (model), through the board.
+  - The boards now lie landscape (head 10 mm lower) and the sensors moved from 60 to 57.8 mm above the floor.
+  - The heads moved to ±19 mm and the bumper switches 2 mm outward to make room.
+  - Gap to the lowest PCB feature: 3.5 mm front, 2.7 mm rear. The zone grid is turned 90°, so `T_base_tof` needs a 90° roll.
+- **New parts from PCB report §10**, all clip-on or glued, since the board has no holes for them:
+  - front and rear edge combs for the cables going over the edge to deck 1 (items 8–9);
+  - an XT60 strain-relief post at the right edge (item 7);
+  - a collar for the 1000 µF C1 (item 6);
+  - a TPU grommet for the PCB's ZED cutout (item 11);
+  - two TPU grommets for deck 3's 10.3 × 23.9 mm slots, the cable passthroughs between decks: ZED and lidar on the left, the button wires on the right inside the mast foot.
+- **Brass, not printed:** 8 × M3 F-F 45 mm, 2 × M3 18 mm for the steering bracket, the Pi and RoboClaw standoffs. They are in the README's "Buy" table.
+- **USB hub bracket (§10 item 12) not made.** Waveshare's drawing gives 72.2 × 47.8 × 27.6 mm (86 mm with ears), with ports on both long sides. Under deck 3 that leaves 17.4 mm above the PCB against the ≥ 20 mm §10 asks for. In the suggested place the hub would also cover both deck 3 cable slots and touch the front deck columns, and its plugs need ~35 mm on each long side. It needs a new place; the question is in `docs/open-issues.md`.
+- **Camera ribbon.** The PCB report sends it up through deck 3's long slot at y 51, but the V-mount plate covers that slot, so the ribbon goes over deck 3's rear edge.
+
+**Checks after the change:**
+- all 12 plate screws match;
+- no overlap above 0.5 mm³ among the 13 printed parts, their hardware, the chassis, the PCB and the envelopes;
+- steering gaps unchanged (4.5 mm at 40°, 7.2 mm with the bar pushed);
+- the ToF, lidar, ZED and rear camera fields are clear.
+
+The first run showed the slot grommets inside the hub bracket; that was one of the reasons to drop the bracket.
