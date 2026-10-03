@@ -1,0 +1,480 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <title>🐰 Robot Rabbit</title>
+                <meta
+                    name="description"
+                    content="Robot Rabbit: A blog about building a robot with Ackermann steering, ROS2 (NATS), and autonomous navigation. Follow the journey from hardware to software, including electronics, mechanics, and code."
+                />
+                <meta
+                    name="keywords"
+                    content="robot, robotics, Ackermann, ROS2, Raspberry Pi, Jetson, hardware, electronics, DIY, blog, autonomous, navigation, servo, BLDC, prototype, PCB, software, fullstack"
+                />
+                <meta name="robots" content="index, follow" />
+                <link rel="canonical" href="https://rabbit0.dev/" />
+                <meta property="og:title" content="Robot Rabbit" />
+                <meta
+                    property="og:description"
+                    content="A blog about building a robot with Ackermann steering, ROS2 (NATS), and autonomous navigation."
+                />
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content="https://rabbit0.dev/" />
+                <meta property="og:image" content="https://rabbit0.dev/media/logo.gif" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content="Robot Rabbit" />
+                <meta
+                    name="twitter:description"
+                    content="A blog about building a robot with Ackermann steering, ROS2 (NATS), and autonomous navigation."
+                />
+                <meta name="twitter:image" content="https://rabbit0.dev/media/logo.gif" />
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+                <style>
+                    :root {
+                        --color-black: #000;
+                        --color-white: #fff;
+                        --color-gray: #aaa;
+                        --color-blue: #007aff;
+                        --color-green: #41ff00;
+                    }
+
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+
+                    html,
+                    body,
+                    div,
+                    span,
+                    h1,
+                    h2,
+                    h3,
+                    h4,
+                    h5,
+                    h6,
+                    p,
+                    pre,
+                    code {
+                        margin: 0;
+                        padding: 0;
+                        border: 0;
+                        font-size: 100%;
+                        font: inherit;
+                        vertical-align: baseline;
+                    }
+
+                    body {
+                        font-family: 'Fira Code', monospace;
+                        font-size: 16px;
+                        line-height: 1.4;
+                        color: var(--color-black);
+                        background: var(--color-white);
+                        padding: 20px;
+                    }
+
+                    .container {
+                        max-width: 720px;
+                        margin: 0 auto;
+                    }
+
+                    header {
+                        margin-bottom: 48px;
+                    }
+
+                    footer {
+                        margin: 48px 0;
+                        text-align: center;
+                        font-size: 14px;
+                    }
+
+                    h1 {
+                        font-size: 24px;
+                        font-weight: normal;
+                        background: var(--color-black);
+                        color: var(--color-green);
+                        margin-top: 2px;
+                    }
+
+                    header img {
+                        height: 36px;
+                        vertical-align: middle;
+                    }
+
+                    .post-list {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 20px;
+                    }
+
+                    .post {
+                        width: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                        overflow: hidden;
+                    }
+
+                    .post-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 8px;
+                    }
+
+                    .post-meta {
+                        color: var(--color-gray);
+                    }
+
+                    .post-media {
+                        display: flex;
+                        gap: 8px;
+                    }
+
+                    .media-item {
+                        text-decoration: none;
+                        border: none;
+                        background: var(--color-black);
+                        width: 100%;
+                        overflow: hidden;
+                        position: relative;
+                        max-height: 512px;
+                        border-radius: 4px;
+                    }
+
+                    .media-item img,
+                    .media-item video {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        cursor: pointer;
+                    }
+
+                    .media-item .video-overlay {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: var(--color-black);
+                        opacity: 0.7;
+                        color: var(--color-white);
+                        font-size: 16px;
+                        z-index: 1;
+                    }
+
+                    a {
+                        color: var(--color-blue);
+                        text-decoration: underline;
+                        text-underline-offset: 0.2rem;
+                        word-wrap: break-word;
+                    }
+
+                    u {
+                        text-decoration: none;
+                        border-bottom: 1px solid var(--color-black);
+                    }
+
+                    p {
+                        margin-bottom: 16px;
+                    }
+
+                    ul {
+                        margin-left: 20px;
+                    }
+
+                    ul li > p {
+                        margin-bottom: 0;
+                    }
+
+                    ul li {
+                        margin-bottom: 8px;
+                    }
+
+                    ul li::marker {
+                        content: '> ';
+                        color: var(--color-gray);
+                    }
+
+                    code {
+                        background: var(--color-black);
+                        color: var(--color-green);
+                        padding: 0 2px;
+                        font-family: inherit;
+                    }
+
+                    pre {
+                        background: var(--color-black);
+                        color: var(--color-green);
+                        padding: 8px;
+                        margin: 8px 0;
+                        overflow-x: auto;
+                    }
+
+                    .divider {
+                        text-align: center;
+                        color: var(--color-gray);
+                        font-size: 14px;
+                    }
+
+                    .translated {
+                        color: var(--color-gray);
+                        font-size: 12px;
+                        text-align: right;
+                        margin-top: 4px;
+                        display: flex;
+                        justify-content: space-between;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <header>
+                        <img alt="Robot Rabbit" src="./media/logo.gif" />
+                        <h1>Robot Rabbit</h1>
+                        <div class="translated">
+                            <span>translated from Russian via ChatGPT</span>
+                            <span><a href="/ru">RU</a> <a href="/">EN</a> <a href="/bunnyfleet">BunnyFleet</a></span>
+                        </div>
+                    </header>
+
+                    <div class="post-list">
+        <article class="post" id="17">
+            <div class="post-header">
+                <a href="#17">#17</a>
+                <div class="post-meta">09-02-2024</div>
+            </div>
+            <div class="post-body"><p>Finally found time to return to my project. I slightly refined the UI and added a Command Palette to quickly access frequently used contextual actions. By default, if no object is selected, it includes search and some basic actions and settings.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_17-1.mp4" target="_blank" rel="noopener noreferrer">
+            <div class="video-overlay">Click to Play</div>
+            <img src="media/thumbnails/bf_17-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="16">
+            <div class="post-header">
+                <a href="#16">#16</a>
+                <div class="post-meta">07-12-2023</div>
+            </div>
+            <div class="post-body"><p>I think I know why I love working with maps. It&#39;s the feeling that you&#39;re observing everything from above and can move to any point in just a few seconds.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_16-1.mp4" target="_blank" rel="noopener noreferrer">
+            <div class="video-overlay">Click to Play</div>
+            <img src="media/thumbnails/bf_16-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="15">
+            <div class="post-header">
+                <a href="#15">#15</a>
+                <div class="post-meta">06-12-2023</div>
+            </div>
+            <div class="post-body"><p>It turns out that creating a convenient real-time cache invalidation mechanism for clients is far from a trivial task. It all started with react-query and cache invalidation after mutations + periodic updates at intervals.</p>
+</div>
+            
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="14">
+            <div class="post-header">
+                <a href="#14">#14</a>
+                <div class="post-meta">06-12-2023</div>
+            </div>
+            <div class="post-body"><p>It ended with a custom aggressive cache and a react hook for smart batching on the client side, a change queue, and web sockets in combination with LISTEN/NOTIFY at the database level. By the time I got to this, I had the chance to try logical replication and wal2json.</p>
+</div>
+            
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="13">
+            <div class="post-header">
+                <a href="#13">#13</a>
+                <div class="post-meta">06-12-2023</div>
+            </div>
+            <div class="post-body"><p>It almost works well, but I&#39;m left with more questions than confidence that I understand how it works. I&#39;ve gone back to classic triggers and a change log table.</p>
+</div>
+            
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="12">
+            <div class="post-header">
+                <a href="#12">#12</a>
+                <div class="post-meta">03-12-2023</div>
+            </div>
+            <div class="post-body"><p>WIP: just dropped new command menu</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_12-1.mp4" target="_blank" rel="noopener noreferrer">
+            <div class="video-overlay">Click to Play</div>
+            <img src="media/thumbnails/bf_12-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="11">
+            <div class="post-header">
+                <a href="#11">#11</a>
+                <div class="post-meta">20-11-2023</div>
+            </div>
+            <div class="post-body"><p>WIP: markers and cards refactored</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_11-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/bf_11-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="10">
+            <div class="post-header">
+                <a href="#10">#10</a>
+                <div class="post-meta">02-11-2023</div>
+            </div>
+            <div class="post-body"><p>Prototyping route optimization 🚴‍♂️</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_10-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/bf_10-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="9">
+            <div class="post-header">
+                <a href="#9">#9</a>
+                <div class="post-meta">01-11-2023</div>
+            </div>
+            <div class="post-body"><p>Which side are you on?</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_9-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/bf_9-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    
+        <a class="media-item" href="media/bf_9-2.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/bf_9-2.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="8">
+            <div class="post-header">
+                <a href="#8">#8</a>
+                <div class="post-meta">30-10-2023</div>
+            </div>
+            <div class="post-body"><p>WIP</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_8-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/bf_8-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="7">
+            <div class="post-header">
+                <a href="#7">#7</a>
+                <div class="post-meta">10-10-2023</div>
+            </div>
+            <div class="post-body"><p>NewProfilePic</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_7-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/bf_7-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="6">
+            <div class="post-header">
+                <a href="#6">#6</a>
+                <div class="post-meta">21-09-2023</div>
+            </div>
+            <div class="post-body"><p>TIL: <a href="https://hologram.io">Hologram</a> and <a href="https://freematics.com">Freematics</a></p>
+</div>
+            
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="5">
+            <div class="post-header">
+                <a href="#5">#5</a>
+                <div class="post-meta">18-09-2023</div>
+            </div>
+            <div class="post-body"><p>Got access to the public beta of Mapbox Optimization API. Excited to compare it with OR-Tools, VROOM, and jsprit 🐇</p>
+</div>
+            
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="4">
+            <div class="post-header">
+                <a href="#4">#4</a>
+                <div class="post-meta">12-09-2023</div>
+            </div>
+            <div class="post-body"><p>New object explorer</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_4-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/bf_4-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="3">
+            <div class="post-header">
+                <a href="#3">#3</a>
+                <div class="post-meta">05-09-2023</div>
+            </div>
+            <div class="post-body"><p>Implementing real-time UIs in not about WebSockets and protocols, it&#39;s mostly about state management and cache invalidation. Moreover, WebSockets and pg LISTEN/NOTIFY introduce a new level of complexity and problems. Proper events and polling make the problem almost trivial.</p>
+</div>
+            
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="2">
+            <div class="post-header">
+                <a href="#2">#2</a>
+                <div class="post-meta">05-09-2023</div>
+            </div>
+            <div class="post-body"><p>Just dropped a new task filter. The <code>courier_id</code> field on the task table was a bad idea so introduced a new entity called <code>run</code> to model task sequences.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_2-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/bf_2-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="1">
+            <div class="post-header">
+                <a href="#1">#1</a>
+                <div class="post-meta">04-09-2023</div>
+            </div>
+            <div class="post-body"><p>The first preview of a new last-mile delivery platform. There&#39;s still so much to do 🚀</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/bf_1-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/bf_1-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    </div>
+
+                    <footer><a href="https://www.linkedin.com/in/seralexeev">Sergey Alekseev</a></footer>
+                </div>
+            </body>
+            <link
+                href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap"
+                rel="stylesheet"
+            />
+        </html>
+    
