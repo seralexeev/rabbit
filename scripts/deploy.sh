@@ -21,13 +21,15 @@ if [[ $# -eq 0 || " $* " == *" rabbit-web "* ]]; then
     (cd "$ROOT/web" && VITE_CHAT_URL= VITE_NATS_URL= node ../../.yarn/releases/yarn-4.9.3.cjs vite build --logLevel warn)
 fi
 
+git -C "$ROOT/.." describe --always --dirty > "$ROOT/rabbit/REVISION"
 rsync -az -e "${SSH[*]}" \
     --exclude '__pycache__' --exclude '.venv' --exclude 'data/' --exclude '.pytest_cache' --exclude '.ruff_cache' \
     --exclude 'node_modules' --exclude '.env' --exclude 'dead_letters' --exclude 'alloy-presentation-*' \
     "$ROOT/compose.yaml" "$ROOT/nats" "$ROOT/rabbit" "$ROOT/forge" "$HOST:$REMOTE/"
-"${SSH[@]}" "$HOST" "mkdir -p $REMOTE/web/dist"
+"${SSH[@]}" "$HOST" "mkdir -p $REMOTE/web/dist $REMOTE/links && touch $REMOTE/links/links.map"
 rsync -az -e "${SSH[*]}" "$ROOT/web/nginx.conf" "$HOST:$REMOTE/web/"
 rsync -az --delete -e "${SSH[*]}" "$ROOT/web/dist/" "$HOST:$REMOTE/web/dist/"
 
 SERVICES="${*:-\$(docker compose config --services | grep -E '^(rabbit-|forge-writer|forge-chat)')}"
 "${SSH[@]}" "$HOST" "cd $REMOTE && docker compose up -d $BUILD --remove-orphans && docker compose up -d --no-deps --force-recreate $SERVICES"
+"${SSH[@]}" "$HOST" "docker image prune -f | tail -1"

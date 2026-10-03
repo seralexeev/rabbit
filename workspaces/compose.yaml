@@ -75,7 +75,7 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-    command: uv run src/node/zed.py
+    command: ['sh', '-c', 'uv sync --quiet && exec .venv/bin/python src/node/zed.py']
 
   rabbit-roboclaw:
     <<: *rabbit
@@ -84,23 +84,37 @@ services:
     volumes:
       - *rabbit-src
       - /dev:/dev
-    command: uv run src/node/roboclaw.py
+    command: ['sh', '-c', 'uv sync --quiet && exec .venv/bin/python src/node/roboclaw.py']
 
   rabbit-steering:
     <<: *rabbit
     container_name: rabbit-steering
     privileged: true
-    command: uv run src/node/steering.py
+    command: ['sh', '-c', 'uv sync --quiet && exec .venv/bin/python src/node/steering.py']
 
   rabbit-nav:
     <<: *rabbit
     container_name: rabbit-nav
-    command: uv run src/node/nav.py
+    command: ['sh', '-c', 'uv sync --quiet && exec .venv/bin/python src/node/nav.py']
+
+  rabbit-loc:
+    <<: *rabbit
+    image: rabbit-loc
+    container_name: rabbit-loc
+    profiles: ['loc']
+    mem_limit: 512m
+    cpus: 1
+    command: ['python', 'src/node/loc.py']
 
   rabbit-explore:
     <<: *rabbit
     container_name: rabbit-explore
-    command: uv run src/node/explore.py
+    command: ['sh', '-c', 'uv sync --quiet && exec .venv/bin/python src/node/explore.py']
+
+  rabbit-planner:
+    <<: *rabbit
+    container_name: rabbit-planner
+    command: ['sh', '-c', 'uv sync --quiet && exec .venv/bin/python src/node/planner.py']
 
   rabbit-telemetry:
     <<: *rabbit
@@ -114,13 +128,14 @@ services:
       - *rabbit-src
       - /run/jtop.sock:/run/jtop.sock
       - /var/run/docker.sock:/var/run/docker.sock
-    command: uv run src/node/telemetry.py
+      - /sys/kernel/debug:/sys/kernel/debug:ro
+    command: ['sh', '-c', 'uv sync --quiet && exec .venv/bin/python src/node/telemetry.py']
 
   rabbit-ina:
     <<: *rabbit
     container_name: rabbit-ina
     privileged: true
-    command: uv run src/node/ina.py
+    command: ['sh', '-c', 'uv sync --quiet && exec .venv/bin/python src/node/ina.py']
 
   forge-clickhouse:
     logging: *logging
@@ -186,11 +201,13 @@ services:
     image: nginx:1.29-alpine
     container_name: rabbit-web
     restart: unless-stopped
+    command: ['nginx', '-g', 'daemon off; worker_shutdown_timeout 5s;']
     ports:
       - '443:443'
     volumes:
       - ./web/dist:/usr/share/nginx/html:ro
       - ./web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./links:/etc/nginx/links:ro
       - ../cert:/etc/cert:ro
     mem_limit: 64m
     depends_on:
@@ -212,7 +229,7 @@ services:
     image: cloudflare/cloudflared:2026.9.0
     container_name: tunnel
     restart: unless-stopped
-    command: ['tunnel', '--no-autoupdate', 'run']
+    command: ['tunnel', '--no-autoupdate', '--protocol', 'http2', 'run']
     env_file: ./tunnel.env
     depends_on:
       - rabbit-web

@@ -1,2 +1,7 @@
 *
 !pyproject.toml
+!native/rabbit_nvblox/*.cpp
+!native/rabbit_nvblox/*.cu
+!native/rabbit_nvblox/CMakeLists.txt
+!native/rabbit_rtabmap/*.cpp
+!native/rabbit_rtabmap/CMakeLists.txt

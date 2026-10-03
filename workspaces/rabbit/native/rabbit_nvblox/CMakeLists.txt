@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.22)
+project(rabbit_nvblox LANGUAGES CXX CUDA)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_ARCHITECTURES 87)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+find_package(CUDAToolkit REQUIRED)
+find_package(Python 3.10 COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(nanobind CONFIG REQUIRED)
+find_library(GLOG_LIBRARY NAMES libglog.a REQUIRED)
+find_library(GFLAGS_LIBRARY NAMES libgflags_nothreads.a REQUIRED)
+add_library(glog::glog STATIC IMPORTED)
+set_target_properties(glog::glog PROPERTIES IMPORTED_LOCATION ${GLOG_LIBRARY})
+add_library(gflags_nothreads_static STATIC IMPORTED)
+set_target_properties(gflags_nothreads_static PROPERTIES IMPORTED_LOCATION ${GFLAGS_LIBRARY})
+find_package(nvblox REQUIRED)
+
+nanobind_add_module(rabbit_nvblox NB_STATIC module.cpp depth.cu)
+target_link_libraries(rabbit_nvblox PRIVATE nvblox::nvblox_lib)
+set_target_properties(rabbit_nvblox PROPERTIES INSTALL_RPATH "$ORIGIN" BUILD_WITH_INSTALL_RPATH ON)
+install(TARGETS rabbit_nvblox LIBRARY DESTINATION .)

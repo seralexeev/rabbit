@@ -1,7 +1,34 @@
+FROM stereolabs/zed:5.5.0-tools-devel-jetson-jp6.1.0 AS native
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends cmake git ca-certificates python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/nvidia-isaac/nvblox.git /src/nvblox \
+    && cd /src/nvblox \
+    && git checkout 23d35fc \
+    && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_ARCHITECTURES=87 \
+        -DBUILD_TESTING=OFF -DBUILD_PYTORCH_WRAPPER=OFF -DBUILD_EXPERIMENTS=OFF -DCMAKE_INSTALL_PREFIX=/opt/nvblox \
+    && cmake --build build -j4 \
+    && cmake --install build \
+    && rm -rf /src/nvblox
+
+RUN uv venv --python /usr/bin/python3 /opt/build && uv pip install --python /opt/build nanobind
+
+COPY native/rabbit_nvblox /src/rabbit_nvblox
+RUN cmake -S /src/rabbit_nvblox -B /src/rabbit_nvblox/build -DCMAKE_BUILD_TYPE=Release \
+        -DPython_EXECUTABLE=/usr/bin/python3 -DCMAKE_PREFIX_PATH="/opt/nvblox;$(/opt/build/bin/python -m nanobind --cmake_dir)" \
+        -DCMAKE_INSTALL_PREFIX=/opt/rabbit_nvblox \
+    && cmake --build /src/rabbit_nvblox/build -j4 \
+    && cmake --install /src/rabbit_nvblox/build \
+    && cp -a /opt/nvblox/lib/*.so* /opt/rabbit_nvblox/
+
 FROM stereolabs/zed:5.5.0-tools-devel-jetson-jp6.1.0
 
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=src:/usr/local/lib/python3.10/dist-packages
+ENV PYTHONPATH=src:/opt/rabbit_nvblox:/usr/local/lib/python3.10/dist-packages
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -12,3 +39,5 @@ RUN apt-get update \
 WORKDIR /rabbit
 COPY pyproject.toml ./
 RUN uv sync
+
+COPY --from=native /opt/rabbit_nvblox /opt/rabbit_nvblox

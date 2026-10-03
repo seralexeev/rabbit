@@ -1,9 +1,10 @@
 import asyncio
 import os
+from collections import deque
 import threading
 import time
 
-from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, CommandArbiter
+from lib.drive import DRIVE_SUBJECT, JOY_SUBJECT, CommandArbiter, duty_limit, slew
 from lib.geometry import wheel_speeds
 from lib.node import RabbitNode
 from lib.roboclaw import SERIAL_ERRORS, RoboClaw, RoboClawError
@@ -21,13 +22,16 @@ def roboclaw_port() -> str:
 
 
 class Node(RabbitNode):
-    TIMEOUT = 0.25
+    TIMEOUT = 0.4
+    ACCEL = 1.5
+    DECEL = 5.0
     IO_PERIOD = 0.02
     BOARD_EVERY = 50
     COMMAND_REFRESH = 0.1
     HARDWARE_TIMEOUT = 0.5
     RECONNECT_DELAY = 1.0
     CURRENT_OFFSET_SMOOTHING = 0.05
+    SUPPLY_WINDOW = 50
 
     def __init__(self):
         super().__init__("roboclaw")
@@ -43,6 +47,10 @@ class Node(RabbitNode):
         self.reconnects = 0
         self.current_offset = {"left": 0.0, "right": 0.0}
         self.arbiter = CommandArbiter()
+        self.owner = "none"
+        self.status = 0
+        self.supply: deque[float] = deque(maxlen=self.SUPPLY_WINDOW)
+        self.duty_max = duty_limit(self.supply)
         self._stop = threading.Event()
         self._io = threading.Thread(target=self._io_loop, daemon=True)
 
@@ -65,11 +73,11 @@ class Node(RabbitNode):
             rc.set_serial_timeout(self.HARDWARE_TIMEOUT)
         except (RoboClawError, *SERIAL_ERRORS) as e:
             self.errors += 1
-            self.logger.error(f"RoboClaw connect on {self.port} failed: {e}")
+            self.event("motors.connect_failed", str(e), severity="error", every_s=60.0, message=f"RoboClaw connect on {self.port} failed: {e}", port=self.port, errors=self.errors)
             rc.close()
             return False
         self.rc = rc
-        self.logger.info(f"RoboClaw {self.firmware} on {self.port}")
+        self.event("motors.connected", f"RoboClaw {self.firmware}", message=f"RoboClaw {self.firmware} on {self.port}", port=self.port, firmware=self.firmware, reconnects=self.reconnects)
         return True
 
     def _disconnect(self):
@@ -81,6 +89,8 @@ class Node(RabbitNode):
     def _io_loop(self):
         sent: tuple[float, float] | None = None
         sent_at = 0.0
+        output = (0.0, 0.0)
+        previous = time.monotonic()
         tick = 0
         while not self._stop.is_set():
             started = time.monotonic()
@@ -90,15 +100,41 @@ class Node(RabbitNode):
             assert self.rc is not None
             try:
                 if self.last_command_at is None or started - self.last_command_at > self.TIMEOUT:
+                    if self.target != (0.0, 0.0):
+                        self.event(
+                            "motors.command_timeout",
+                            "no drive command, stopping the motors",
+                            severity="warning",
+                            every_s=1.0,
+                            command_age_s=None if self.last_command_at is None else started - self.last_command_at,
+                            timeout_s=self.TIMEOUT,
+                            left=self.target[0],
+                            right=self.target[1],
+                            owner=self.owner,
+                        )
                     self.target = (0.0, 0.0)
-                target = self.target
-                if target != sent or started - sent_at > self.COMMAND_REFRESH:
-                    self.rc.drive(*target)
-                    sent, sent_at = target, started
+                dt, previous = min(started - previous, self.IO_PERIOD * 5), started
+                output = tuple(slew(o, t, dt, self.ACCEL, self.DECEL) for o, t in zip(output, self.target))
+                if output != sent or started - sent_at > self.COMMAND_REFRESH:
+                    self.rc.drive(*(o * self.duty_max for o in output))
+                    sent, sent_at = output, started
                 motion = self.rc.read_motion()
+                self.supply.append(motion["supply_voltage"])
+                self.duty_max = duty_limit(self.supply)
                 if tick % self.BOARD_EVERY == 0:
                     self.board = self.rc.read_board()
                     self.rc.set_serial_timeout(self.HARDWARE_TIMEOUT)
+                    if self.board.get("status", 0) != self.status:
+                        self.event(
+                            "motors.status_changed",
+                            f"status {self.status:#x} -> {self.board['status']:#x}",
+                            severity="info" if self.board["status"] == 0 else "warning",
+                            status=self.board["status"],
+                            previous_status=self.status,
+                            temperature_c=self.board.get("temperature"),
+                            supply_voltage_v=motion.get("supply_voltage"),
+                        )
+                        self.status = self.board["status"]
                 self.latest = (time.time_ns(), motion)
                 tick += 1
             except RoboClawError as e:
@@ -106,7 +142,7 @@ class Node(RabbitNode):
                 self.logger.warning(f"RoboClaw transient error: {e}")
             except SERIAL_ERRORS as e:
                 self.errors += 1
-                self.logger.error(f"RoboClaw port lost: {e}")
+                self.event("motors.port_lost", str(e), severity="error", message=f"RoboClaw port lost: {e}", port=self.port, errors=self.errors)
                 self._disconnect()
                 sent = None
             except Exception:
@@ -144,6 +180,7 @@ class Node(RabbitNode):
                 "ts": ts,
                 **motion,
                 **self.board,
+                "duty_max": round(self.duty_max, 3),
                 "port": self.port,
                 "errors": self.errors,
                 "retries": self.rc.retried if self.rc is not None else 0,
@@ -153,7 +190,13 @@ class Node(RabbitNode):
 
     async def on_command(self, msg: Msg):
         command = self.arbiter.resolve(msg)
+        owner = self.arbiter.owner()
+        if owner != self.owner:
+            self.event("drive.owner_changed", f"{self.owner} -> {owner}", previous=self.owner, owner=owner, subject=msg.subject)
+            self.owner = owner
         if command is None:
+            if msg.subject == DRIVE_SUBJECT:
+                self.event("drive.command_ignored", "the joystick owns the motors", every_s=5.0, owner=owner, joy_hold_s=self.arbiter.joy_until - time.monotonic())
             return
         left, right = wheel_speeds(*command)
         self.target = (left, right)

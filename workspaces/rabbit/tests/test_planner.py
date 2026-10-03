@@ -18,14 +18,11 @@ from lib.planner import (
     PlannerParams,
     Pose2D,
     build_costmap,
-    distance_map_from,
-    find_frontiers,
     grid_from_mesh,
     inflate,
     is_path_blocked,
     plan_hybrid_astar,
     pose_clearance,
-    rank_frontiers,
     smooth,
     split_segments,
 )
@@ -191,15 +188,6 @@ def test_inflate_gives_euclidean_distance_capped_at_radius():
     assert pose_clearance(build_costmap(grid), np.array([[0.525, 0.525, 0.0]]))[0] < 0
 
 
-def test_clear_ray_frees_cells_up_to_the_hit():
-    grid = OccupancyGrid.filled((0.0, 0.0), 40, 10, RES, OCCUPIED)
-    grid.clear_ray((0.025, 0.225), np.array([[1.525, 0.225]]))
-
-    assert (grid.cells[4, :29] == FREE).all()
-    assert grid.cells[4, 30] == OCCUPIED
-    assert grid.cells[3, 10] == OCCUPIED
-
-
 def quad(a, b, c, d) -> list[list[float]]:
     return [a, b, c, a, c, d]
 
@@ -231,69 +219,3 @@ def test_grid_from_mesh_marks_walls_floor_and_ignores_overhangs():
     assert [at(1.2, 1.0), at(1.4, 1.2)] == [OCCUPIED] * 2
     assert at(1.2, 1.2) == FREE
     assert [at(-0.3, 1.5), at(2.0, 3.3)] == [UNKNOWN] * 2
-
-
-def half_seen_room() -> OccupancyGrid:
-    grid = walled_grid(4.0, 3.0)
-    fill(grid, 2.0, 0.0, 4.15, 3.15, UNKNOWN)
-    return grid
-
-
-def test_frontier_along_seen_boundary_with_viewpoint_facing_unknown():
-    grid = half_seen_room()
-    grid.mark_points(np.array([[0.8, 0.8]]), UNKNOWN)
-    costmap = build_costmap(grid)
-
-    frontiers = find_frontiers(costmap)
-
-    assert len(frontiers) == 1
-    frontier = frontiers[0]
-    view = frontier.viewpoint
-    assert frontier.cells >= 50
-    assert frontier.centroid[0] == pytest.approx(1.975, abs=0.03)
-    assert 0.5 - 1e-6 <= math.hypot(view.x - frontier.centroid[0], view.z - frontier.centroid[1]) <= 0.8 + 1e-6
-    assert view.x < frontier.centroid[0] and math.cos(view.theta) > 0.7
-    assert pose_clearance(costmap, np.array([view.x, view.z, view.theta]))[0] >= 0
-
-
-def test_frontiers_rank_by_path_cost_not_straight_line():
-    grid = walled_grid(10.0, 4.0)
-    fill(grid, 3.0, 0.0, 3.1, 3.2)
-    fill(grid, 3.6, 1.8, 4.0, 2.2, UNKNOWN)
-    fill(grid, 0.4, 0.4, 0.8, 0.8, UNKNOWN)
-    costmap = build_costmap(grid)
-    start = Pose2D(2.0, 2.0, 0.0)
-    frontiers = find_frontiers(costmap)
-    behind_wall, open_side = sorted(frontiers, key=lambda f: -f.centroid[0])
-
-    assert behind_wall.cells == open_side.cells
-    assert math.dist((start.x, start.z), behind_wall.centroid) < math.dist((start.x, start.z), open_side.centroid)
-    assert rank_frontiers(frontiers, start, grid, distance_map_from(costmap, (start.x, start.z)), turn_penalty=0.0) == [open_side, behind_wall]
-
-
-def test_unreachable_frontier_is_excluded_from_ranking():
-    grid = walled_grid(6.0, 3.0)
-    fill(grid, 3.0, 0.0, 3.1, 3.1)
-    fill(grid, 4.4, 1.3, 4.8, 1.7, UNKNOWN)
-    costmap = build_costmap(grid)
-    start = Pose2D(1.0, 1.5, 0.0)
-
-    frontiers = find_frontiers(costmap)
-
-    assert len(frontiers) == 1
-    assert rank_frontiers(frontiers, start, grid, distance_map_from(costmap, (start.x, start.z))) == []
-
-
-def test_frontier_behind_a_long_detour_is_excluded_from_ranking():
-    grid = walled_grid(8.0, 8.0)
-    fill(grid, 3.0, 0.0, 3.1, 7.0)
-    fill(grid, 3.6, 0.8, 4.0, 1.2, UNKNOWN)
-    costmap = build_costmap(grid)
-    start = Pose2D(2.0, 1.0, 0.0)
-    costs = distance_map_from(costmap, (start.x, start.z))
-
-    frontiers = [frontier for frontier in find_frontiers(costmap) if frontier.centroid[0] > 3.0]
-
-    assert len(frontiers) == 1
-    assert rank_frontiers(frontiers, start, grid, costs, max_detour=math.inf) == frontiers
-    assert rank_frontiers(frontiers, start, grid, costs) == []

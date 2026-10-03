@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.16)
+project(rtab_run CXX)
+set(CMAKE_CXX_STANDARD 17)
+find_package(RTABMap REQUIRED)
+find_package(OpenCV REQUIRED)
+add_executable(rtab_run rtab_run.cpp)
+target_link_libraries(rtab_run rtabmap::core ${OpenCV_LIBS})
+install(TARGETS rtab_run DESTINATION bin)

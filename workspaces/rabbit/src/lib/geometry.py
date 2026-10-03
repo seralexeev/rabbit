@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 
 CAMERA_TO_REAR_AXLE = 0.1845
@@ -20,6 +22,19 @@ def quaternion_to_matrix(quaternion) -> np.ndarray:
 def tilt_deg(quaternion) -> float:
     up = quaternion_to_matrix(quaternion) @ np.array([0.0, 1.0, 0.0])
     return float(np.degrees(np.arccos(np.clip(up[1], -1.0, 1.0))))
+
+
+def rotation_deg(rotation: np.ndarray) -> float:
+    return float(np.degrees(np.arccos(np.clip((np.trace(rotation) - 1.0) / 2.0, -1.0, 1.0))))
+
+
+MAX_POSE_HEIGHT_M = 3.0
+MAX_POSE_RANGE_M = 200.0
+
+
+def plausible_position(translation, floor_y: float) -> bool:
+    x, y, z = (float(v) for v in translation)
+    return abs(y - floor_y) < MAX_POSE_HEIGHT_M and abs(x) < MAX_POSE_RANGE_M and abs(z) < MAX_POSE_RANGE_M
 
 
 def linear_acceleration(acceleration, orientation) -> np.ndarray:
@@ -74,3 +89,38 @@ def wheel_speeds(speed: float, steer: float) -> tuple[float, float]:
     left, right = speed * (1 + offset), speed * (1 - offset)
     scale = max(abs(left), abs(right), 1.0)
     return left / scale, right / scale
+
+
+def planar_pose(translation, orientation) -> tuple[np.ndarray, np.ndarray]:
+    x, y, z, w = orientation
+    forward = np.array([-2 * (x * z + y * w), -(1 - 2 * (x * x + y * y))])
+    return np.array([translation[0], translation[2]], dtype=float), forward / np.linalg.norm(forward)
+
+
+def rigid_transform(
+    from_position: np.ndarray, from_forward: np.ndarray, to_position: np.ndarray, to_forward: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    angle = math.atan2(
+        from_forward[0] * to_forward[1] - from_forward[1] * to_forward[0], float(from_forward @ to_forward)
+    )
+    cos, sin = math.cos(angle), math.sin(angle)
+    rotation = np.array([[cos, -sin], [sin, cos]])
+    return rotation, to_position - rotation @ from_position
+
+
+def matrix_to_quaternion(rotation: np.ndarray) -> list[float]:
+    m = np.asarray(rotation, dtype=float)
+    trace = m[0, 0] + m[1, 1] + m[2, 2]
+    if trace > 0:
+        s = 2.0 * math.sqrt(trace + 1.0)
+        q = [(m[2, 1] - m[1, 2]) / s, (m[0, 2] - m[2, 0]) / s, (m[1, 0] - m[0, 1]) / s, 0.25 * s]
+    elif m[0, 0] > m[1, 1] and m[0, 0] > m[2, 2]:
+        s = 2.0 * math.sqrt(1.0 + m[0, 0] - m[1, 1] - m[2, 2])
+        q = [0.25 * s, (m[0, 1] + m[1, 0]) / s, (m[0, 2] + m[2, 0]) / s, (m[2, 1] - m[1, 2]) / s]
+    elif m[1, 1] > m[2, 2]:
+        s = 2.0 * math.sqrt(1.0 + m[1, 1] - m[0, 0] - m[2, 2])
+        q = [(m[0, 1] + m[1, 0]) / s, 0.25 * s, (m[1, 2] + m[2, 1]) / s, (m[0, 2] - m[2, 0]) / s]
+    else:
+        s = 2.0 * math.sqrt(1.0 + m[2, 2] - m[0, 0] - m[1, 1])
+        q = [(m[0, 2] + m[2, 0]) / s, (m[1, 2] + m[2, 1]) / s, 0.25 * s, (m[1, 0] - m[0, 1]) / s]
+    return q

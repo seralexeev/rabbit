@@ -7,13 +7,20 @@ MAP_CHUNKS_SUBJECT = "rabbit.map.chunks"
 MAP_SNAPSHOT_SUBJECT = "rabbit.map.snapshot"
 MAP_SAVE_SUBJECT = "rabbit.map.save"
 MAP_RESET_SUBJECT = "rabbit.map.reset"
+MAP_GRID_SUBJECT = "rabbit.map.grid"
+MAP_EXTEND_SUBJECT = "rabbit.map.extend"
+MAP_GRID_SNAPSHOT_SUBJECT = "rabbit.map.grid.snapshot"
+GRID_UNKNOWN = -1
 MAP_DIR = Path("/rabbit/data/map")
 AREA_FILE = MAP_DIR / "room.area"
 MESH_FILE = MAP_DIR / "room.ply"
-CHUNKS_FILE = MAP_DIR / "room.chunks"
+NVBLOX_FILE = MAP_DIR / "room.nvblx"
+MAP_ID_FILE = MAP_DIR / "room.id"
+EXTEND_FILE = MAP_DIR / "room.extend"
 AREA_ARCHIVE_DIR = MAP_DIR / "archive"
 
 _CHUNK_HEADER = struct.Struct("<IIIfff")
+_GRID_HEADER = struct.Struct("<fffII")
 
 
 def encode_chunk(index: int, vertices: np.ndarray, triangles: np.ndarray) -> bytes:
@@ -47,3 +54,16 @@ def decode_chunks(payload: bytes) -> dict[int, tuple[np.ndarray, np.ndarray]]:
             triangles.reshape(-1, 3).astype(np.int32),
         )
     return chunks
+
+
+def encode_grid(origin_xz: tuple[float, float], resolution: float, clearance_mm: np.ndarray) -> bytes:
+    height, width = clearance_mm.shape
+    return _GRID_HEADER.pack(origin_xz[0], origin_xz[1], resolution, width, height) + np.ascontiguousarray(
+        clearance_mm, dtype="<i2"
+    ).tobytes()
+
+
+def decode_grid(payload: bytes) -> tuple[tuple[float, float], float, np.ndarray]:
+    origin_x, origin_z, resolution, width, height = _GRID_HEADER.unpack_from(payload)
+    cells = np.frombuffer(payload, dtype="<i2", count=width * height, offset=_GRID_HEADER.size)
+    return (origin_x, origin_z), resolution, cells.reshape(height, width)

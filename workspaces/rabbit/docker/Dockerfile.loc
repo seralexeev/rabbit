@@ -1,0 +1,50 @@
+# rabbit-loc: RTAB-Map (no ROS, no Qt) + g2o + the rabbit_rtabmap nanobind module and a Python 3.12.11 venv
+# (uv-managed in /opt/python, like the rabbit image).
+# CPU only, built off the robot (the PCL-heavy units need ~1.6 GB per compile job):
+#   docker build --build-arg JOBS=6 -f docker/Dockerfile.loc -t rabbit-loc .   (context: workspaces/rabbit, arm64)
+#   docker save rabbit-loc | gzip -1 | ssh rabbit 'gunzip | docker load'
+FROM ubuntu:22.04 AS native
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG JOBS=3
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential cmake git ca-certificates pkg-config python3-pip \
+        libopencv-dev libpcl-dev libsqlite3-dev libeigen3-dev libsuitesparse-dev zlib1g-dev libyaml-cpp-dev \
+    && rm -rf /var/lib/apt/lists/* && pip3 install --no-cache-dir uv
+
+ENV UV_PYTHON_INSTALL_DIR=/opt/python
+RUN uv python install 3.12.11 \
+    && uv venv --python 3.12.11 /opt/venv \
+    && uv pip install --python /opt/venv/bin/python nanobind==2.4.0 nats-py "numpy>=2,<3" pydantic
+
+RUN git clone https://github.com/RainerKuemmerle/g2o.git /src/g2o \
+    && cd /src/g2o && git checkout 20230806_git \
+    && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_MARCH_NATIVE=OFF -DG2O_BUILD_APPS=OFF \
+        -DG2O_BUILD_EXAMPLES=OFF -DG2O_USE_OPENGL=OFF -DG2O_USE_LOGGING=OFF \
+    && cmake --build build -j${JOBS} && cmake --install build && rm -rf /src/g2o
+
+ARG RTABMAP_COMMIT=25d2135b266761cfd2c0c1e772775a470802e4b0
+RUN git clone https://github.com/introlab/rtabmap.git /src/rtabmap \
+    && cd /src/rtabmap && git checkout ${RTABMAP_COMMIT} \
+    && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_QT=OFF -DBUILD_APP=OFF -DBUILD_EXAMPLES=OFF \
+        -DBUILD_TESTING=OFF -DBUILD_PERF_TESTS=OFF -DWITH_PDAL=OFF -DWITH_ZED=OFF -DWITH_ZEDOC=OFF \
+        -DWITH_OCTOMAP=OFF -DWITH_GTSAM=OFF -DWITH_MRPT=OFF -DWITH_POINTMATCHER=OFF -DWITH_REALSENSE2=OFF \
+        -DWITH_OPENNI2=OFF -DWITH_FREENECT=OFF -DWITH_FREENECT2=OFF -DWITH_DC1394=OFF -DWITH_G2O=ON \
+    && cmake --build build -j${JOBS} && cmake --install build && rm -rf /src/rtabmap && ldconfig
+
+COPY native/rabbit_rtabmap /src/rabbit_rtabmap
+RUN cmake -S /src/rabbit_rtabmap -B /src/rabbit_rtabmap/build -DCMAKE_BUILD_TYPE=Release \
+        -DPython_EXECUTABLE=/opt/venv/bin/python \
+        -DCMAKE_PREFIX_PATH="$(/opt/venv/bin/python -m nanobind --cmake_dir)" -DCMAKE_INSTALL_PREFIX=/opt/rabbit_rtabmap \
+    && cmake --build /src/rabbit_rtabmap/build -j${JOBS} && cmake --install /src/rabbit_rtabmap/build \
+    && mkdir -p /opt/rabbit_rtabmap/lib \
+    && ldd /opt/rabbit_rtabmap/rabbit_rtabmap*.so | awk '/=> \//{print $3}' \
+       | grep -vE '/lib(c|m|dl|rt|pthread|python3[^/]*)\.so|ld-linux' | xargs -I{} cp -L {} /opt/rabbit_rtabmap/lib/
+
+FROM ubuntu:22.04
+ARG DEBIAN_FRONTEND=noninteractive
+COPY --from=native /opt/python /opt/python
+COPY --from=native /opt/venv /opt/venv
+COPY --from=native /opt/rabbit_rtabmap /opt/rabbit_rtabmap
+ENV PYTHONUNBUFFERED=1 PYTHONPATH=src:/opt/rabbit_rtabmap PATH=/opt/venv/bin:$PATH LD_LIBRARY_PATH=/opt/rabbit_rtabmap/lib
+WORKDIR /rabbit

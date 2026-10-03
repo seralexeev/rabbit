@@ -2,10 +2,11 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from lib.safety import bin_scan, heights_above_floor
+from lib.safety import bin_scan, free_distance, heights_above_floor
 
 
 def polar(degrees: list[float], ranges: list[float]) -> tuple[np.ndarray, np.ndarray]:
@@ -37,3 +38,11 @@ def test_heights_above_floor_removes_floor_tilt_but_keeps_obstacles():
     assert (floor_y > 0.04).sum() > 1000
     assert np.abs(heights[:3000]).max() < 0.03
     assert heights[3000:].min() > 0.04
+
+
+def test_free_distance_ignores_points_beyond_its_reach_and_still_stops_at_close_ones():
+    far = np.column_stack([np.linspace(2.0, 5.0, 3000), np.zeros(3000)])
+    near = np.array([[0.8, 0.0]])
+
+    assert free_distance(far, 0.0, 1.0) == 1.0
+    assert free_distance(np.vstack([far, near]), 0.0, 1.0) == pytest.approx(0.8 - 0.2245 - 0.04, abs=0.021)

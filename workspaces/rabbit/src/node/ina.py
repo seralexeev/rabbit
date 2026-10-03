@@ -1,16 +1,17 @@
 import asyncio
+import os
 
 import numpy as np
+from lib.ina4235 import CLIP_FRACTION, channel_calibrations, is_clipped
 from lib.node import RabbitNode
 from smbus2 import SMBus
 
 I2C_BUS = 7
 INA_ADDR = 0x41
 
-R_SHUNT = 0.01  # Ohm
-CURRENT_LSB = 0.001  # 1 mA/LSB
 LSB_VBUS = 1.6e-3  # V/LSB
 
+SHUNT_VOLT_REGS = {1: 0x00, 2: 0x08, 3: 0x10, 4: 0x18}
 BUS_VOLT_REGS = {1: 0x01, 2: 0x09, 3: 0x11, 4: 0x19}
 CURRENT_REGS = {1: 0x02, 2: 0x0A, 3: 0x12, 4: 0x1A}
 CALIB_REGS = {1: 0x05, 2: 0x0D, 3: 0x15, 4: 0x1D}
@@ -40,6 +41,7 @@ def twos_complement(val: int, bits: int = 16) -> int:
 class Node(RabbitNode):
     def __init__(self):
         super().__init__("ina4235")
+        self.calibrations = channel_calibrations(CHANNELS, os.environ.get("INA_SHUNT_OHMS"), os.environ.get("INA_MAX_CURRENT_A"))
         self.bus = SMBus(I2C_BUS)
         self.errors = 0
 
@@ -48,12 +50,28 @@ class Node(RabbitNode):
         self.set_interval(self.publish_metrics, PUBLISH_INTERVAL, max_parallel=1)
 
     def _write_calibration(self):
-        shunt_cal = int(0.00512 / (CURRENT_LSB * R_SHUNT))
-        cal_swapped = swap_bytes(shunt_cal)
         self.bus.write_word_data(INA_ADDR, CONFIG1_REG, swap_bytes(CONFIG1))
-        for reg in CALIB_REGS.values():
-            self.bus.write_word_data(INA_ADDR, reg, cal_swapped)
-        self.logger.info(f"Written CONFIG1={CONFIG1:#06x} and SHUNT_CAL={shunt_cal}")
+        fields = {}
+        for ch, cal in self.calibrations.items():
+            self.bus.write_word_data(INA_ADDR, CALIB_REGS[ch], swap_bytes(cal.shunt_cal))
+            fields |= {
+                f"ch{ch}_name": CHANNELS[ch],
+                f"ch{ch}_shunt_ohms": cal.shunt_ohms,
+                f"ch{ch}_max_current_a": cal.max_current_a,
+                f"ch{ch}_full_scale_a": cal.full_scale_a,
+                f"ch{ch}_clip_a": cal.clip_a,
+                f"ch{ch}_current_lsb_a": cal.current_lsb_a,
+                f"ch{ch}_shunt_cal": cal.shunt_cal,
+            }
+        summary = ", ".join(f"ch{ch} {CHANNELS[ch]} {cal.shunt_ohms * 1000:g} mOhm SHUNT_CAL={cal.shunt_cal} LSB={cal.current_lsb_a * 1000:g} mA" for ch, cal in self.calibrations.items())
+        self.event(
+            "power.calibrated",
+            "INA4235 shunts calibrated",
+            message=f"Written CONFIG1={CONFIG1:#06x}; {summary}",
+            config1=CONFIG1,
+            clip_fraction=CLIP_FRACTION,
+            **fields,
+        )
 
     def _read_word(self, reg: int) -> int:
         raw = self.bus.read_word_data(INA_ADDR, reg)
@@ -63,16 +81,16 @@ class Node(RabbitNode):
         raw = self._read_word(BUS_VOLT_REGS[ch])
         return raw * LSB_VBUS
 
-    def read_current(self, ch: int) -> float:
-        raw = self._read_word(CURRENT_REGS[ch])
-        signed = twos_complement(raw)
-        return signed * CURRENT_LSB
+    def read_signed(self, reg: int) -> int:
+        return twos_complement(self._read_word(reg))
 
     def read_channels(self) -> list[dict]:
         channels = []
         for ch, name in CHANNELS.items():
             voltage = self.read_bus_voltage(ch)
-            current = self.read_current(ch)
+            shunt_raw = self.read_signed(SHUNT_VOLT_REGS[ch])
+            current_raw = self.read_signed(CURRENT_REGS[ch])
+            current = current_raw * self.calibrations[ch].current_lsb_a
             channels.append(
                 {
                     "ch": ch,
@@ -80,6 +98,7 @@ class Node(RabbitNode):
                     "voltage": round(voltage, 3),
                     "current": round(current, 3),
                     "power": round(voltage * current, 3),
+                    "clipped": is_clipped(shunt_raw, current_raw),
                 }
             )
         return channels

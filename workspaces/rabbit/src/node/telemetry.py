@@ -1,20 +1,25 @@
 import asyncio
+import json
 import logging
 import os
 import re
 import subprocess
 import threading
 import time
+import urllib.request
 
 import docker
 from jtop import jtop
 
+from lib.jetson_clocks import JetsonClocks
 from lib.node import RabbitNode
 
 TELEMETRY_SUBJECT = "rabbit.telemetry"
 PUBLISH_INTERVAL = 1.0
 JTOP_SILENCE_S = 5.0
 CONTAINER_STATS_INTERVAL = 10.0
+NATS_MONITOR_URL = "http://127.0.0.1:8222/varz"
+NATS_STATS_INTERVAL = 5.0
 
 KB = 1024
 
@@ -28,6 +33,8 @@ class ContainerStatsCollector:
         self._lock = threading.Lock()
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._stop = threading.Event()
+        self.errors = 0
+        self.last_error = ""
 
     def start(self):
         self._thread.start()
@@ -77,14 +84,17 @@ class ContainerStatsCollector:
                                 "mem_limit": mem_limit,
                             }
                         )
-                    except Exception:
+                    except Exception as e:
+                        self.errors += 1
+                        self.last_error = f"{c.name}: {e!r}"
                         continue
 
                 results.sort(key=lambda x: x["name"])
                 with self._lock:
                     self._stats = results
-            except Exception:
-                pass
+            except Exception as e:
+                self.errors += 1
+                self.last_error = repr(e)
 
             self._stop.wait(CONTAINER_STATS_INTERVAL)
 
@@ -166,6 +176,43 @@ class WifiCollector:
             self._stop.wait(1.0)
 
 
+class NatsServerCollector:
+    FIELDS = ("connections", "subscriptions", "slow_consumers", "in_msgs", "out_msgs", "in_bytes", "out_bytes", "mem", "cpu")
+
+    def __init__(self, url: str):
+        self.url = url
+        self._stats: dict = {}
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self.errors = 0
+
+    def start(self):
+        self._thread.start()
+
+    def stop(self):
+        self._stop.set()
+
+    def get(self) -> dict:
+        with self._lock:
+            return dict(self._stats)
+
+    def _loop(self):
+        while not self._stop.is_set():
+            try:
+                with urllib.request.urlopen(self.url, timeout=2) as response:
+                    varz = json.loads(response.read())
+                stats = {name: varz.get(name) for name in self.FIELDS}
+                stats["slow_consumer_stats"] = varz.get("slow_consumer_stats")
+                with self._lock:
+                    self._stats = stats
+            except (OSError, ValueError):
+                self.errors += 1
+                with self._lock:
+                    self._stats = {}
+            self._stop.wait(NATS_STATS_INTERVAL)
+
+
 class ContainerEventWatcher:
     MESSAGES = {
         "start": "Container started",
@@ -215,15 +262,19 @@ class Node(RabbitNode):
         super().__init__("telemetry")
         self.jetson = jtop()
         self.jetson_seen_at = time.monotonic()
+        self._clocks = JetsonClocks()
         self._wifi = WifiCollector(os.environ.get("WIFI_INTERFACE", "wlP1p1s0"))
         self._container_stats = ContainerStatsCollector(docker.DockerClient.from_env())
         self._container_events = ContainerEventWatcher(docker.DockerClient.from_env())
+        self._nats = NatsServerCollector(os.environ.get("NATS_MONITOR_URL", NATS_MONITOR_URL))
+        self._container_errors = 0
 
     async def init(self):
         self.jetson.start()
         self._container_stats.start()
         self._container_events.start()
         self._wifi.start()
+        self._nats.start()
         self.set_interval(self.publish_telemetry, PUBLISH_INTERVAL)
 
     async def publish_telemetry(self):
@@ -254,9 +305,11 @@ class Node(RabbitNode):
             ram = j.memory["RAM"]
             ram_used = ram["used"] * KB
             ram_total = ram["tot"] * KB
+            ram_shared = ram.get("shared", 0) * KB
         except (KeyError, TypeError):
             ram_used = 0
             ram_total = 0
+            ram_shared = None
 
         try:
             swap = j.memory["SWAP"]
@@ -315,6 +368,13 @@ class Node(RabbitNode):
                 except (KeyError, TypeError):
                     pass
 
+        clocks = await asyncio.to_thread(self._clocks.read)
+        try:
+            clocks["emc_mhz"] = round(j.memory["EMC"]["cur"] / 1000)
+        except (KeyError, TypeError):
+            clocks["emc_mhz"] = None
+        clocks["power_mode"] = "" if j.nvpmodel is None else str(j.nvpmodel)
+
         # Uptime
         uptime = j.uptime
         hours, remainder = divmod(int(uptime.total_seconds()), 3600)
@@ -326,7 +386,7 @@ class Node(RabbitNode):
             "cpu_freq_mhz": cpu_freq,
             "gpu": gpu_load,
             "gpu_freq_mhz": gpu_freq,
-            "ram": {"used": ram_used, "total": ram_total},
+            "ram": {"used": ram_used, "total": ram_total, "shared": ram_shared},
             "swap": {"used": swap_used, "total": swap_total},
             "temp": temps,
             "power": power_mw,
@@ -337,11 +397,23 @@ class Node(RabbitNode):
             "uptime": uptime_str,
             "fan": fan_speed,
             "fan_rpm": fan_rpm,
+            "clocks": clocks,
             "containers": self._container_stats.get(),
             "wifi": self._wifi.get(),
+            "nats": self._nats.get(),
+            "boot_id": self.boot_id,
         }
 
         await self.publish_json(TELEMETRY_SUBJECT, payload)
+        if self._container_stats.errors != self._container_errors:
+            self.event(
+                "telemetry.container_stats_failed",
+                self._container_stats.last_error,
+                severity="warning",
+                every_s=300.0,
+                errors=self._container_stats.errors,
+            )
+            self._container_errors = self._container_stats.errors
 
     def _reconnect_jetson(self):
         self.logger.warning("jtop stopped answering, reconnecting")
@@ -357,6 +429,7 @@ class Node(RabbitNode):
         await super().close()
         self._container_stats.stop()
         self._wifi.stop()
+        self._nats.stop()
         self.jetson.close()
 
 

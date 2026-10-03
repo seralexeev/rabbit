@@ -1,0 +1,38 @@
+# RTAB-Map (no ROS, no Qt) + g2o + rtab_run, arm64 (Jetson) or any arch.
+# Built on the Mac: docker buildx build --platform linux/arm64 -f docker/Dockerfile.rtabmap -t rabbit-rtabmap .
+FROM ubuntu:22.04 AS build
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG JOBS=3
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential cmake git ca-certificates pkg-config \
+        libopencv-dev libpcl-dev libsqlite3-dev libeigen3-dev libsuitesparse-dev zlib1g-dev libyaml-cpp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/RainerKuemmerle/g2o.git /src/g2o \
+    && cd /src/g2o && git checkout 20230806_git \
+    && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_MARCH_NATIVE=OFF -DG2O_BUILD_APPS=OFF \
+        -DG2O_BUILD_EXAMPLES=OFF -DG2O_USE_OPENGL=OFF -DG2O_USE_LOGGING=OFF \
+    && cmake --build build -j${JOBS} && cmake --install build && rm -rf /src/g2o
+
+ARG RTABMAP_COMMIT=25d2135b266761cfd2c0c1e772775a470802e4b0
+RUN git clone https://github.com/introlab/rtabmap.git /src/rtabmap \
+    && cd /src/rtabmap && git checkout ${RTABMAP_COMMIT} \
+    && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DWITH_QT=OFF -DBUILD_APP=OFF -DBUILD_EXAMPLES=OFF \
+        -DBUILD_TESTING=OFF -DBUILD_PERF_TESTS=OFF -DWITH_PDAL=OFF -DWITH_ZED=OFF -DWITH_ZEDOC=OFF \
+        -DWITH_OCTOMAP=OFF -DWITH_GTSAM=OFF -DWITH_MRPT=OFF -DWITH_POINTMATCHER=OFF -DWITH_REALSENSE2=OFF \
+        -DWITH_OPENNI2=OFF -DWITH_FREENECT=OFF -DWITH_FREENECT2=OFF -DWITH_DC1394=OFF -DWITH_G2O=ON \
+    && cmake --build build -j${JOBS} && cmake --install build && rm -rf /src/rtabmap && ldconfig
+
+COPY rtabmap /src/rtab_run
+RUN cmake -S /src/rtab_run -B /src/rtab_run/build -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build /src/rtab_run/build -j${JOBS} && cmake --install /src/rtab_run/build
+
+RUN mkdir -p /opt/rt/lib /opt/rt/bin && cp /usr/local/bin/rtab* /opt/rt/bin/ \
+    && for b in /opt/rt/bin/*; do ldd "$b" | awk '/=> \//{print $3}'; done | sort -u \
+       | grep -vE '/lib(c|m|dl|rt|pthread)\.so|ld-linux' | xargs -I{} cp -L {} /opt/rt/lib/
+
+FROM ubuntu:22.04
+COPY --from=build /opt/rt /opt/rt
+ENV PATH=/opt/rt/bin:$PATH LD_LIBRARY_PATH=/opt/rt/lib
+WORKDIR /bench

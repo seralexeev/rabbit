@@ -114,12 +114,14 @@ class NatsLogHandler(logging.Handler):
         self.context: dict[str, str] = {}
         self.queue: deque[dict[str, Any]] = deque(maxlen=MAX_QUEUED)
         self.dropped = 0
+        self.dropped_total = 0
         self.suppressor = suppressor or RepeatSuppressor()
 
     def emit(self, record: logging.LogRecord):
         try:
             if len(self.queue) == self.queue.maxlen:
                 self.dropped += 1
+                self.dropped_total += 1
             self.queue.append(record_payload(record, self.node, self.context))
         except Exception:
             self.handleError(record)

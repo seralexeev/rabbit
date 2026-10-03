@@ -10,6 +10,14 @@ pin_irq() {
         echo "$2" > "/proc/irq/$irq/smp_affinity_list"
     done
 }
+pin_dt_irq() {
+    hwirq=$(($(od -An -tu4 --endian=big -j4 -N4 "$1/interrupts") + 32))
+    for dir in /sys/kernel/irq/*; do
+        if [ "$(cat "$dir/chip_name")" = GICv3 ] && [ "$(cat "$dir/hwirq")" = "$hwirq" ]; then
+            echo "$2" > "/proc/irq/$(basename "$dir")/smp_affinity_list"
+        fi
+    done
+}
 pin_irq xhci-hcd 2
-pin_irq 3100000.serial 4
+pin_dt_irq /proc/device-tree/bus@0/serial@3100000 4
 pin_irq c250000.i2c 5

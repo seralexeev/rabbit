@@ -2,10 +2,11 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from lib.spatial_map import decode_chunks, encode_chunk
+from lib.spatial_map import GRID_UNKNOWN, decode_chunks, decode_grid, encode_chunk, encode_grid
 
 
 def test_chunks_far_from_the_origin_survive_encoding():
@@ -17,3 +18,13 @@ def test_chunks_far_from_the_origin_survive_encoding():
     assert np.allclose(decoded[7][0], vertices, atol=0.001)
     assert decoded[7][1].tolist() == [[0, 1, 2]]
     assert decoded[8][0].shape == (0, 3)
+
+
+def test_grid_keeps_unknown_occupied_and_clearance_cells_in_place():
+    clearance = np.array([[GRID_UNKNOWN, 0, 120], [450, GRID_UNKNOWN, 32767]], dtype=np.int16)
+
+    origin, resolution, decoded = decode_grid(encode_grid((-3.25, 7.5), 0.05, clearance))
+
+    assert origin == (-3.25, 7.5)
+    assert resolution == pytest.approx(0.05)
+    assert decoded.tolist() == clearance.tolist()

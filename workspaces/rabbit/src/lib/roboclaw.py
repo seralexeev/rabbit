@@ -12,12 +12,24 @@ READ_FIRMWARE = 21
 READ_MAIN_BATTERY = 24
 READ_PWMS = 48
 READ_CURRENTS = 49
+READ_MAIN_BATTERY_LIMITS = 59
+READ_PIN_MODES = 75
 READ_ENCODERS = 78
 READ_SPEEDS = 79
 READ_TEMPERATURE = 82
 READ_STATUS = 90
 READ_ENCODER_MODES = 91
+READ_CONFIG = 99
+READ_AVERAGE_SPEEDS = 108
+READ_MAX_CURRENT = {1: 135, 2: 136}
+READ_PWM_MODE = 149
+READ_SERIAL_TIMEOUT = 15
 SET_SERIAL_TIMEOUT = 14
+SET_MAIN_BATTERY_LIMITS = 57
+SET_PIN_MODES = 74
+SET_MAX_CURRENT = {1: 133, 2: 134}
+WRITE_NVM = 94
+NVM_KEY = 0xE22EAB7A
 RESET_ENCODERS = 20
 DRIVE_DUTY = 34
 
@@ -125,6 +137,58 @@ class RoboClaw:
     def read_encoder_modes(self) -> tuple[int, int]:
         left, right = self._exchange(READ_ENCODER_MODES, b"", 2)
         return left, right
+
+    def read_serial_timeout(self) -> float:
+        return self._exchange(READ_SERIAL_TIMEOUT, b"", 1)[0] / 10.0
+
+    def read_main_battery_limits(self) -> tuple[float, float]:
+        low, high = struct.unpack(">HH", self._exchange(READ_MAIN_BATTERY_LIMITS, b"", 4))
+        return low / 10.0, high / 10.0
+
+    def set_main_battery_limits(self, low: float, high: float):
+        self._exchange(SET_MAIN_BATTERY_LIMITS, struct.pack(">HH", round(low * 10), round(high * 10)), None)
+
+    def read_pin_modes(self) -> tuple[int, int, int]:
+        s3, s4, s5 = self._exchange(READ_PIN_MODES, b"", 3)
+        return s3, s4, s5
+
+    def set_pin_modes(self, s3: int, s4: int, s5: int):
+        self._exchange(SET_PIN_MODES, bytes([s3, s4, s5]), None)
+
+    def read_max_current(self, motor: int) -> float:
+        high, _ = struct.unpack(">ii", self._exchange(READ_MAX_CURRENT[motor], b"", 8))
+        return high / 100.0
+
+    def set_max_current(self, motor: int, amps: float):
+        self._exchange(SET_MAX_CURRENT[motor], struct.pack(">II", round(amps * 100), 0), None)
+
+    def read_pwm_mode(self) -> int:
+        return self._exchange(READ_PWM_MODE, b"", 1)[0]
+
+    def read_config(self) -> int:
+        (config,) = struct.unpack(">H", self._exchange(READ_CONFIG, b"", 2))
+        return config
+
+    def read_main_battery(self) -> float:
+        (supply,) = struct.unpack(">H", self._exchange(READ_MAIN_BATTERY, b"", 2))
+        return supply / 10.0
+
+    def write_nvm(self) -> str:
+        try:
+            self._exchange(WRITE_NVM, struct.pack(">I", NVM_KEY), None)
+            return "with key"
+        except RoboClawError:
+            self._exchange(WRITE_NVM, b"", None)
+            return "without key"
+
+    def read_encoders(self) -> dict:
+        left_count, right_count = struct.unpack(">ii", self._exchange(READ_ENCODERS, b"", 8))
+        left_speed, right_speed = struct.unpack(">ii", self._exchange(READ_SPEEDS, b"", 8))
+        left_average, right_average = struct.unpack(">ii", self._exchange(READ_AVERAGE_SPEEDS, b"", 8))
+        return {
+            "left": {"count": left_count, "speed": left_speed, "average_speed": left_average},
+            "right": {"count": right_count, "speed": right_speed, "average_speed": right_average},
+        }
 
     def read_motion(self) -> dict:
         left_pwm, right_pwm = struct.unpack(">hh", self._exchange(READ_PWMS, b"", 4))

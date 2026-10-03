@@ -78,6 +78,8 @@ def free_distance(
     footprint: Footprint = Footprint(),
     step: float = 0.02,
 ) -> float:
+    reach = lookahead + max(footprint.front, footprint.rear) + footprint.half_width + 2 * footprint.margin
+    points = points[np.einsum("ij,ij->i", points, points) <= reach * reach]
     if len(points) == 0:
         return lookahead
     distances = np.arange(0.0, lookahead + step, step)
