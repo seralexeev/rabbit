@@ -23,6 +23,10 @@ WHEEL_RADIUS = 0.0375
 MASS = 4.5
 G = 9.81
 SAG = 14.0
+GEAR_EFFICIENCY = 0.8
+PEAK_AMPS = 5.0
+STALL_AMPS = 7.0
+GEARBOX_LIMIT = 0.75
 
 
 def rpm_to_mps(rpm: float) -> float:
@@ -54,16 +58,26 @@ def pololu(rpm12: float, stall12_kgmm: float, amps_stall12: float, volts: float,
     return rpm12 * scale, stall, torque_per_amp * current_limit
 
 
+def bldc(name: str, rpm_per_volt: float, phase_line_ohms: float, ratio: float, current_limit: float, color: str, dash: str = "-") -> Option:
+    torque_per_amp = 9.55 / rpm_per_volt * ratio * GEAR_EFFICIENCY
+    stall_amps = min(SAG * 0.95 / phase_line_ohms, STALL_AMPS)
+    return Option(
+        name,
+        rpm_per_volt * SAG * 0.95 / ratio,
+        torque_per_amp * stall_amps,
+        min(torque_per_amp * min(current_limit, stall_amps), GEARBOX_LIMIT),
+        color,
+        dash,
+    )
+
+
 def options() -> list[Option]:
     result = []
     nl, st, lim = pololu(150, 270, 5.2, 12.0, 3.0)
     result.append(Option("Today: Pololu 37D 70:1, 12 V duty cap, RoboClaw 3 A", nl, st, min(lim, 2.45), "#52514e", "--"))
-    nl, st, lim = pololu(530, 85, 5.4, 12.0, 4.0)
-    result.append(Option("Fallback: Pololu 37D 19:1 (#4751), 12 V cap, 4 A", nl, st, lim, "#2a78d6"))
-    nl, st, lim = pololu(330, 140, 5.6, 12.0, 4.0)
-    result.append(Option("Pololu 37D 30:1 (#4752), 12 V cap, 4 A", nl, st, lim, "#eb6834"))
-    result.append(Option("BLDC JGB37-3650 12 V, 18.8:1, FOC 5 A (listing)", 8000 * SAG / 12 * 0.95 / 18.8, 1.06 * SAG / 12, 0.75, "#1baf7a"))
-    result.append(Option("BLDC JGB37-3625 12 V, 18.8:1, FOC (short, listing)", 6000 * SAG / 12 * 0.95 / 18.8, 0.59 * 18.8 / 30 * SAG / 12, 0.59 * 18.8 / 30 * SAG / 12, "#eda100"))
+    result.append(bldc("Pick: JGB37-3625 12 V (500 rpm/V) 10:1, FOC, ~53 mm (estimate)", 500, 6.7, 10, 2.5, "#1baf7a"))
+    result.append(bldc("JGB37-3625 12 V 18.8:1 (more torque, slower)", 500, 6.7, 18.8, 2.5, "#2a78d6"))
+    result.append(bldc("Long: Chihai 3650 (346 rpm/V) 6.25:1, 5 A, ~76 mm (estimate)", 346, 2.0, 6.25, PEAK_AMPS, "#eb6834", "--"))
     result.append(Option("Steadywin GIM4305-10 actuator (too wide, reference)", 16.75 * SAG, 3.82, 3.82, "#4a3aa7", ":"))
     return result
 
@@ -78,6 +92,7 @@ def requirement_points():
         "cruise today 0.16 m/s": (0.16, per_wheel(rug)),
         "rug + 5° ramp + 1 m/s², 0.5 m/s": (0.5, per_wheel(rug + ramp + MASS * 1.0)),
         "rug + 1 m/s² at 1.5 m/s": (1.5, per_wheel(rug + MASS * 1.0)),
+        "rug + 0.5 m/s² at 2.3 m/s": (2.3, per_wheel(rug + MASS * 0.5)),
         "15 mm threshold (short, with momentum)": (0.45, 0.6),
     }, per_wheel(traction)
 
@@ -89,16 +104,16 @@ def plot(options: list[Option], path: Path):
         ax.spines[spine].set_visible(False)
     ax.grid(True, color="#e6e5e0", linewidth=0.8)
     ax.axhline(traction, color="#e34948", linewidth=1.2, linestyle=":")
-    ax.text(2.42, traction + 0.02, f"traction limit ≈ {traction:.2f} N·m (μ 0.7, 55% on rear axle)", ha="right", fontsize=9, color="#52514e")
-    ax.axvspan(1.5, 2.5, color="#f3f2ee", zorder=0)
-    ax.text(1.52, 1.42, "manual top speed target ≥ 1.5 m/s", fontsize=9, color="#52514e")
+    ax.text(2.92, traction + 0.02, f"traction limit ≈ {traction:.2f} N·m (μ 0.7, 55% on rear axle)", ha="right", fontsize=9, color="#52514e")
+    ax.axvspan(2.0, 2.5, color="#f3f2ee", zorder=0)
+    ax.text(2.02, 1.42, "top speed potential 2–2.5 m/s", fontsize=9, color="#52514e")
     for option in options:
         xs, ys = zip(*option.curve())
         ax.plot(xs, ys, option.dash, color=option.color, linewidth=2, label=option.name)
     for name, (x, y) in points.items():
         ax.plot([x], [y], "o", color="#0b0b0b", markersize=7, markeredgecolor="white", markeredgewidth=1.5, zorder=5)
         ax.annotate(name, (x, y), xytext=(6, 6), textcoords="offset points", fontsize=8.5, color="#0b0b0b")
-    ax.set_xlim(0, 2.5)
+    ax.set_xlim(0, 3.0)
     ax.set_ylim(0, 1.5)
     ax.set_xlabel("wheel speed, m/s (75 mm wheel)")
     ax.set_ylabel("torque per wheel, N·m")

@@ -48,12 +48,20 @@ Run these with `scripts/bringup.py` (`check`, `deploy`, `diet`, `forge-cutover`,
      - new nodes: video, odom; telemetry for the Pi (`rabbit.telemetry.body`); the HUD safety indicator; stall detection in safety once the encoders count;
      - switch the Jetson's NATS to the leaf config (`workspaces/jetson/nats-leaf.conf`) at phase 1 and install `rabbit-jetson-power.service` (venv `/opt/rabbit-host` with nats-py);
      - with the bumpers on, the footprint grows to front 0.2452 m, rear 0.072 m, half width 0.102 m (`lib/safety.py` `Footprint`, `lib/planner.py` `front_overhang`); sensor poses for `T_base_lidar` / ToF in `cad/brackets/README.md`;
-- **BLDC drive** (study 2026-10-03: `reports/2026-10-03-bldc-drive.md`, log `log/2026-10-03-bldc-drive.md`). The current 70:1 tops out at 0.59 m/s with 8× more torque than traction allows. In order:
-  1. Measure: which 37D is fitted and the free length between the motor ends (open-issues M5), plus phone dB(A) and spectrum at 30 cm at 0.16 / 0.3 / 0.5 m/s.
-  2. Owner decision (open-issues): first step Pololu 37D 19:1 #4751 on the RoboClaw (drop-in, ~1.57 m/s, US$140, speed mode with a 4 A limit), and/or straight to BLDC.
-  3. Ask sellers (ASLONG, Chihai, NFP) for a bare JGB37 BLDC (3-phase + Hall, 12 V, 18.8:1, 6 mm D, 7 mm offset, double shaft); order 3 samples, plus 2× SimpleFOC Mini, an STM32G474 board and 2× MT6701.
-  4. Bench one motor, then both on the robot via modules. The firmware speaks the RoboClaw packet-serial subset, so `roboclaw.py` and `rabbit.roboclaw` stay unchanged. Acceptance tests are in report §10, including ≥ 6 dB(A) quieter at 0.5 m/s.
-  5. Body PCB rev B: STM32G474 + 2× DRV8316CR in the RoboClaw spot, BKIN/nSLEEP hardware E-stop, a 17.6 V brake chopper, solder jumpers to fall back to the RoboClaw (report §8).
+- **BLDC drive** (study 2026-10-03: `reports/2026-10-03-bldc-drive.md`, log `log/2026-10-03-bldc-drive.md`). The owner chose BLDC straight away, with 2–2.5 m/s potential and cruise set in software. In order:
+  1. Motor: XYT JGB37-3625-1260, 12 V, 10:1. It is ~53 mm long with the encoder cap and fits the 58 mm per side, so M10 no longer blocks. Remove the built-in driver and fit an MT6701 over SSI on the rear shaft stub. Ask Chihai whether its GM37-BL3525 comes as an 8-wire version with Halls. Measure the noise baseline (M11).
+  2. Order the prototype (~A$270, open-issues Q30):
+     - 3× XYT 3625 at 10:1 + 1× at 18.8:1;
+     - NUCLEO-G474RE (DigiKey AU);
+     - 3× SimpleFOC Mini v2.3 (Makerfabs; not the DRV8313 DFRobot board sold by Core/Little Bird);
+     - MT6701 boards and diametric magnets.
+  3. Bench one motor, then both on the robot via the modules. Firmware is SimpleFOC on the G474 and speaks the RoboClaw packet-serial subset, so `roboclaw.py` and `rabbit.roboclaw` stay unchanged. Acceptance tests in report §10, including ≥ 2.5 m/s free at 14 V, 0.01 m/s smooth and ≥ 0.28 N·m peak per wheel (otherwise 18.8:1).
+  4. Body PCB rev B to report §8 ("PCB rev B requirements for the motor drive"):
+     - STM32G474RET6 + 2× DRV8316CR (3x PWM) in the RoboClaw spot;
+     - BKIN + DRVOFF hardware E-stop;
+     - 17.6 V brake chopper;
+     - servo PWM and bumpers on the MCU;
+     - Pololu modules replaced by JLC-stocked ICs.
 - Wi-Fi in the far room (−74 dBm, AP disassociations with reason 34): external antennas or an AX210 card, or a second access point.
 - Power (see "Силовая часть" in `reports/2026-10-03-architecture-2.0.md`, diagram `reports/media/power-2.0.svg`): check whether the Jetson barrel shares the motors' 12 V buck (it hits its ~4.5 A limit, 11.3 V, and may explain the mid-manoeuvre reboot on 1 Oct); set RoboClaw current limit 3 A/channel (phase 0 tool) before ever feeding it straight from the battery (max duty 0.71 is now applied in `roboclaw.py` from the supply voltage); battery shunt 10 mΩ caps at 8.19 A (peak seen 7.64 A; `power.battery_clipped` flags readings from 7.37 A): use an external 2 mΩ on ch1 and 5 mΩ on ch3 (motors); wire INA channel 4 to the Jetson's 12 V side (channel plan in `reports/2026-10-03-architecture-2.0-wiring.md`); the Pi's DS3231 keeps time (the dev kit has no RTC connector fitted).
 - Encoders read 0 (speed comes from the pose); magnetometer uncalibrated.

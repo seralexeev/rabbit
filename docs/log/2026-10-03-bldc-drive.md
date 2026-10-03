@@ -92,3 +92,99 @@ Controllers:
 - Bare JGB37 BLDC availability and its shaft offset.
 - The actual dB of the spur gearbox without brushes: measure before committing PCB rev B.
 - RoboClaw PWM frequency: not in the datasheet or manual.
+
+## Update after the owner's answers (same day)
+
+Owner's answers:
+- **Q17:** straight to BLDC, no Pololu interim step.
+- **Q21:** "potential to drive fast". 1.5 m/s is the floor; 2–2.5 m/s if possible, with cruise set in software.
+- **Q22:** research it.
+
+### Motor
+
+- **No assembled bare JGB37 BLDC is sold.** Every JGB37-3650/3625/3525, CHR-GM37 and 37GB3650 listing on AliExpress has the driver in the rear cap (5 wires). Taobao/1688 "external drive, 8-wire" 3650s exist but could not be opened.
+- **Buildable route:**
+  - Chihai CHB-BLDC3650: bare, Hall, ~346 rpm/V, 8 wires; A$32.59 + 11.79 shipping.
+  - SONGPUWEI 37 mm gearbox only: 6.25 / 10 / 19 … :1, standard JGB37 output (6 mm D, 22 mm), 8 or 13 mm motor pilot, pinion bore 2.0/3.0/3.17; A$4.99 + 10.33.
+  - The mating of motor and gearbox, the rear shaft for the magnet and the pole pairs must be asked from the seller first.
+- **Face confirmed:** the PFDE JGB37-3650 and Chihai CHR-GM37 drawings show 6×M3 on Ø31, 7 mm offset, Ø12×6 boss, 6 mm D shaft (5.4 flat), 15 mm. Built-in-driver versions are only a fallback: PWM speed and FG at 6 pulses/rev cannot crawl.
+- **Ratio 6.25:1:**
+  - 2.89 m/s free and ~2.3 m/s at 0.2 N·m at 14 V (estimate, Kt 0.0276 N·m/A, gearbox 0.8);
+  - 1.45 A for 0.2 N·m continuous, 4.3 A for 0.6 N·m peak;
+  - 10:1 is the cooler spare at ~1.6 m/s.
+- **Length:** 69–71 mm per motor, against 58 mm in the chassis model. Measurement M10 decides. The 3625 fits but is 3–5× too weak.
+
+### Battery
+
+NEEWER's spec lists "BP/D Tap: 16.8V 8A (Max)" as inputs and "Fully charged in 3h via a 16.8V D Tap charger". The plate accepts charge on paper. BMS behaviour at full charge and on current spikes is unknown, so the design stays "does not accept":
+- 0.5 A regen cap in firmware;
+- 17.6 V chopper;
+- the ideal diode is not needed.
+
+### Australian sourcing (AUD, 2026-10-03)
+
+| Item | Where | Price |
+|---|---|---|
+| NUCLEO-G474RE | DigiKey AU | A$32.24, 2,557 in stock |
+| SimpleFOC Mini v2.3 (DRV8316) | Makerfabs | US$6.90 |
+| STLINK-V3MINIE | DigiKey AU | A$40.85 |
+| MT6701 boards | AliExpress | ~A$4 |
+| 10 Ω 10 W resistor | Jaycar RR3352 | A$1.80 |
+
+- The "SimpleFOCMini" at Core Electronics and Little Bird is the old DRV8313 v1 (DFRobot DRI0058): do not buy.
+- ODrive Micro is sold out; moteus c1 is in stock (US$69).
+- Prototype total ≈ A$300.
+
+### PCB rev B requirements
+
+Report §8, written for the PCB agent. Stock is from the JLCPCB catalogue API.
+
+**Motor block:**
+- STM32G474RET6 LQFP-64 (C521608, 242 in stock). The QFN-48 lacks pins: the budget is 49 of 52. The G431RBT6 (C431633) is the backup.
+- 2× DRV8316CRRGFR (C5447274, 2,833) in 3x PWM mode.
+- E-stop: TIM1/TIM8 BKIN brakes in hardware; a NAND of `ESTOP_RUN` and MCU-alive drives DRVOFF. DRVOFF rather than nSLEEP, which resets the registers.
+- Brake chopper: TLV3201 (C105188) → AO3400A (C20917, base) → 4× 56 Ω 2 W 2512 (C2912630).
+- MCU powered from the board 5 V through TLV75533 (C404027), not from the DRV8316 buck.
+
+**MCU takes over:**
+- Servo PWM from TIM15/16/17 with SN74AHCT1G125 (C7484) buffers, dropping the PCA9685. The PCA9685 is in stock anyway: C92206, 1,205.
+- Bumpers.
+
+**Modules → JLC parts:**
+- TPS56637 (C841386) for the 5 V and 6 V rails.
+- Jetson fed straight from the bus through a TPS259474 eFuse (C2864845); the carrier input is 9–20 V per its spec, J16.
+- LTC2954 (C683782) + LM74502 (C3236215) + 2× CSD17573Q5B (C202231) instead of the Pololu #2813 switch.
+- JLC assembles SMT and THT (wave) on both sides.
+
+## Second update: the short motor is the primary
+
+The coordinator asked whether the 3650 is needed at all, given the ~0.32 N·m grip limit and the 58 mm per side in the chassis model. Recomputed at 4S: 14 V under load, 95% voltage use in FOC, gearbox efficiency 0.8.
+
+Assumption for the 3625: phase resistance was estimated as ~6.7 Ω line-to-line from XYT's 12 V stall current of 1.8 A. The winding then caps the current near 2 A. This must be verified on the bench.
+
+| Option | Length (gearbox + encoder cap) | Free speed | At 0.05 N·m (rug) | At 0.13 N·m | Peak at the wheel |
+|---|---|---|---|---|---|
+| XYT JGB37-3625-1260, 12 V, 500 rpm/V, 10:1 | ~53 mm | 2.61 m/s | 2.18 m/s | 1.49 m/s | ~0.30 N·m |
+| Same, 18.8:1 | | 1.39 m/s | | | ~0.57 N·m |
+| Chihai 3650, 6.25:1 | ~76 mm (18 mm over) | 2.89 m/s | | 2.48 m/s | 0.69 N·m |
+
+The 3625 at 10:1 covers:
+- rug cruise up to ~2.2 m/s;
+- a 5° ramp at about the rated 0.8 A;
+- holding on 5° at ~0.45 A;
+- acceleration up to about the grip limit at low speed.
+
+The 15 mm threshold needs momentum (≥ 0.5 m/s), which the front axle needs anyway.
+
+**Verdict:** the 3650 is not needed. It only adds speed under load and a static threshold climb, and it does not fit.
+
+Changes:
+- **Encoder:** the XYT driver board carries the Halls, so the angle comes from the MT6701 over SSI (absolute). Its magnet sits on the rear shaft stub, which shows on the XYT rotor photo, the Chihai GM37-BL3525 photo and the MY-BL3525 drawing. Encoders on the gearbox output or the wheel hub are not practical: there is a 3.3 mm gap and nothing stationary outside the wheel. Hall-only with SimpleFOC `SmoothingSensor` gives 2 mm steps per edge at 10:1 and needs a bare motor with Halls.
+- **Report §8, forced by the motor:**
+  - J_ENC carries SSI (3V3, GND, CSN, CLK, DO) on SPI2 instead of ABZ; same JST-GH 5 part; the pin budget is still 49 of 52;
+  - DRV8316 current-sense gain 0.6 V/A over SPI;
+  - phase currents ≤ 1 A continuous and ~2 A peak, while the block keeps its 3 A / 8 A margin for a 3650.
+
+  The rest of the controller block is unchanged.
+- **Prototype:** ~A$270, with XYT 3625 at A$28.39 + 6.56 each, delivered 14–24 Oct.
+- **Open issues:** M10 closed as C16; Q30 and Q31 updated.
