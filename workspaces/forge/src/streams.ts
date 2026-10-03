@@ -30,6 +30,9 @@ export const nanos = (text: string) => {
   return match;
 };
 
+const nanosField = (text: string, key: string) =>
+  new RegExp(`"${key}":\\s*(\\d+)`).exec(text)?.[1] ?? null;
+
 const EARLIEST_MS = 1_500_000_000_000n;
 const LATEST_MS = 4_000_000_000_000n;
 
@@ -73,6 +76,7 @@ const Roboclaw = z.object({
   left: Motor,
   right: Motor,
   supply_voltage: z.number(),
+  duty_max: z.number().nullish(),
   temperature: z.number(),
   status: z.number(),
   errors: z.number(),
@@ -85,6 +89,7 @@ const Channel = z.object({
   voltage: z.number(),
   current: z.number(),
   power: z.number(),
+  clipped: z.boolean().nullish(),
 });
 
 const Ina = z.object({
@@ -127,6 +132,14 @@ const Pose = z.object({
   angular_velocity: Vector3,
   position_std: Vector3,
   confidence: z.number(),
+});
+
+export const ZED_EULER = { pitch: 0, yaw: 1, roll: 2 } as const;
+
+export const zedEuler = (euler: [number, number, number]) => ({
+  roll_deg: euler[ZED_EULER.roll],
+  pitch_deg: euler[ZED_EULER.pitch],
+  yaw_deg: euler[ZED_EULER.yaw],
 });
 
 const Magnetometer = z.object({
@@ -173,7 +186,11 @@ const Telemetry = z.object({
   cpu_freq_mhz: z.array(z.number()),
   gpu: z.number(),
   gpu_freq_mhz: z.number(),
-  ram: z.object({ used: z.number(), total: z.number() }),
+  ram: z.object({
+    used: z.number(),
+    total: z.number(),
+    shared: z.number().nullish(),
+  }),
   swap: z.object({ used: z.number() }),
   temp: z.object({
     cpu: z.number(),
@@ -191,7 +208,87 @@ const Telemetry = z.object({
   uptime: z.string(),
   fan: z.number(),
   fan_rpm: z.number(),
+  clocks: z
+    .object({
+      cpu_cur_mhz: z.array(z.number()).default([]),
+      cpu_min_mhz: z.array(z.number()).default([]),
+      gpu_min_mhz: z.number().nullish(),
+      gpu_max_mhz: z.number().nullish(),
+      emc_mhz: z.number().nullish(),
+      oc_events: z.array(z.number().nullable()).nullish(),
+      oc_throttle_ticks: z.number().nullish(),
+      power_mode: z.string().default(''),
+    })
+    .optional(),
+  boot_id: z.string().default(''),
 });
+
+const NatsServer = z.object({
+  boot_id: z.string().default(''),
+  nats: z
+    .object({
+      connections: z.number().nullish(),
+      subscriptions: z.number().nullish(),
+      slow_consumers: z.number().nullish(),
+      in_msgs: z.number().nullish(),
+      out_msgs: z.number().nullish(),
+      in_bytes: z.number().nullish(),
+      out_bytes: z.number().nullish(),
+      mem: z.number().nullish(),
+      cpu: z.number().nullish(),
+      slow_consumer_stats: z.record(z.string(), z.number()).nullish(),
+    })
+    .optional(),
+});
+
+const NodeMetrics = z.object({
+  node: z.string(),
+  instance_id: z.string().default(''),
+  boot_id: z.string().default(''),
+  uptime_s: z.number(),
+  interval_s: z.number().nullish(),
+  cpu_pct: z.number().nullish(),
+  rss_bytes: z.number().nullish(),
+  threads: z.number().nullish(),
+  loop_lag_max_ms: z.number().nullish(),
+  loop_lag_mean_ms: z.number().nullish(),
+  sent_msgs: z.number().default(0),
+  sent_bytes: z.number().default(0),
+  received_msgs: z.number().default(0),
+  received_bytes: z.number().default(0),
+  reconnects: z.number().default(0),
+  dropped_publishes: z.number().default(0),
+  log_dropped: z.number().default(0),
+  events: z.number().default(0),
+  events_suppressed: z.number().default(0),
+  events_dropped: z.number().default(0),
+  callback_errors: z.number().default(0),
+  values: z.record(z.string(), z.number()).default({}),
+});
+
+const LocMapOdom = z.object({
+  keyframe_ts: z.number().nullish(),
+  status: z.string(),
+  mode: z.string(),
+  map_id: z.string(),
+  odom_session: z.string().nullish(),
+  translation: z.tuple([z.number(), z.number(), z.number()]).nullish(),
+  orientation: z
+    .tuple([z.number(), z.number(), z.number(), z.number()])
+    .nullish(),
+  matches: z.number(),
+  corrections: z.number(),
+  pending: z.number(),
+  grown_nodes: z.number().default(0),
+  last_match_ts: z.number().nullish(),
+});
+
+const LocShadow = z
+  .object({
+    status: z.string().nullish(),
+    gen3_from_loc: z.tuple([z.number(), z.number(), z.number()]).nullish(),
+  })
+  .nullish();
 
 const ZedHealth = z.object({
   camera_fps: z.number(),
@@ -214,6 +311,28 @@ const ZedHealth = z.object({
   map_chunks: z.number(),
   map_points: z.number(),
   map_triangles: z.number().default(0),
+  relocalizing: z.boolean().nullish(),
+  map_mode: z.string().nullish(),
+  map_id: z.string().nullish(),
+  map_session: z.string().nullish(),
+  idle: z.boolean().nullish(),
+  implausible_poses: z.number().nullish(),
+  held_poses: z.number().nullish(),
+  odom_rejected: z.number().nullish(),
+  dropped_publishes: z.number().nullish(),
+  corrupted_frames: z.number().nullish(),
+  map_rebuilds: z.number().nullish(),
+  stored_frames: z.number().nullish(),
+  keyframes: z.number().nullish(),
+  integrate_ms: z.number().nullish(),
+  mesh_ms: z.number().nullish(),
+  grid_ms: z.number().nullish(),
+  skipped_jumps: z.number().nullish(),
+  floor_y: z.number().nullish(),
+  detector_ms: z.number().nullish(),
+  pose_tilt_deg: z.number().nullish(),
+  imu_tilt_deg: z.number().nullish(),
+  loc: LocShadow,
   temperature: z.object({
     imu: z.number(),
     barometer: z.number(),
@@ -240,6 +359,20 @@ const Obstacle = z.object({
   scan: Scan.nullish(),
 });
 
+const DetectedObjects = z.object({
+  objects: z.array(
+    z.object({
+      id: z.number(),
+      label: z.string(),
+      confidence: z.number(),
+      position: Vector3,
+      dimensions: Vector3,
+      box: z.array(z.number()),
+      moving: z.boolean(),
+    }),
+  ),
+});
+
 const NavState = z.object({
   mode: z.string(),
   goal: z.object({ x: z.number(), z: z.number() }).nullable(),
@@ -254,7 +387,10 @@ const NavState = z.object({
   turn_remaining_deg: z.number().nullish(),
   free_distance: z.number().nullish(),
   fault: z.string().nullish(),
+  hold: z.string().nullish(),
   mission_id: z.string().nullish(),
+  mission_source: z.string().nullish(),
+  trip_id: z.string().nullish(),
 });
 
 const Mission = Source.extend({ steps: z.array(z.unknown()) });
@@ -278,11 +414,124 @@ const ExploreState = z.object({
   frontiers: z.number(),
   failed_frontiers: z.number(),
   target: z
-    .object({ x: z.number(), z: z.number(), path_length: z.number() })
+    .object({
+      x: z.number(),
+      z: z.number(),
+      path_length: z.number().nullish(),
+    })
     .nullish(),
   planning_ms: z.number().nullish(),
   map_chunks: z.number(),
 });
+
+const PlannerState = z.object({
+  trip_id: z.string().nullish(),
+  phase: z.string(),
+  source: z.string().nullish(),
+  preview: z.boolean().nullish(),
+  target: z
+    .object({
+      kind: z.string(),
+      label: z.string().nullish(),
+      x: z.number(),
+      z: z.number(),
+    })
+    .nullish(),
+  goal: z
+    .object({ x: z.number(), z: z.number(), heading_deg: z.number().nullish() })
+    .nullish(),
+  path_length_m: z.number().nullish(),
+  remaining_m: z.number().nullish(),
+  replans: z.number().default(0),
+  recoveries: z.number().default(0),
+  reason: z.string().nullish(),
+  message: z.string().nullish(),
+  plan_ms: z.number().nullish(),
+  expansions: z.number().nullish(),
+  mission_id: z.string().nullish(),
+  exploration_id: z.string().nullish(),
+});
+
+const FINISHED_TRIP = new Set(['arrived', 'failed', 'cancelled', 'planned']);
+
+const plannerStream = (): Stream => {
+  let lastFinished = '';
+  return {
+    subject: 'rabbit.planner.state',
+    table: 'planner_state',
+    toRows: (msg) => {
+      const { text, payload } = json(PlannerState, msg);
+      if (payload.trip_id == null) {
+        return [];
+      }
+      const finished = FINISHED_TRIP.has(payload.phase)
+        ? `${payload.trip_id}:${payload.phase}`
+        : '';
+      if (finished !== '' && finished === lastFinished) {
+        return [];
+      }
+      lastFinished = finished;
+      return [
+        {
+          ts: nanos(text),
+          trip_id: payload.trip_id,
+          phase: payload.phase,
+          source: payload.source ?? '',
+          preview: payload.preview ?? false,
+          target_kind: payload.target?.kind ?? '',
+          target_label: payload.target?.label ?? '',
+          target_x: payload.target?.x ?? null,
+          target_z: payload.target?.z ?? null,
+          goal_x: payload.goal?.x ?? null,
+          goal_z: payload.goal?.z ?? null,
+          goal_heading_deg: payload.goal?.heading_deg ?? null,
+          path_length_m: payload.path_length_m ?? null,
+          remaining_m: payload.remaining_m ?? null,
+          replans: payload.replans,
+          recoveries: payload.recoveries,
+          reason: payload.reason ?? '',
+          message: payload.message ?? '',
+          plan_ms: payload.plan_ms ?? null,
+          expansions: payload.expansions ?? 0,
+          mission_id: payload.mission_id ?? '',
+          exploration_id: payload.exploration_id ?? '',
+        },
+      ];
+    },
+  };
+};
+
+const natsServerStream = (): Stream => {
+  let last: number | null = null;
+  return {
+    subject: 'rabbit.telemetry',
+    table: 'nats_server',
+    toRows: (msg) => {
+      const { text, payload } = json(NatsServer, msg);
+      const nats = payload.nats;
+      if (nats?.in_msgs == null || nats.in_msgs === last) {
+        return [];
+      }
+      last = nats.in_msgs;
+      return [
+        {
+          ts: nanos(text),
+          boot_id: payload.boot_id,
+          connections: nats.connections ?? 0,
+          subscriptions: nats.subscriptions ?? 0,
+          slow_consumers: nats.slow_consumers ?? 0,
+          in_msgs: nats.in_msgs,
+          out_msgs: nats.out_msgs ?? 0,
+          in_bytes: nats.in_bytes ?? 0,
+          out_bytes: nats.out_bytes ?? 0,
+          mem_bytes: nats.mem ?? 0,
+          cpu_pct: nats.cpu ?? 0,
+          slow_consumer_stats: nats.slow_consumer_stats ?? {},
+        },
+      ];
+    },
+  };
+};
 
 const commandEvent = (subject: string): Stream => ({
   subject,
@@ -413,6 +662,7 @@ export const STREAMS: Stream[] = [
           ...motorColumns('left', payload.left),
           ...motorColumns('right', payload.right),
           supply_voltage: payload.supply_voltage,
+          duty_max: payload.duty_max ?? null,
           temperature: payload.temperature,
           status: payload.status,
           errors: payload.errors,
@@ -436,9 +686,11 @@ export const STREAMS: Stream[] = [
           battery_current: battery.current,
           battery_power: battery.power,
           battery_charge_pct: payload.battery_charge_pct,
+          battery_clipped: battery.clipped ?? null,
           rail_6v_voltage: rail.voltage,
           rail_6v_current: rail.current,
           rail_6v_power: rail.power,
+          rail_6v_clipped: rail.clipped ?? null,
           errors: payload.errors,
         },
       ];
@@ -486,7 +738,6 @@ export const STREAMS: Stream[] = [
       const { text, payload } = json(Pose, msg);
       const [x, y, z] = payload.translation;
       const [qx, qy, qz, qw] = payload.orientation;
-      const [roll, pitch, yaw] = payload.euler_deg;
       const [vx, vy, vz] = payload.velocity;
       const [wx, wy, wz] = payload.angular_velocity;
       const [stdX, stdY, stdZ] = payload.position_std;
@@ -501,9 +752,7 @@ export const STREAMS: Stream[] = [
           qy,
           qz,
           qw,
-          roll_deg: roll,
-          pitch_deg: pitch,
-          yaw_deg: yaw,
+          ...zedEuler(payload.euler_deg),
           vx,
           vy,
           vz,
@@ -558,6 +807,8 @@ export const STREAMS: Stream[] = [
           gpu_freq_mhz: payload.gpu_freq_mhz,
           ram_used_bytes: payload.ram.used,
           ram_total_bytes: payload.ram.total,
+          ram_shared_bytes: payload.ram.shared ?? null,
+          boot_id: payload.boot_id,
           swap_used_bytes: payload.swap.used,
           temp_cpu: payload.temp.cpu,
           temp_gpu: payload.temp.gpu,
@@ -574,6 +825,20 @@ export const STREAMS: Stream[] = [
           uptime_s: uptimeSeconds(payload.uptime),
           fan_pct: payload.fan,
           fan_rpm: payload.fan_rpm,
+          ...(payload.clocks == null
+            ? {}
+            : {
+                cpu_actual_mhz: payload.clocks.cpu_cur_mhz,
+                cpu_min_freq_mhz: payload.clocks.cpu_min_mhz,
+                gpu_min_freq_mhz: payload.clocks.gpu_min_mhz ?? null,
+                gpu_max_freq_mhz: payload.clocks.gpu_max_mhz ?? null,
+                emc_freq_mhz: payload.clocks.emc_mhz ?? null,
+                oc1_events: payload.clocks.oc_events?.[0] ?? null,
+                oc2_events: payload.clocks.oc_events?.[1] ?? null,
+                oc3_events: payload.clocks.oc_events?.[2] ?? null,
+                oc_throttle_ticks: payload.clocks.oc_throttle_ticks ?? null,
+                power_mode: payload.clocks.power_mode,
+              }),
         },
       ];
     },
@@ -591,6 +856,41 @@ export const STREAMS: Stream[] = [
         mem_bytes: container.mem,
         mem_limit_bytes: container.mem_limit,
       }));
+    },
+  },
+  natsServerStream(),
+  {
+    subject: 'rabbit.metrics.*',
+    table: 'node_metrics',
+    toRows: (msg) => {
+      const { text, payload } = json(NodeMetrics, msg);
+      return [
+        {
+          ts: nanos(text),
+          node: payload.node,
+          instance_id: payload.instance_id,
+          boot_id: payload.boot_id,
+          uptime_s: payload.uptime_s,
+          interval_s: payload.interval_s ?? null,
+          cpu_pct: payload.cpu_pct ?? null,
+          rss_bytes: payload.rss_bytes ?? null,
+          threads: payload.threads ?? null,
+          loop_lag_max_ms: payload.loop_lag_max_ms ?? null,
+          loop_lag_mean_ms: payload.loop_lag_mean_ms ?? null,
+          sent_msgs: payload.sent_msgs,
+          sent_bytes: payload.sent_bytes,
+          received_msgs: payload.received_msgs,
+          received_bytes: payload.received_bytes,
+          reconnects: payload.reconnects,
+          dropped_publishes: payload.dropped_publishes,
+          log_dropped: payload.log_dropped,
+          events: payload.events,
+          events_suppressed: payload.events_suppressed,
+          events_dropped: payload.events_dropped,
+          callback_errors: payload.callback_errors,
+          values: payload.values,
+        },
+      ];
     },
   },
   {
@@ -634,6 +934,66 @@ export const STREAMS: Stream[] = [
           temp_barometer: payload.temperature.barometer,
           temp_onboard_left: payload.temperature.onboard_left,
           temp_onboard_right: payload.temperature.onboard_right,
+          loc_status: payload.loc?.status ?? '',
+          gen3_from_loc_x: payload.loc?.gen3_from_loc?.[0] ?? null,
+          gen3_from_loc_z: payload.loc?.gen3_from_loc?.[1] ?? null,
+          gen3_from_loc_yaw_deg: payload.loc?.gen3_from_loc?.[2] ?? null,
+          relocalizing: payload.relocalizing ?? null,
+          map_mode: payload.map_mode ?? '',
+          map_id: payload.map_id ?? '',
+          map_session: payload.map_session ?? '',
+          idle: payload.idle ?? null,
+          implausible_poses: payload.implausible_poses ?? null,
+          held_poses: payload.held_poses ?? null,
+          odom_rejected: payload.odom_rejected ?? null,
+          dropped_publishes: payload.dropped_publishes ?? null,
+          corrupted_frames: payload.corrupted_frames ?? null,
+          map_rebuilds: payload.map_rebuilds ?? null,
+          stored_frames: payload.stored_frames ?? null,
+          keyframes: payload.keyframes ?? null,
+          integrate_ms: payload.integrate_ms ?? null,
+          mesh_ms: payload.mesh_ms ?? null,
+          grid_ms: payload.grid_ms ?? null,
+          skipped_jumps: payload.skipped_jumps ?? null,
+          floor_y: payload.floor_y ?? null,
+          detector_ms: payload.detector_ms ?? null,
+          pose_tilt_deg: payload.pose_tilt_deg ?? null,
+          imu_tilt_deg: payload.imu_tilt_deg ?? null,
+        },
+      ];
+    },
+  },
+  {
+    subject: 'rabbit.loc.map_odom',
+    table: 'loc',
+    toRows: (msg) => {
+      const { text, payload } = json(LocMapOdom, msg);
+      const [qx, qy, qz, qw] = payload.orientation ?? [0, 0, 0, 1];
+      return [
+        {
+          ts: nanos(text),
+          keyframe_ts: nanosField(text, 'keyframe_ts'),
+          status: payload.status,
+          mode: payload.mode,
+          map_id: payload.map_id,
+          odom_session: payload.odom_session ?? '',
+          x: payload.translation?.[0] ?? null,
+          y: payload.translation?.[1] ?? null,
+          z: payload.translation?.[2] ?? null,
+          yaw_deg:
+            payload.orientation == null
+              ? null
+              : (Math.atan2(
+                  2 * (qx * qz + qy * qw),
+                  1 - 2 * (qx * qx + qy * qy),
+                ) *
+                  180) /
+                Math.PI,
+          matches: payload.matches,
+          corrections: payload.corrections,
+          pending: payload.pending,
+          grown_nodes: payload.grown_nodes,
+          last_match_ts: nanosField(text, 'last_match_ts'),
         },
       ];
     },
@@ -675,6 +1035,28 @@ export const STREAMS: Stream[] = [
     },
   },
   {
+    subject: 'rabbit.zed.objects',
+    table: 'objects',
+    toRows: (msg) => {
+      const { text, payload } = json(DetectedObjects, msg);
+      const ts = nanos(text);
+      return payload.objects.map((object) => ({
+        ts,
+        object_id: object.id,
+        label: object.label,
+        confidence: object.confidence,
+        x: object.position[0],
+        y: object.position[1],
+        z: object.position[2],
+        width: object.dimensions[0],
+        height: object.dimensions[1],
+        length: object.dimensions[2],
+        box: object.box,
+        moving: object.moving,
+      }));
+    },
+  },
+  {
     subject: 'rabbit.nav.state',
     table: 'nav_state',
     toRows: (msg) => {
@@ -696,7 +1078,10 @@ export const STREAMS: Stream[] = [
           turn_remaining_deg: payload.turn_remaining_deg ?? null,
           free_distance: payload.free_distance ?? null,
           fault: payload.fault ?? '',
+          hold: payload.hold ?? '',
           mission_id: payload.mission_id ?? '',
+          mission_source: payload.mission_source ?? '',
+          trip_id: payload.trip_id ?? '',
         },
       ];
     },
@@ -797,6 +1182,8 @@ export const STREAMS: Stream[] = [
       ];
     },
   },
+  plannerStream(),
+  commandEvent('rabbit.planner.goal'),
   commandEvent('rabbit.nav.explore'),
   commandEvent('rabbit.map.save'),
   commandEvent('rabbit.map.reset'),

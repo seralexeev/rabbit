@@ -1,0 +1,75 @@
+title: Why navigation stopped
+description: >-
+  Every reason the robot stopped or did not move, with the evidence: safety stops (stall,
+  collision, stuck, blocked, step timeout, manoeuvre failed, odometry reset, control error) with
+  motor current, ground speed, IMU acceleration and free distance; holds of the safety governor
+  (obstacle ahead or behind, blind, no fresh scan, no fresh pose); cancels and who sent them;
+  manual overrides from the gamepad; rejected missions; the motors stopping because drive commands
+  stopped arriving; the joystick taking the motors; failed or cancelled planner trips; and camera
+  restarts that end a mission. Use it for "why did it stop", "why did it not move" and "why did
+  the trip fail".
+tags:
+  [
+    stop,
+    stopped,
+    safety,
+    fault,
+    hold,
+    blocked,
+    stall,
+    collision,
+    stuck,
+    cancel,
+    override,
+    why,
+  ]
+prompts:
+  - Why did the robot stop?
+  - Why did nav stop at 03:12?
+  - Why didn't it move?
+guidelines: >-
+  Newest first. A nav.hold is the governor holding the robot, not a fault: the robot resumes when
+  the reason clears; a nav.safety_stop ends the mission. For the robot's surroundings at that
+  moment use timeline around t, and obstacle_events for the scan.
+dims: [t]
+sql: |
+  SELECT
+    ts AS t,
+    node,
+    name,
+    toString(severity) AS severity,
+    reason,
+    labels['source'] AS sent_by,
+    if(mapContains(values, 'free_distance_m'), round(values['free_distance_m'], 3), NULL) AS free_distance_m,
+    if(mapContains(values, 'motor_current_a'), round(values['motor_current_a'], 2), NULL) AS motor_current_a,
+    if(mapContains(values, 'ground_speed_mps'), round(values['ground_speed_mps'], 3), NULL) AS ground_speed_mps,
+    if(mapContains(values, 'accel_mps2'), round(values['accel_mps2'], 2), NULL) AS accel_mps2,
+    if(mapContains(values, 'distance_to_goal_m'), round(values['distance_to_goal_m'], 2), NULL) AS distance_to_goal_m,
+    mission_id,
+    trip_id,
+    toString(values) AS measured
+  FROM events
+  WHERE run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    AND (name IN ('nav.safety_stop', 'nav.hold', 'nav.mission_cancelled', 'nav.manual_override',
+                  'nav.mission_rejected', 'nav.odometry_reset', 'motors.command_timeout',
+                  'drive.owner_changed', 'drive.command_ignored', 'camera.restart')
+      OR (name = 'planner.trip_finished' AND labels['outcome'] IN ('failed', 'cancelled')))
+  ORDER BY t DESC
+columns:
+  t: { kind: time }
+  node: { kind: attribute }
+  name: { kind: attribute }
+  severity: { kind: attribute }
+  reason: { kind: attribute }
+  sent_by:
+    { kind: attribute, description: "Who sent a cancel or rejected mission" }
+  free_distance_m: { measure: gauge, unit: m }
+  motor_current_a: { measure: gauge, unit: A }
+  ground_speed_mps: { measure: gauge, unit: m/s }
+  accel_mps2: { measure: gauge, unit: m/s2 }
+  distance_to_goal_m: { measure: gauge, unit: m }
+  mission_id: { kind: attribute }
+  trip_id: { kind: attribute }
+  measured: { kind: attribute }

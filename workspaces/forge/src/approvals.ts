@@ -1,6 +1,6 @@
 import { ForgeError } from './errors.ts';
 
-export const APPROVAL_TTL_MS = 60_000;
+export const APPROVAL_TTL_MS = 120_000;
 
 const issued = new Map<string, number>();
 
@@ -24,7 +24,7 @@ export const consumeApproval = (toolCallId: string, now = Date.now()) => {
   issued.delete(toolCallId);
   if (now - issuedAt > APPROVAL_TTL_MS) {
     throw new ForgeError('Approval expired', {
-      llm: 'The operator approved more than 60 s after the request; propose the action again.',
+      llm: `The operator approved more than ${APPROVAL_TTL_MS / 1000} s after the request; propose the action again.`,
       internal: { toolCallId },
     });
   }

@@ -1,0 +1,78 @@
+title: Object sightings over time
+description: >-
+  When the on-robot detector saw each class of object: per time bucket and class, how many
+  distinct tracked objects were in view, the best confidence and the nearest distance from the
+  robot. Use it for when something (a person, a cat, a chair) appeared or disappeared and how
+  long it stayed in view.
+tags:
+  [objects, detection, person, seen, when, timeline, appeared, camera, vision]
+prompts:
+  - When was a person seen?
+  - What did the robot see over time?
+  - Когда робот видел человека?
+guidelines: >-
+  A class missing from a bucket means it was out of view or not detected, not that it left the
+  room. distance_m is horizontal from the camera to the object centre. Single frames with low
+  confidence are usually misdetections.
+dims: [t, label]
+sql: |
+  WITH p AS (
+    SELECT run_id, toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t, avg(x) AS rx, avg(z) AS rz
+    FROM pose
+    WHERE run_id = {run_id:String}
+      AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+      AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    GROUP BY run_id, t
+  )
+  SELECT
+    o.t AS t,
+    o.label AS label,
+    o.objects AS objects,
+    o.frames AS frames,
+    o.best AS best_confidence,
+    round(min(sqrt(pow(o.ox - p.rx, 2) + pow(o.oz - p.rz, 2))), 2) AS distance_m
+  FROM (
+    SELECT
+      run_id,
+      toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+      label,
+      uniqExact(object_id) AS objects,
+      count() AS frames,
+      round(max(confidence), 1) AS best,
+      avg(x) AS ox,
+      avg(z) AS oz
+    FROM objects
+    WHERE run_id = {run_id:String}
+      AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+      AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      AND ({label:String} = '' OR label = {label:String})
+      AND confidence >= {min_confidence:Float64}
+    GROUP BY run_id, t, label
+  ) AS o
+  LEFT JOIN p ON p.run_id = o.run_id AND p.t = o.t
+  GROUP BY t, label, objects, frames, best_confidence
+  ORDER BY t, label
+columns:
+  t: { kind: time }
+  label: { kind: category }
+  objects:
+    {
+      measure: gauge,
+      description: Distinct tracked objects of this class in view,
+    }
+  frames: { measure: counter }
+  best_confidence: { measure: gauge, unit: "%" }
+  distance_m: { measure: gauge, unit: m }
+subs:
+  label:
+    type: String
+    default: ""
+    description: Only this class (exact name, e.g. person); empty for all
+  min_confidence:
+    type: Float64
+    default: 30
+    description: Ignore detections below this confidence, 0..100
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

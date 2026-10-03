@@ -1,8 +1,8 @@
-import { reader, select } from '../clickhouse.ts';
 import { ForgeError } from '../errors.ts';
 import { label, table } from '../output.ts';
 import { resolveRunParams } from '../runs.ts';
 import { DEFAULT_ROW_LIMIT, describeQuery, runSql } from '../sql/query_gate.ts';
+import { select } from '../store/engine.ts';
 import { type Slab, type SlabSub, getSlab } from './slab.ts';
 
 type ParamValue = string | number;
@@ -11,7 +11,6 @@ const TARGET_ROWS = 180;
 
 const autoBucket = async (params: Record<string, ParamValue>) => {
   const [span] = await select<{ seconds: number | null }>(
-    reader,
     "SELECT dateDiff('second', greatest(started_at, parseDateTime64BestEffort({from:String}, 9, 'UTC')), least(coalesce(stopped_at, now64(9)), parseDateTime64BestEffort({to:String}, 9, 'UTC'))) AS seconds FROM runs WHERE run_id = {run_id:String}",
     {
       run_id: params.run_id,

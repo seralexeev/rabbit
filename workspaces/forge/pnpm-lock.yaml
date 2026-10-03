@@ -11,9 +11,6 @@ importers:
       '@ai-sdk/openai':
         specifier: 4.0.81
         version: 4.0.81(zod@4.5.4)
-      '@clickhouse/client':
-        specifier: 1.23.1
-        version: 1.23.1
       '@modelcontextprotocol/server':
         specifier: 2.2.0
         version: 2.2.0
@@ -29,6 +26,9 @@ importers:
       ai:
         specifier: 7.0.122
         version: 7.0.122(zod@4.5.4)
+      chdb:
+        specifier: 3.4.0
+        version: 3.4.0(@clickhouse/client@1.23.1)(ai@7.0.122(zod@4.5.4))(zod@4.5.4)
       minisearch:
         specifier: 7.2.0
         version: 7.2.0
@@ -81,6 +81,32 @@ packages:
   '@ai-sdk/provider@4.0.19':
     resolution: {integrity: sha512-ryVZSSfmpEsr4bM8rbt9cSBWal+KGYRrm57C+k/hiPQHMiMahaqg2bPF0MpxSUWY8mGpt7s/ajM6PAqNTMKqPQ==}
     engines: {node: '>=22'}
+
+  '@chdb/lib-darwin-arm64@26.7.3-stable.1':
+    resolution: {integrity: sha512-xcemR3KgxpgMJSOlTpSnM/SxK3fWIy2MyACWOLccDuomgm/n2as8god4/bcSmbtvKN5GbHUVBKUdr/rlqt2lkA==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@chdb/lib-darwin-x64@26.7.3-stable.1':
+    resolution: {integrity: sha512-x2OUn8jO4tOh8Pfdg1R6LNiGro+N3yHKLqU1/03AEk09y2E4j166UWs1lzSyCgSF5HRXy6Ea5daOmvOpyu8L8g==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@chdb/lib-linux-arm64-gnu@26.7.3-stable.1':
+    resolution: {integrity: sha512-fXcYEsC83Gw3P5mdBoyBw71vXjayXZZ6C9WGHd+zsCKolTxklKw5IR3LG+LCIVvpwK8/1ukgvTFmuvtbP3/lOw==}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@chdb/lib-linux-x64-gnu@26.7.3-stable.1':
+    resolution: {integrity: sha512-XP97mMqnc5tZpKQywR8N7cLTsHNiTmHr30pC5mzo3jWmukjKn2IBa60c2B/gWUNcuFjOMjWoorQICCqBVj5wpw==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@clickhouse/client-common@1.23.0':
+    resolution: {integrity: sha512-OkuxPkQ+ph8CCrt/4DYBvlJ9D9Q9q7FwvP8FdwER+7UDNO3jN4Ee6SZl9iLupKJIvKeuS68+x86ZyqFuHdPK3g==}
+    deprecated: 'Deprecated: import from @clickhouse/client or @clickhouse/client-web instead.'
 
   '@clickhouse/client@1.23.1':
     resolution: {integrity: sha512-vs3/Zc1dHvT171btW5nMoPsPCJ6QVJ5pp7obxzO5sjqwFx/jjz9wwCAqcFOdc2DhprugDBaVn+4dVY8hG3A9nw==}
@@ -672,6 +698,34 @@ packages:
     resolution: {integrity: sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==}
     engines: {node: '>=18'}
 
+  chdb@3.4.0:
+    resolution: {integrity: sha512-HMNj4dq3lIrwqxwGSuuEjo9EIlC+k8IjsSQHh1ZStGvV6MRckfvPM2aDqzdW1ti3fldrt9UIntJBm0AbV9nbDQ==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
+    peerDependencies:
+      '@aws-sdk/client-s3': '>=3'
+      '@clickhouse/client': '>=1.23.0'
+      '@hypequery/clickhouse': '>=2.1.2'
+      '@mastra/core': '>=0.10'
+      ai: '>=5'
+      apache-arrow: '>=14'
+      zod: '>=3'
+    peerDependenciesMeta:
+      '@aws-sdk/client-s3':
+        optional: true
+      '@clickhouse/client':
+        optional: true
+      '@hypequery/clickhouse':
+        optional: true
+      '@mastra/core':
+        optional: true
+      ai:
+        optional: true
+      apache-arrow:
+        optional: true
+      zod:
+        optional: true
+
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
@@ -790,6 +844,13 @@ packages:
   nanoid@3.3.19:
     resolution: {integrity: sha512-Y2tUNy4ouw6tq5oDSKeQYGOyhkUBhNOcGV/02KC+6kd9eDGqdZd++mjMiIDilrBYvjEnCYvVtsuHCuP+okSfug==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+    hasBin: true
+
+  node-addon-api@6.1.0:
+    resolution: {integrity: sha512-+eawOlIgy680F0kBzPUNFhMZGtJ1YmqM6l4+Crf4IkImjYrO/mqPwRMh352g23uIaQKFItcQ64I7KMaJxHgAVA==}
+
+  node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
     hasBin: true
 
   obug@2.2.1:
@@ -1011,7 +1072,22 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  '@clickhouse/client@1.23.1': {}
+  '@chdb/lib-darwin-arm64@26.7.3-stable.1':
+    optional: true
+
+  '@chdb/lib-darwin-x64@26.7.3-stable.1':
+    optional: true
+
+  '@chdb/lib-linux-arm64-gnu@26.7.3-stable.1':
+    optional: true
+
+  '@chdb/lib-linux-x64-gnu@26.7.3-stable.1':
+    optional: true
+
+  '@clickhouse/client-common@1.23.0': {}
+
+  '@clickhouse/client@1.23.1':
+    optional: true
 
   '@jridgewell/resolve-uri@3.1.2': {}
 
@@ -1336,6 +1412,20 @@ snapshots:
 
   chai@6.2.2: {}
 
+  chdb@3.4.0(@clickhouse/client@1.23.1)(ai@7.0.122(zod@4.5.4))(zod@4.5.4):
+    dependencies:
+      '@clickhouse/client-common': 1.23.0
+      node-addon-api: 6.1.0
+      node-gyp-build: 4.8.4
+    optionalDependencies:
+      '@chdb/lib-darwin-arm64': 26.7.3-stable.1
+      '@chdb/lib-darwin-x64': 26.7.3-stable.1
+      '@chdb/lib-linux-arm64-gnu': 26.7.3-stable.1
+      '@chdb/lib-linux-x64-gnu': 26.7.3-stable.1
+      '@clickhouse/client': 1.23.1
+      ai: 7.0.122(zod@4.5.4)
+      zod: 4.5.4
+
   detect-libc@2.1.2: {}
 
   es-module-lexer@2.3.2: {}
@@ -1413,6 +1503,10 @@ snapshots:
   minisearch@7.2.0: {}
 
   nanoid@3.3.19: {}
+
+  node-addon-api@6.1.0: {}
+
+  node-gyp-build@4.8.4: {}
 
   obug@2.2.1: {}
 

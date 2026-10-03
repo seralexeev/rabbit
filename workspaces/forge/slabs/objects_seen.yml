@@ -1,0 +1,107 @@
+title: Objects the robot has seen
+description: >-
+  Inventory of furniture, appliances, people and household objects the on-robot detector saw:
+  for each object its class, where it stands in the room (ZED world frame, same as pose), its
+  size, when it was first and last seen, how long it stayed in view and the best detector
+  confidence. Tracks of the same class within a grid cell are merged into one object. Use it for
+  what the robot saw during a run or a time range, as history: it includes objects seen before a
+  map reset, whose coordinates belong to the old map. For where something is now or where the
+  robot saw it ("where is the fridge", "where did you see the cat") call find_object instead,
+  which reads only the current map.
+tags:
+  [
+    objects,
+    detection,
+    furniture,
+    person,
+    where,
+    seen,
+    inventory,
+    camera,
+    vision,
+  ]
+prompts:
+  - What objects did the robot see?
+  - Where is the fridge?
+  - When did the robot see a person?
+  - Что робот видел?
+  - Где стоит стул?
+guidelines: >-
+  Positions are in metres in the ZED world frame (same as the trajectory slab), y is the height
+  of the object centre above the floor. The camera is 13 cm above the floor, so tall objects are
+  often cut off and their size is underestimated. Low confidence (under 40) or few frames often
+  means a misdetection, e.g. a coffee table labelled bed. Classes come from an open-vocabulary
+  detector; filter by label with the exact class name (person, chair, sofa, refrigerator, door,
+  television, ...).
+dims: [label]
+sql: |
+  WITH tracks AS (
+    SELECT
+      object_id,
+      label,
+      min(ts) AS first_ts,
+      max(ts) AS last_ts,
+      count() AS frames,
+      median(x) AS tx,
+      median(y) AS ty,
+      median(z) AS tz,
+      median(width) AS tw,
+      median(height) AS th,
+      median(length) AS tl,
+      max(confidence) AS best
+    FROM objects
+    WHERE run_id = {run_id:String}
+      AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+      AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+      AND ({label:String} = '' OR label = {label:String})
+    GROUP BY object_id, label
+    HAVING frames >= {min_frames:UInt32} AND best >= {min_confidence:Float64}
+  )
+  SELECT
+    label,
+    round(avg(tx), 2) AS x,
+    round(avg(ty), 2) AS y,
+    round(avg(tz), 2) AS z,
+    round(avg(tw), 2) AS width_m,
+    round(avg(th), 2) AS height_m,
+    round(avg(tl), 2) AS length_m,
+    min(first_ts) AS first_seen,
+    max(last_ts) AS last_seen,
+    round(sum(dateDiff('millisecond', first_ts, last_ts)) / 1000, 1) AS in_view_s,
+    sum(frames) AS frames,
+    count() AS tracks,
+    round(max(best), 1) AS best_confidence
+  FROM tracks
+  GROUP BY label, round(tx / {cell_m:Float64}), round(tz / {cell_m:Float64})
+  ORDER BY first_seen
+columns:
+  label: { kind: category }
+  x: { measure: gauge, unit: m }
+  y: { measure: gauge, unit: m }
+  z: { measure: gauge, unit: m }
+  width_m: { measure: gauge, unit: m }
+  height_m: { measure: gauge, unit: m }
+  length_m: { measure: gauge, unit: m }
+  first_seen: { kind: attribute }
+  last_seen: { kind: attribute }
+  in_view_s: { measure: gauge, unit: s }
+  frames: { measure: counter }
+  tracks: { measure: counter, description: Tracker ids merged into this object }
+  best_confidence: { measure: gauge, unit: "%" }
+subs:
+  label:
+    type: String
+    default: ""
+    description: Only this class (exact name, e.g. chair); empty for all
+  min_frames:
+    type: UInt32
+    default: 5
+    description: Drop tracks seen in fewer detection frames (flicker)
+  min_confidence:
+    type: Float64
+    default: 30
+    description: Drop tracks whose best confidence is below this, 0..100
+  cell_m:
+    type: Float64
+    default: 0.75
+    description: Tracks of the same class closer than about this are merged into one object, m

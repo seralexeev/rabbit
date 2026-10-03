@@ -1,6 +1,5 @@
 import z from 'zod';
 
-import { reader, select } from './clickhouse.ts';
 import { forgeTool } from './forge_tool.ts';
 import { isSeries, loadGraph } from './graph/graph.ts';
 import { fetchSeries, gridFor } from './graph/series.ts';
@@ -8,6 +7,7 @@ import { round, sparkline } from './graph/stats.ts';
 import { type TimeWindow, resolveWindow, toIso } from './moment.ts';
 import { epochMs, table } from './output.ts';
 import { runSlab } from './slabs/run_slab.ts';
+import { select } from './store/engine.ts';
 
 const MAX_SPAN_S = 15 * 60;
 const MAX_BINS = 600;
@@ -16,7 +16,13 @@ const RARE_INFO = 3;
 const SILENCE_S = 1.5;
 const DETAIL_CHARS = 240;
 
-type EventKind = 'command' | 'state' | 'operator' | 'config' | 'log';
+type EventKind =
+  | 'command'
+  | 'decision'
+  | 'state'
+  | 'operator'
+  | 'config'
+  | 'log';
 
 export type TimelineEvent = {
   t: string;
@@ -36,7 +42,7 @@ const clip = (text: string) =>
   text.length > DETAIL_CHARS ? `${text.slice(0, DETAIL_CHARS)}...` : text;
 
 const query = async <T>(sql: string, window: TimeWindow) =>
-  await select<T>(reader, sql, { from_ms: window.from, to_ms: window.to });
+  await select<T>(sql, { from_ms: window.from, to_ms: window.to });
 
 const changes = async (
   window: TimeWindow,
@@ -177,7 +183,7 @@ const stateEvents = async (window: TimeWindow): Promise<Raw[]> => {
 const configEvents = async (window: TimeWindow): Promise<Raw[]> =>
   (
     await query<{ t: string; key: string; operation: string; value: string }>(
-      `SELECT toString(ts) AS t, key, operation, value FROM kv_changes FINAL WHERE ${WINDOW_SQL} ORDER BY ts`,
+      `SELECT toString(ts) AS t, key, operation, value FROM kv_changes WHERE ${WINDOW_SQL} ORDER BY ts LIMIT 1 BY ts, key, revision`,
       window,
     )
   ).map((row) => ({
@@ -205,7 +211,7 @@ const logEvents = async (window: TimeWindow): Promise<Raw[]> =>
         toString(max(level)) AS severity, argMin(message, ts) AS message,
         sum(1 + repeats) AS records, any(exception_type) AS exception_type,
         fields['container'] AS container, any(fields['exit_code']) AS exit_code
-      FROM logs WHERE ${WINDOW_SQL} AND level >= 'info'
+      FROM logs WHERE ${WINDOW_SQL} AND level >= 'info' AND fields['event'] = ''
       GROUP BY fingerprint, container
       HAVING max(level) >= 'warning' OR sum(1 + repeats) <= ${RARE_INFO}
       ORDER BY min(ts)`,
@@ -226,11 +232,53 @@ const logEvents = async (window: TimeWindow): Promise<Raw[]> =>
       .join(', '),
   }));
 
+const decisionEvents = async (window: TimeWindow): Promise<Raw[]> =>
+  (
+    await query<{
+      t: string;
+      node: string;
+      name: string;
+      severity: string;
+      reason: string;
+      ids: string;
+      values: string;
+      labels: string;
+      suppressed: string;
+    }>(
+      `SELECT toString(ts) AS t, node, name, toString(severity) AS severity, reason,
+        arrayStringConcat(arrayFilter(x -> x != '', [
+          if(mission_id = '', '', concat('mission ', mission_id)),
+          if(trip_id = '', '', concat('trip ', trip_id)),
+          if(exploration_id = '', '', concat('exploration ', exploration_id))]), ', ') AS ids,
+        arrayStringConcat(arrayMap((k, v) -> concat(k, ' ', toString(round(v, 3))), mapKeys(values), mapValues(values)), ', ') AS values,
+        arrayStringConcat(arrayMap((k, v) -> concat(k, ' ', v), mapKeys(labels), mapValues(labels)), ', ') AS labels,
+        toString(suppressed) AS suppressed
+      FROM events WHERE ${WINDOW_SQL} AND name NOT IN ('node.start') ORDER BY ts`,
+      window,
+    )
+  ).map((row) => ({
+    t: row.t,
+    kind: 'decision',
+    source: row.node,
+    what: `${row.severity === 'info' ? '' : `${row.severity}: `}${row.name}${row.reason === '' ? '' : `: ${row.reason}`}`,
+    detail: clip(
+      [
+        row.ids,
+        row.values,
+        row.labels,
+        row.suppressed === '0' ? '' : `${row.suppressed} more suppressed`,
+      ]
+        .filter((part) => part.length > 0)
+        .join('; '),
+    ),
+  }));
+
 export const windowEvents = async (
   window: TimeWindow,
 ): Promise<TimelineEvent[]> => {
   const groups = await Promise.all([
     commandEvents(window),
+    decisionEvents(window),
     stateEvents(window),
     configEvents(window),
     logEvents(window),
@@ -298,7 +346,7 @@ const windowMetrics = async (window: TimeWindow, points: number) => {
 
 export const timelineTool = forgeTool({
   title: 'Timeline',
-  description: `Everything that happened around a moment or in a short range (at most 15 minutes), on one clock: commands and who sent them (gamepad, drive stops, navigation goals, missions and cancels, exploration starts, map saves), state transitions (navigation mode, safety faults and missions, exploration phase, camera tracking, Wi-Fi), HUD heartbeat silences, robot configuration changes such as camera settings, and log records (all warnings and errors, plus rare info messages), each with its offset in seconds from at. It also summarises every metric of the metric graph over the window: the ones that moved with min, max, mean, last and a sparkline, the steady ones with their level, and those without data. Use it first to orient around an event before investigate, detect_anomalies or slabs.`,
+  description: `Everything that happened around a moment or in a short range (at most 15 minutes), on one clock: commands and who sent them (gamepad, drive stops, navigation goals, missions and cancels, exploration starts, map saves), decisions the nodes recorded with their reason and measured values (events: safety stops, holds, replans, recoveries, trip and exploration outcomes, camera restarts and relocalizations, map saves and resets), state transitions (navigation mode, safety faults and missions, exploration phase, camera tracking, Wi-Fi), HUD heartbeat silences, robot configuration changes such as camera settings, and log records (all warnings and errors, plus rare info messages), each with its offset in seconds from at. It also summarises every metric of the metric graph over the window: the ones that moved with min, max, mean, last and a sparkline, the steady ones with their level, and those without data. Use it first to orient around an event before investigate, detect_anomalies or slabs.`,
   input: z.object({
     at: z
       .string()

@@ -1,14 +1,15 @@
 import z from 'zod';
 
-import { reader, select } from './clickhouse.ts';
 import { forgeTool } from './forge_tool.ts';
 import { resolveWindow, toIso } from './moment.ts';
 import { table } from './output.ts';
 import { resolveRunId } from './runs.ts';
+import { select } from './store/engine.ts';
 
 const LEVELS = ['debug', 'info', 'warning', 'error', 'critical'] as const;
 const MAX_WINDOW_S = 6 * 3600;
 const EXCEPTION_TAIL = 800;
+const MAX_WORDS = 8;
 
 const Level = z
   .enum(LEVELS)
@@ -54,18 +55,25 @@ const scopeFor = async (input: {
     conditions.push('node = {node:String}');
     params.node = input.node;
   }
-  if (input.text != null && input.text.trim().length > 0) {
+  const words = (input.text ?? '')
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((word) => word.length > 0)
+    .slice(0, MAX_WORDS);
+  if (words.length > 0) {
     conditions.push(
-      '(hasAllTokens(message, {text:String}) OR hasAllTokens(exception, {text:String}))',
+      `(${words.map((_, i) => `positionCaseInsensitiveUTF8(message, {w${i}:String}) > 0`).join(' AND ')} OR ${words.map((_, i) => `positionCaseInsensitiveUTF8(exception, {w${i}:String}) > 0`).join(' AND ')})`,
     );
-    params.text = input.text;
+    for (const [i, word] of words.entries()) {
+      params[`w${i}`] = word;
+    }
   }
   return { where: conditions.join(' AND '), params };
 };
 
 export const searchLogsTool = forgeTool({
   title: 'Search logs',
-  description: `Searches the log records of every robot node (camera, navigation, exploration, motor controller, steering, power monitor, telemetry, and container starts, exits and crashes). Words in text must all appear in the message or the traceback, case-insensitive (whole words, e.g. "roboclaw error" or "relocalization"). Without at, from or to it searches the run (default latest); with them it searches that time range across runs (at alone covers 5 minutes before to 1 minute after). By default records of the same kind are grouped: one row per kind with the count (suppressed repeats included), first and last time, the latest message and exception. Set grouped false for individual records. Use log_summary first for an overview, and logs_around to read what happened at one moment.`,
+  description: `Searches the log records of every robot node (camera, navigation, exploration, motor controller, steering, power monitor, telemetry, and container starts, exits and crashes). Words in text must all appear in the message or the traceback, case-insensitive; a word also matches longer words that contain it, so "relocali" finds relocalized and relocalizing. Without at, from or to it searches the run (default latest); with them it searches that time range across runs (at alone covers 5 minutes before to 1 minute after). By default records of the same kind are grouped: one row per kind with the count (suppressed repeats included), first and last time, the latest message and exception. Set grouped false for individual records. Use log_summary first for an overview, and logs_around to read what happened at one moment.`,
   input: z.object({
     text: z
       .string()
@@ -87,7 +95,6 @@ export const searchLogsTool = forgeTool({
     const { where, params } = await scopeFor(input);
     const rows = input.grouped
       ? await select<Record<string, unknown>>(
-          reader,
           `SELECT
             any(node) AS source_node,
             toString(max(level)) AS severity,
@@ -106,7 +113,6 @@ export const searchLogsTool = forgeTool({
           { ...params, limit: input.limit },
         )
       : await select<Record<string, unknown>>(
-          reader,
           `SELECT toString(ts) AS t, node, toString(level) AS severity, message, repeats, exception_type,
             right(exception, ${EXCEPTION_TAIL}) AS exception_tail, mission_id, toJSONString(fields) AS fields, run_id
           FROM logs WHERE ${where}
@@ -148,7 +154,6 @@ export const logsAroundTool = forgeTool({
       ...(input.node == null ? [] : ['node = {node:String}']),
     ];
     const rows = await select<Record<string, unknown>>(
-      reader,
       `SELECT toString(ts) AS t,
         round((toUnixTimestamp64Milli(ts) - {at_ms:Int64}) / 1000, 2) AS offset_s,
         node, toString(level) AS severity, message, repeats, exception_type,

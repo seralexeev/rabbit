@@ -8,6 +8,7 @@ import { ROOT } from '../config.ts';
 import { errorMessage } from '../errors.ts';
 import type { ForgeTool } from '../forge_tool.ts';
 import { ROBOT_TOOLS } from '../robot.ts';
+import { select } from '../store/engine.ts';
 
 const Case = z.strictObject({
   id: z.string(),
@@ -19,8 +20,12 @@ const Case = z.strictObject({
   approval_steps: z
     .array(z.record(z.string(), z.union([z.string(), z.number()])))
     .optional(),
+  approval_input: z.record(z.string(), z.string()).optional(),
   facts: z.array(z.string()).default([]),
   obstacle_ahead_m: z.number().nullable().default(null),
+  heading_deg: z.number().default(0),
+  anchor: z.string().optional(),
+  history: z.array(z.custom<UIMessage>()).default([]),
 });
 
 type EvalCase = z.infer<typeof Case>;
@@ -31,14 +36,17 @@ const DRY_RUN = new Set(
   Object.keys(ROBOT_TOOLS).filter((name) => name !== 'robot_status'),
 );
 
-const robotStatusFixture = (obstacleAhead: number | null) => ({
+const robotStatusFixture = (
+  obstacleAhead: number | null,
+  headingDeg: number,
+) => ({
   kind: 'status',
   pose: {
     x: 0,
     y: 0.13,
     z: 0,
-    yaw_deg: 0,
-    heading_deg: 0,
+    yaw_deg: -headingDeg,
+    heading_deg: headingDeg,
     speed_mps: 0,
     confidence: 90,
     age_s: 0.3,
@@ -78,7 +86,10 @@ const evalTools = (evalCase: EvalCase): Record<string, ForgeTool> =>
             ...tool,
             run: async () =>
               await Promise.resolve(
-                robotStatusFixture(evalCase.obstacle_ahead_m),
+                robotStatusFixture(
+                  evalCase.obstacle_ahead_m,
+                  evalCase.heading_deg,
+                ),
               ),
           },
         ];
@@ -135,8 +146,38 @@ const stepsMatch = (
   );
 };
 
+const fill = (text: string, anchor: Record<string, unknown>) =>
+  text.replaceAll(/\{(\w+)\}/g, (match, name: string) =>
+    name in anchor ? String(anchor[name]) : match,
+  );
+
+const anchored = async (evalCase: EvalCase): Promise<EvalCase | null> => {
+  if (evalCase.anchor == null) {
+    return evalCase;
+  }
+  const [anchor] = await select<Record<string, unknown>>(evalCase.anchor);
+  if (anchor == null) {
+    return null;
+  }
+  return {
+    ...evalCase,
+    question: fill(evalCase.question, anchor),
+    facts: evalCase.facts.map((fact) => fill(fact, anchor)),
+    approval_input:
+      evalCase.approval_input == null
+        ? undefined
+        : Object.fromEntries(
+            Object.entries(evalCase.approval_input).map(([key, value]) => [
+              key,
+              fill(value, anchor),
+            ]),
+          ),
+  };
+};
+
 const runCase = async (evalCase: EvalCase) => {
   const messages: UIMessage[] = [
+    ...evalCase.history,
     {
       id: 'u1',
       role: 'user',
@@ -196,6 +237,21 @@ const runCase = async (evalCase: EvalCase) => {
             ),
           ] as [string, boolean],
         ]),
+    ...(evalCase.approval_input == null
+      ? []
+      : [
+          [
+            `approval input matches ${JSON.stringify(evalCase.approval_input)}`,
+            approvals.some((approval) =>
+              Object.entries(evalCase.approval_input ?? {}).every(
+                ([key, pattern]) =>
+                  new RegExp(pattern, 'i').test(
+                    String((approval.input as Record<string, unknown>)[key]),
+                  ),
+              ),
+            ),
+          ] as [string, boolean],
+        ]),
     ...evalCase.facts.map((fact): [string, boolean] => [
       `says /${fact}/`,
       new RegExp(fact, 'i').test(text),
@@ -210,14 +266,23 @@ export const runChatEval = async (only?: string) => {
     .parse(parseYaml(readFileSync(new URL('evals/chat.yml', ROOT), 'utf8')))
     .filter((evalCase) => only == null || evalCase.id === only);
   const results: Array<
-    Awaited<ReturnType<typeof runCase>> | { id: string; error: string }
+    | (Awaited<ReturnType<typeof runCase>> & { question: string })
+    | { id: string; error: string }
+    | { id: string; skipped: string }
   > = [];
   for (let i = 0; i < cases.length; i += CONCURRENCY) {
     results.push(
       ...(await Promise.all(
         cases.slice(i, i + CONCURRENCY).map(async (evalCase) => {
           try {
-            return await runCase(evalCase);
+            const resolved = await anchored(evalCase);
+            if (resolved == null) {
+              return { id: evalCase.id, skipped: 'anchor found nothing' };
+            }
+            return {
+              ...(await runCase(resolved)),
+              question: resolved.question,
+            };
           } catch (error) {
             return { id: evalCase.id, error: errorMessage(error) };
           }
@@ -225,6 +290,7 @@ export const runChatEval = async (only?: string) => {
       )),
     );
   }
+  const scored = results.filter((result) => !('skipped' in result));
   const passed = results.filter(
     (result) => 'checks' in result && result.checks.every(([, ok]) => ok),
   );
@@ -232,10 +298,11 @@ export const runChatEval = async (only?: string) => {
     'checks' in result ? result.checks : [],
   );
   return {
-    cases: results.length,
+    cases: scored.length,
+    skipped: results.length - scored.length,
     passed: passed.length,
     case_pass_rate:
-      Math.round((passed.length / Math.max(results.length, 1)) * 100) / 100,
+      Math.round((passed.length / Math.max(scored.length, 1)) * 100) / 100,
     check_pass_rate:
       Math.round(
         (checks.filter(([, ok]) => ok).length / Math.max(checks.length, 1)) *
@@ -245,6 +312,7 @@ export const runChatEval = async (only?: string) => {
       'checks' in result
         ? {
             id: result.id,
+            question: result.question,
             pass: result.checks.every(([, ok]) => ok),
             seconds: Math.round(result.ms / 100) / 10,
             failed: result.checks.filter(([, ok]) => !ok).map(([name]) => name),

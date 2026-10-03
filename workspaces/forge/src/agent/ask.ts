@@ -17,7 +17,7 @@ import {
 } from './model.ts';
 import { writeQueryTool } from './sql_agent.ts';
 
-export const SYSTEM = prompt('ask.md');
+export const SYSTEM = `${prompt('ask.md')}\n\n${prompt('robot.md')}`;
 
 const MAX_STEPS = 10;
 

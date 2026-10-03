@@ -1,78 +1,28 @@
 name: forge
 
-x-forge: &forge
-  image: forge
-  restart: unless-stopped
-  init: true
-  env_file: .env
-  volumes:
-    - &src ./src:/app/src:ro
-    - &clickhouse-config ./clickhouse:/app/clickhouse:ro
-    - &slabs ./slabs:/app/slabs:ro
-    - &graph ./graph:/app/graph:ro
-  depends_on:
-    clickhouse:
-      condition: service_healthy
-
 services:
-  clickhouse:
-    image: clickhouse/clickhouse-server:26.1-alpine
-    container_name: forge-clickhouse
-    restart: unless-stopped
-    environment:
-      CLICKHOUSE_DB: forge
-    ports:
-      - "127.0.0.1:18123:8123"
-      - "127.0.0.1:19000:9000"
-    volumes:
-      - clickhouse-data:/var/lib/clickhouse
-      - ./clickhouse/config.xml:/etc/clickhouse-server/config.d/forge.xml:ro
-      - ./clickhouse/users.xml:/etc/clickhouse-server/users.d/forge.xml:ro
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8123/ping"]
-      interval: 1s
-      timeout: 3s
-      retries: 60
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-
-  writer:
-    <<: *forge
+  forge:
     build: .
-    container_name: forge-writer
-    command: ["writer"]
+    image: forge
+    container_name: forge
+    restart: unless-stopped
+    init: true
+    command: ["serve", "--writer"]
     stop_grace_period: 45s
+    env_file: .env
     environment:
-      FORGE_CLICKHOUSE_URL: http://clickhouse:8123
-    volumes:
-      - *src
-      - *clickhouse-config
-      - *slabs
-      - *graph
-      - ./dead_letters:/app/dead_letters
-    healthcheck:
-      test:
-        - CMD
-        - node
-        - -e
-        - "process.exit(Date.now() - Number(require('fs').readFileSync('/tmp/forge-writer.heartbeat', 'utf8')) < 30000 ? 0 : 1)"
-      interval: 10s
-      timeout: 5s
-      start_period: 30s
-      retries: 3
-
-  chat:
-    <<: *forge
-    container_name: forge-chat
-    pull_policy: never
-    command: ["serve"]
-    environment:
-      FORGE_CLICKHOUSE_URL: http://clickhouse:8123
       FORGE_CHAT_LISTEN_HOST: 0.0.0.0
+      FORGE_DATA_DIR: /app/data
+      FORGE_LOG_CONSUMER: forge-mac
+      FORGE_SYNC_FROM: ""
     ports:
       - "127.0.0.1:18080:18080"
+    volumes:
+      - ./src:/app/src:ro
+      - ./slabs:/app/slabs:ro
+      - ./graph:/app/graph:ro
+      - data:/app/data
+      - ./dead_letters:/app/dead_letters
     healthcheck:
       test:
         - CMD
@@ -85,4 +35,4 @@ services:
       retries: 3
 
 volumes:
-  clickhouse-data:
+  data:

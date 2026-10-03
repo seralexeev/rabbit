@@ -9,7 +9,7 @@ const TABLES = new Set(['roboclaw', 'imu', 'runs']);
 const SCHEMA_TABLES = new Set(
   [
     ...readFileSync(
-      new URL('../../clickhouse/schema.sql', import.meta.url),
+      new URL('../store/schema.sql', import.meta.url),
       'utf8',
     ).matchAll(/CREATE (?:TABLE|VIEW) IF NOT EXISTS forge\.(\w+)/g),
   ].map(([, name]) => name ?? ''),

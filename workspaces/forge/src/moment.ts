@@ -1,7 +1,7 @@
-import { reader, select } from './clickhouse.ts';
 import { ForgeError } from './errors.ts';
 import { epochMs } from './output.ts';
 import { resolveRunId } from './runs.ts';
+import { select } from './store/engine.ts';
 
 export const toIso = (ms: number) =>
   new Date(ms).toISOString().replace('T', ' ').slice(0, 23);
@@ -26,12 +26,10 @@ export const runFor = async (input: {
     return await resolveRunId(input.run_id ?? 'latest');
   }
   const [latest] = await select<{ day: string }>(
-    reader,
     'SELECT toString(toDate(max(started_at))) AS day FROM runs',
   );
   const at = parseAt(input.at, latest?.day ?? '1970-01-01');
   const [run] = await select<{ run_id: string }>(
-    reader,
     "SELECT run_id FROM runs WHERE started_at <= fromUnixTimestamp64Milli({at:Int64}) AND (stopped_at IS NULL OR stopped_at >= fromUnixTimestamp64Milli({at:Int64})) ORDER BY kind = 'manual' DESC, started_at DESC LIMIT 1",
     { at },
   );
@@ -41,7 +39,6 @@ export const runFor = async (input: {
 export const runDay = async (runId: string) =>
   (
     await select<{ day: string }>(
-      reader,
       'SELECT toString(toDate(started_at)) AS day FROM runs WHERE run_id = {run_id:String}',
       { run_id: runId },
     )

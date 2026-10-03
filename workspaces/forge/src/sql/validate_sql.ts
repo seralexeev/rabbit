@@ -547,7 +547,7 @@ const structuralError = (
     return 'GLOBAL IN is not allowed; use IN.';
   }
   if (tableNodes.some((table) => table.final_)) {
-    return 'FINAL is not allowed and not needed: Forge tables are append-only MergeTree tables without duplicates.';
+    return 'FINAL is not allowed and not needed: Forge tables are append-only views over Parquet files.';
   }
   const selects = collect<SelectNode>(ast, 'select');
   if (selects.some((select) => (select.settings?.length ?? 0) > 0)) {

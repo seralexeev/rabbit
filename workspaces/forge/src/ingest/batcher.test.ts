@@ -1,4 +1,3 @@
-import { ClickHouseError } from '@clickhouse/client';
 import { describe, expect, it } from 'vitest';
 
 import type { Row } from '../streams.ts';
@@ -6,6 +5,11 @@ import { Batcher } from './batcher.ts';
 
 const rows = (count: number): Row[] =>
   Array.from({ length: count }, (_, i) => ({ ts: `${i}` }));
+
+const ids = () => {
+  let id = 0;
+  return () => ++id;
+};
 
 const drain = async (batcher: Batcher, clock: { now: number }) => {
   for (let step = 0; step < 50 && batcher.pending() > 0; step++) {
@@ -22,11 +26,12 @@ describe('Batcher', () => {
     const batcher = new Batcher(
       async (_, batch) => {
         if (batch.some((row) => row.ts === '5')) {
-          throw new ClickHouseError({
-            message: 'Cannot parse input',
-            code: '27',
-            type: 'CANNOT_PARSE_INPUT',
-          });
+          throw Object.assign(
+            new Error(
+              'Code: 27. DB::Exception: Cannot parse input. (CANNOT_PARSE_INPUT_ASSERTION_FAILED)',
+            ),
+            { clickhouseCode: 27 },
+          );
         }
         stored.push(...batch);
         await Promise.resolve();
@@ -34,7 +39,12 @@ describe('Batcher', () => {
       (_, batch) => {
         dead.push(...batch);
       },
-      { batchRows: 8, maxBufferedRows: 100, now: () => clock.now },
+      {
+        batchRows: 8,
+        maxBufferedRows: 100,
+        nextId: ids(),
+        now: () => clock.now,
+      },
     );
     batcher.push('imu', rows(8));
     await drain(batcher, clock);
@@ -46,22 +56,29 @@ describe('Batcher', () => {
     ).toEqual(['0', '1', '2', '3', '4', '6', '7']);
   });
 
-  it('retries a transient failure with the same deduplication token after a backoff', async () => {
+  it('retries a transient failure into the same file id after a backoff', async () => {
     const clock = { now: 0 };
-    const tokens: string[] = [];
+    const tokens: number[] = [];
     let failures = 1;
     const batcher = new Batcher(
       async (_, __, token) => {
         tokens.push(token);
         if (failures-- > 0) {
-          throw new Error('socket hang up');
+          throw Object.assign(new Error('ENOSPC: no space left on device'), {
+            code: 'ENOSPC',
+          });
         }
         await Promise.resolve();
       },
       () => {
         throw new Error('nothing should be dead-lettered');
       },
-      { batchRows: 10, maxBufferedRows: 100, now: () => clock.now },
+      {
+        batchRows: 10,
+        maxBufferedRows: 100,
+        nextId: ids(),
+        now: () => clock.now,
+      },
     );
     batcher.push('power', rows(3));
     await batcher.flush();
@@ -83,7 +100,7 @@ describe('Batcher', () => {
       (table, batch) => {
         dead.set(table, [...(dead.get(table) ?? []), ...batch]);
       },
-      { batchRows: 10, maxBufferedRows: 100 },
+      { batchRows: 10, maxBufferedRows: 100, nextId: ids() },
     );
     batcher.push('runs', rows(5));
     for (let i = 0; i < 100; i++) {

@@ -1,0 +1,74 @@
+title: Camera restarts and relocalizations per boot
+description: >-
+  Per Jetson boot: when it booted (first node start), how many times the camera process
+  restarted and why, how often it relocalized in the saved map and how long that took, how often
+  relocalization failed and the map was archived, map resets and saves, and node crashes. Use it
+  for "did the robot reboot", "why did the camera restart", "how often did it lose itself" and
+  "was the map reset".
+tags:
+  [
+    camera,
+    zed,
+    restart,
+    relocalization,
+    lost,
+    map,
+    archive,
+    reset,
+    boot,
+    reboot,
+    crash,
+  ]
+prompts:
+  - How many times did the camera restart today?
+  - Did the robot reboot?
+  - How often did it lose its place in the map?
+guidelines: >-
+  A new boot_id is a reboot (or a power loss: the previous boot then has no node.stop rows).
+  restart_reasons lists the reasons in order. relocalization_s is the mean time from start to a
+  stable fix. A relocalization failure archives the map and starts a new one.
+dims: [boot_id]
+sql: |
+  SELECT
+    boot_id,
+    min(ts) AS first_seen,
+    max(ts) AS last_seen,
+    countIf(name = 'node.start') AS node_starts,
+    countIf(name = 'node.stop' AND reason = 'crash') AS node_crashes,
+    countIf(name = 'camera.restart') AS camera_restarts,
+    arrayStringConcat(groupArrayIf(reason, name = 'camera.restart'), ' | ') AS restart_reasons,
+    countIf(name = 'camera.relocalized') AS relocalized,
+    round(avgIf(values['relocalization_s'], name = 'camera.relocalized'), 1) AS relocalization_s,
+    countIf(name = 'camera.relocalization_failed') AS relocalization_failures,
+    countIf(name = 'camera.tracking_failed') AS tracking_failures,
+    countIf(name = 'map.archived') AS maps_archived,
+    countIf(name = 'map.reset') AS map_resets,
+    countIf(name = 'map.saved') AS map_saves,
+    uniqExactIf(odom_session, odom_session != '') AS odometry_sessions
+  FROM events
+  WHERE (run_id = {run_id:String} OR {all_runs:UInt32} = 1)
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+  GROUP BY boot_id
+  ORDER BY first_seen
+columns:
+  boot_id: { kind: entity }
+  first_seen: { kind: attribute }
+  last_seen: { kind: attribute }
+  node_starts: { measure: event }
+  node_crashes: { measure: event }
+  camera_restarts: { measure: event }
+  restart_reasons: { kind: attribute }
+  relocalized: { measure: event }
+  relocalization_s: { measure: gauge, unit: s }
+  relocalization_failures: { measure: event }
+  tracking_failures: { measure: event }
+  maps_archived: { measure: event }
+  map_resets: { measure: event }
+  map_saves: { measure: event }
+  odometry_sessions: { measure: counter }
+subs:
+  all_runs:
+    type: UInt32
+    default: 0
+    description: 1 counts over every run instead of run_id

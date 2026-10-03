@@ -1,7 +1,7 @@
-import { reader, select } from '../clickhouse.ts';
 import { ForgeError } from '../errors.ts';
 import { epochMs } from '../output.ts';
 import { runSlab } from '../slabs/run_slab.ts';
+import { select } from '../store/engine.ts';
 import type { EventNode, SeriesNode } from './graph.ts';
 
 export type Scope = { run_id: string; from: string; to: string };
@@ -35,7 +35,6 @@ export const extent = async (nodes: SeriesNode[], scope: Scope) => {
       async (table) =>
         (
           await select<{ first: string; last: string; samples: string }>(
-            reader,
             `SELECT toUnixTimestamp64Milli(min(ts)) AS first, toUnixTimestamp64Milli(max(ts)) AS last, count() AS samples FROM ${table} ${SCOPE_SQL}`,
             scope,
           )
@@ -108,7 +107,6 @@ export const fetchSeries = async (
         )
         .join(', ');
       const rows = await select<Record<string, number | string | null>>(
-        reader,
         `SELECT intDiv(toUnixTimestamp64Milli(ts), {bin_ms:UInt32}) AS bin, ${columns} FROM ${table} ${SCOPE_SQL} GROUP BY bin ORDER BY bin`,
         { ...scope, bin_ms: grid.binMs },
       );

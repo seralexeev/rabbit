@@ -30,7 +30,7 @@ export const AGENT_PROVIDER_OPTIONS = {
 export const prompt = (file: string) =>
   readFileSync(new URL(file, import.meta.url), 'utf8');
 
-const failureText = (error: unknown) =>
+export const failureText = (error: unknown) =>
   error instanceof ForgeError && error.llm != null
     ? `${error.message} — ${error.llm}`
     : errorMessage(error);

@@ -1,0 +1,93 @@
+title: Decision timeline
+description: >-
+  Every decision and state change the robot's nodes recorded, in order, with the reason and the
+  numbers measured at that moment: missions started, arrived, cancelled or rejected, safety stops
+  (stall, collision, stuck, blocked, step timeout) with motor current, ground speed and free
+  distance, holds of the safety governor (obstacle, blind, no fresh scan or pose), planner routes
+  and replans with their trigger, waits, recoveries, trip outcomes, exploration goals and
+  frontiers given up, camera restarts, relocalizations, map saves, resets and archives, motor
+  command timeouts and joystick takeovers. Use it for "what happened during the last mission or
+  exploration and why", filtered by a mission, trip or exploration id.
+tags:
+  [
+    events,
+    decisions,
+    reasons,
+    timeline,
+    why,
+    mission,
+    trip,
+    exploration,
+    replan,
+    safety stop,
+    hold,
+    restart,
+  ]
+prompts:
+  - What happened during the last mission and why?
+  - Why did the trip to the fridge replan so often?
+  - Walk me through the last exploration
+guidelines: >-
+  Rows come from the events table (one row per decision). id filters by a mission id, trip id or
+  exploration id (or a prefix of one); trips of an exploration carry its exploration_id, and the
+  nav missions of a trip carry its trip_id, so an exploration id returns the whole chain.
+  min_severity warning keeps only the problems. node.start rows say which code and config
+  started; node_starts has the full snapshot. values holds the measured numbers with the unit in
+  the key.
+dims: [t]
+sql: |
+  SELECT
+    ts AS t,
+    node,
+    name,
+    toString(severity) AS severity,
+    reason,
+    mission_id,
+    trip_id,
+    exploration_id,
+    toString(values) AS measured,
+    toString(labels) AS details,
+    suppressed
+  FROM events
+  WHERE run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    AND severity >= {min_severity:String}
+    AND ({id:String} = ''
+      OR startsWith(mission_id, {id:String})
+      OR startsWith(trip_id, {id:String})
+      OR startsWith(exploration_id, {id:String}))
+  ORDER BY t
+columns:
+  t: { kind: time }
+  node: { kind: attribute }
+  name:
+    {
+      kind: attribute,
+      description: "<area>.<what>, e.g. nav.safety_stop, planner.plan, camera.restart",
+    }
+  severity: { kind: attribute }
+  reason: { kind: attribute }
+  mission_id: { kind: attribute }
+  trip_id: { kind: attribute }
+  exploration_id: { kind: attribute }
+  measured:
+    {
+      kind: attribute,
+      description: "JSON of the measured numbers, unit in the key",
+    }
+  details:
+    {
+      kind: attribute,
+      description: "JSON of the other details: source, mode, outcome, step_type",
+    }
+  suppressed: { measure: event }
+subs:
+  id:
+    type: String
+    default: ""
+    description: Only events of this mission, trip or exploration id (prefix match); empty for all
+  min_severity:
+    type: String
+    default: info
+    description: info for everything, warning for problems only

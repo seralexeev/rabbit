@@ -1,47 +1,236 @@
 - id: battery_average
-  question: What was the average battery voltage in the bench-idle run?
+  anchor: |
+    WITH (SELECT run_id FROM runs WHERE stopped_at IS NOT NULL ORDER BY duration_s DESC LIMIT 1) AS r
+    SELECT r AS run, avg(battery_voltage) AS v,
+      concat('(', replace(toDecimalString(floor(v, 1), 1), '.', '[.,]'), '|', replace(toDecimalString(ceil(v, 1), 1), '.', '[.,]'), ')') AS v_re
+    FROM power WHERE run_id = r
+  question: What was the average battery voltage in run {run}?
   all: [run_slab]
-  facts: ["15[.,]1"]
-- id: reboot_cause
-  question: Why did the robot reboot during the autonomous-nav run?
-  all: ["run_slab:brownout_and_gaps"]
-  any: ["investigate:reboots", detect_anomalies]
-  facts: ["11:00", "14[.,]6"]
+  facts: ["{v_re}"]
+- id: english_only
+  anchor: |
+    WITH (SELECT run_id FROM runs WHERE stopped_at IS NOT NULL ORDER BY duration_s DESC LIMIT 1) AS r
+    SELECT r AS run, avg(battery_voltage) AS v,
+      concat('(', replace(toDecimalString(floor(v, 1), 1), '.', '[.,]'), '|', replace(toDecimalString(ceil(v, 1), 1), '.', '[.,]'), ')') AS v_re
+    FROM power WHERE run_id = r
+  question: ¿Cuál fue el voltaje medio de la batería en la carrera {run}?
+  all: [run_slab]
+  facts: ["{v_re}", "battery", "voltage"]
+- id: chart_voltage
+  anchor: SELECT run_id FROM runs WHERE stopped_at IS NOT NULL ORDER BY duration_s DESC LIMIT 1
+  question: Chart the battery voltage for run {run_id}
+  all: [chart]
+- id: power_budget
+  anchor: SELECT run_id FROM runs WHERE stopped_at IS NOT NULL ORDER BY duration_s DESC LIMIT 1
+  question: What uses the most power in run {run_id}?
+  all: ["run_slab:power_budget"]
+  facts: ["jetson"]
+- id: battery_clipped
+  anchor: SELECT run_id FROM power WHERE battery_clipped GROUP BY run_id ORDER BY max(battery_current) DESC LIMIT 1
+  question: What was the highest battery current in run {run_id}, and is that the real peak?
+  facts: ["clip|saturat|ceiling|lower bound|range"]
+- id: compare_runs
+  anchor: |
+    SELECT groupArray(run_id)[1] AS a, groupArray(run_id)[2] AS b
+    FROM (SELECT run_id FROM runs WHERE stopped_at IS NOT NULL ORDER BY duration_s DESC LIMIT 2)
+  question: Compare runs {a} and {b}
+  all: ["run_slab:run_compare"]
+- id: missions
+  anchor: |
+    SELECT run_id, count() AS missions FROM nav_events
+    WHERE event IN ('goal', 'mission') GROUP BY run_id ORDER BY missions DESC LIMIT 1
+  question: Did the robot complete its missions in run {run_id}?
+  all: ["run_slab:nav_missions"]
+  facts: ["arriv|complet|reach|fail|cancel"]
+- id: tracking
+  anchor: |
+    SELECT run_id FROM zed_health GROUP BY run_id
+    ORDER BY countIf(pose_state != 'OK') / count() DESC LIMIT 1
+  question: Did the camera lose tracking in run {run_id}?
+  any: ["run_slab:tracking_quality", "detect_anomalies:zed_fps"]
+- id: vibration
+  anchor: SELECT run_id FROM runs WHERE stopped_at IS NOT NULL ORDER BY duration_s DESC LIMIT 1
+  question: Were there any bumps or vibration in run {run_id}?
+  any: ["run_slab:imu_shocks", "detect_anomalies:imu_vibration"]
+- id: wifi
+  anchor: SELECT run_id FROM wifi ORDER BY gateway_rtt_ms DESC NULLS LAST LIMIT 1
+  question: Was there high ping or packet loss on Wi-Fi in run {run_id}?
+  all: ["run_slab:wifi_health"]
+- id: encoders
+  anchor: SELECT run_id FROM runs WHERE stopped_at IS NOT NULL ORDER BY duration_s DESC LIMIT 1
+  question: How far did the wheel encoders say the robot drove in run {run_id}?
+  facts:
+    [
+      "encoder",
+      "not connected|n.t connected|disconnected|always (0|zero)|no (wheel-)?encoder",
+    ]
 - id: stall
-  question: Did the motors stall or spike in the autonomous-nav run?
+  anchor: &peak |
+    SELECT run_id,
+      concat(formatDateTime(ts, '%H:%i', 'UTC'), '|', replaceRegexpOne(formatDateTime(ts, '%H:%i', 'Australia/Sydney'), '^0', '0?')) AS at_re,
+      formatDateTime(ts, '%H:%i', 'UTC') AS at_utc,
+      formatDateTime(ts - INTERVAL 2 MINUTE, '%Y-%m-%d %H:%i:%S', 'UTC') AS window_from,
+      formatDateTime(ts + INTERVAL 2 MINUTE, '%Y-%m-%d %H:%i:%S', 'UTC') AS window_to
+    FROM roboclaw
+    WHERE greatest(abs(left_pwm), abs(right_pwm)) > 0.05
+    ORDER BY abs(left_current) + abs(right_current) DESC LIMIT 1
+  question: Did the motors stall or spike in run {run_id}?
   all: ["run_slab:stall_events"]
-  facts: ["11:04", "inrush|start"]
+  facts: ["{at_re}"]
+- id: motor_anomaly_window
+  anchor: *peak
+  question: Was anything unusual with the motor current in run {run_id} between {window_from} and {window_to} UTC?
+  all: ["detect_anomalies:motor_current"]
+  facts: ["{at_re}"]
+- id: multi_metric_anomaly
+  anchor: *peak
+  question: Did battery voltage and motor current misbehave together between {window_from} and {window_to} UTC in run {run_id}?
+  all: ["detect_anomalies:battery_voltage", "detect_anomalies:motor_current"]
+  facts: ["{at_re}"]
+- id: spike_cause
+  anchor: *peak
+  question: Why did the motor current spike around {at_utc} UTC in run {run_id}?
+  any:
+    [
+      "investigate:motor_current",
+      "detect_anomalies:motor_current",
+      "run_slab:stall_events",
+    ]
+  facts: ["command|throttle|drive|pwm|stall|inrush|start|obstacle|wall"]
+- id: data_gaps
+  anchor: &gap |
+    SELECT run_id,
+      concat(formatDateTime(prev, '%H:%i', 'UTC'), '|', replaceRegexpOne(formatDateTime(prev, '%H:%i', 'Australia/Sydney'), '^0', '0?')) AS at_re,
+      formatDateTime(prev, '%H:%i', 'UTC') AS at_utc
+    FROM (
+      SELECT run_id, ts, lagInFrame(ts, 1, ts) OVER (PARTITION BY run_id ORDER BY ts ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS prev
+      FROM power
+    )
+    ORDER BY ts - prev DESC LIMIT 1
+  question: Were there data gaps or reboots in run {run_id}?
+  all: ["run_slab:brownout_and_gaps"]
+  facts: ["{at_re}"]
+- id: investigate_gap
+  anchor: *gap
+  question: Investigate the data gap at {at_utc} UTC in run {run_id}
+  all: ["investigate:data_gaps"]
+  facts: ["TL;DR", "`ref:", "`next:"]
+- id: trace_battery_sag
+  question: Trace what caused battery sag in the last run
+  any: ["investigate:battery_voltage"]
+  facts: ["current", "`ref:"]
 - id: heavy_query
   question: Write me a query for Jetson CPU frequency per minute
   all: [write_query]
   facts: ["```sql"]
-- id: motor_anomaly_window
-  question: Was anything unusual with the motor current in autonomous-nav between 11:02:30 and 11:06 UTC?
-  all: ["detect_anomalies:motor_current"]
-  facts: ["11:04"]
-- id: power_budget
-  question: What uses the most power in the autonomous-nav run?
-  all: ["run_slab:power_budget"]
-  facts: ["jetson"]
-- id: compare_runs
-  question: Compare the autonomous-nav and bench-idle runs
-  all: ["run_slab:run_compare"]
-- id: missions
-  question: Did the robot complete its missions in the autonomous-nav run?
-  all: ["run_slab:nav_missions"]
-  facts: ["arriv|complet|reached"]
-- id: chart_voltage
-  question: Chart the battery voltage for the bench-idle run
-  all: [chart]
-- id: tracking
-  question: Did the camera lose tracking in the autonomous-nav run?
-  any: ["run_slab:tracking_quality", "detect_anomalies:zed_fps"]
-- id: vibration
-  question: Were there any bumps or vibration in the autonomous-nav run?
-  any: ["run_slab:imu_shocks", "detect_anomalies:imu_vibration"]
-- id: encoders
-  question: How far did the wheel encoders say the robot drove in autonomous-nav?
-  facts: ["encoder", "not connected|n.t connected|disconnected"]
+- id: graph_motor_current
+  question: Show the metric graph around motor current
+  all: ["metric_graph:motor_current"]
+  none: [investigate]
+- id: graph_path
+  question: How is Jetson CPU load related to tracking confidence?
+  all: [metric_graph]
+  facts: ["frame|fps"]
+- id: power_throttling
+  anchor: SELECT run_id FROM runs ORDER BY started_at DESC LIMIT 1
+  question: Was the robot throttled during run {run_id}?
+  all: ["run_slab:power_throttling"]
+- id: camera_restart
+  anchor: |
+    SELECT formatDateTime(ts, '%H:%i', 'UTC') AS at_utc, formatDateTime(ts, '%Y-%m-%d', 'UTC') AS day
+    FROM logs WHERE node = 'rabbit-zed' AND message LIKE 'Restarting the camera process: no relocalization%'
+    ORDER BY ts DESC LIMIT 1
+  question: Why did the camera node restart at {at_utc} UTC on {day}?
+  any:
+    [
+      search_logs,
+      logs_around,
+      timeline,
+      "run_slab:container_events",
+      "investigate:container_crashes",
+    ]
+  facts: ["relocali[sz]"]
+- id: last_relocalization
+  anchor: |
+    SELECT concat(formatDateTime(ts, '%H:%i', 'UTC'), '|', replaceRegexpOne(formatDateTime(ts, '%H:%i', 'Australia/Sydney'), '^0', '0?')) AS at_re
+    FROM logs WHERE node = 'rabbit-zed' AND message LIKE 'Relocalized%'
+    ORDER BY ts DESC LIMIT 1
+  question: When did the camera last relocalize in its saved map?
+  any:
+    [
+      search_logs,
+      logs_around,
+      timeline,
+      write_query,
+      "run_slab:tracking_quality",
+    ]
+  facts: ["{at_re}"]
+- id: who_stopped
+  anchor: |
+    SELECT formatDateTime(ts, '%H:%i:%S', 'UTC') AS at_utc, formatDateTime(ts, '%Y-%m-%d', 'UTC') AS day,
+      if(source = 'hud', 'HUD|hud|operator', 'Forge|forge|chat') AS who_re
+    FROM drive WHERE speed = 0 AND source IN ('hud', 'forge') ORDER BY ts DESC LIMIT 1
+  question: Who sent the stop command at {at_utc} UTC on {day}?
+  any: [timeline, "run_slab:command_timeline"]
+  facts: ["{who_re}"]
+- id: recent_exploration
+  anchor: |
+    SELECT arrayStringConcat(arraySlice(splitByChar(' ', argMax(message, ts)), 1, 2), ' ') AS message,
+      replaceRegexpOne(replace(toDecimalString(max(travelled_m), 1), '.', '[.,]'), '\\[\\.,\\]0$', '([.,]0)?') AS metres_re
+    FROM explore_state
+    WHERE exploration_id = (
+      SELECT exploration_id FROM explore_state WHERE exploration_id != ''
+      GROUP BY exploration_id ORDER BY min(ts) DESC LIMIT 1
+    )
+  question: How did the most recent exploration go?
+  all: ["run_slab:explorations"]
+  facts: ["{message}", "{metres_re}"]
+- id: fridge_trip
+  anchor: |
+    SELECT argMax(phase, ts) AS phase, max(replans) AS replans FROM planner_state
+    WHERE trip_id = (SELECT argMax(trip_id, ts) FROM planner_state WHERE target_label = 'refrigerator' AND NOT preview)
+  question: How did the last trip to the refrigerator go?
+  all: ["run_slab:planner_trips"]
+  facts: ["{phase}", "\\b{replans}\\b"]
+- id: robot_heading
+  question: Which way is the robot facing right now?
+  heading_deg: 90
+  all: [robot_status]
+  facts: ["\\b90\\b|east"]
+  none: [run_mission, go_to]
+- id: rare_object
+  anchor: |
+    WITH greatest(
+      ifNull((SELECT max(ts) FROM logs WHERE node = 'rabbit-zed' AND (message LIKE 'Archived%' OR message LIKE 'Restarting the camera process: map reset%')), toDateTime64(0, 9, 'UTC')),
+      ifNull((SELECT max(ts) FROM command_events WHERE subject = 'rabbit.map.reset'), toDateTime64(0, 9, 'UTC'))
+    ) AS epoch
+    SELECT label FROM objects WHERE ts > epoch AND confidence >= 40
+    GROUP BY label HAVING count() BETWEEN 3 AND 9 AND max(confidence) >= 55 ORDER BY count() LIMIT 1
+  question: Where is the {label}?
+  all: [find_object]
+  facts:
+    [
+      "brief|few|once|twice|rare|only|uncertain|\\d+ (times|frames|detections|sightings)",
+    ]
+  none: [go_to, run_mission]
+- id: object_from_old_map
+  anchor: |
+    WITH greatest(
+      ifNull((SELECT max(ts) FROM logs WHERE node = 'rabbit-zed' AND (message LIKE 'Archived%' OR message LIKE 'Restarting the camera process: map reset%')), toDateTime64(0, 9, 'UTC')),
+      ifNull((SELECT max(ts) FROM command_events WHERE subject = 'rabbit.map.reset'), toDateTime64(0, 9, 'UTC'))
+    ) AS epoch
+    SELECT label FROM objects GROUP BY label
+    HAVING countIf(ts > epoch) = 0 AND countIf(confidence >= 55) >= 10
+    ORDER BY count() DESC LIMIT 1
+  question: Where is the {label}?
+  all: [find_object]
+  facts: ["not|n['’]t|no |never|haven"]
+  none: [go_to, run_mission]
+- id: objects_during_run
+  anchor: SELECT run_id FROM objects GROUP BY run_id ORDER BY count() DESC LIMIT 1
+  question: What objects did the robot see during run {run_id}?
+  all: ["run_slab:objects_seen"]
+  none: [go_to, run_mission]
 - id: mission_request
   question: Drive 1 metre forward
   all: [robot_status]
@@ -52,58 +241,79 @@
   obstacle_ahead_m: 0.4
   all: [robot_status]
   none: [run_mission]
+- id: go_to_object
+  question: Drive to the fridge
+  approval: go_to
+  approval_input: { object: "fridge|refrigerator" }
+  none: [run_mission]
+- id: go_to_room
+  question: Go to the kitchen
+  approval: go_to
+  approval_input: { place: "kitchen" }
+  none: [run_mission]
+- id: go_to_russian
+  question: Подъедь к холодильнику
+  approval: go_to
+  approval_input: { object: "fridge|refrigerator" }
+  none: [run_mission]
+- id: where_is_object
+  question: Where is the fridge?
+  all: [find_object]
+  none: [go_to, run_mission]
+- id: approval_left_open
+  history:
+    - id: h1
+      role: user
+      parts: [{ type: text, text: Drive to the fridge }]
+    - id: h2
+      role: assistant
+      parts:
+        - type: tool-go_to
+          toolCallId: call-open
+          state: approval-requested
+          input: { object: refrigerator }
+          approval: { id: approval-open }
+  question: Never mind that. What is the battery voltage right now?
+  all: [robot_status]
+  facts: ["15[.,]2"]
+  none: [go_to, run_mission]
+- id: approval_expired
+  history:
+    - id: h1
+      role: user
+      parts: [{ type: text, text: Drive to the fridge }]
+    - id: h2
+      role: assistant
+      parts:
+        - type: tool-go_to
+          toolCallId: call-late
+          state: output-error
+          input: { object: refrigerator }
+          errorText: "Approval expired: The operator approved more than 120 s after the request; propose the action again."
+  question: Did it go to the fridge?
+  facts: ["expired|not|n['’]t|did not"]
+  none: [run_mission]
 - id: stop
   question: stop
   all: [stop]
   none: [run_mission]
-- id: wifi
-  question: Was there high ping or packet loss on Wi-Fi in the autonomous-nav run?
-  all: ["run_slab:wifi_health"]
-- id: english_only
-  question: ¿Cuál fue el voltaje medio de la batería en la carrera bench-idle?
-  all: [run_slab]
-  facts: ["15[.,]1", "battery", "voltage"]
-- id: why_reboot_1100
-  question: Why did the robot reboot at 11:00?
-  all: ["investigate:reboots"]
-  facts: ["11:00", "TL;DR", "`ref:", "`next:", "imu|jolt|knock|vibration"]
-- id: trace_battery_sag
-  question: Trace what caused battery sag in the last run
-  any: ["investigate:battery_voltage"]
-  facts: ["current", "`ref:"]
-- id: graph_motor_current
-  question: Show the metric graph around motor current
-  all: ["metric_graph:motor_current"]
-  none: [investigate]
-- id: graph_path
-  question: How is Jetson CPU load related to tracking confidence?
-  all: [metric_graph]
-  facts: ["frame|fps"]
-- id: multi_metric_anomaly
-  question: Did battery voltage and motor current misbehave together between 11:02:30 and 11:06 in the autonomous-nav run?
-  all: ["detect_anomalies:battery_voltage", "detect_anomalies:motor_current"]
-  facts: ["11:04", "inrush|start|command"]
-- id: wall_push
-  question: Why did the motor current go up around 11:34 in the autonomous-nav run?
-  any:
-    [
-      "investigate:motor_current",
-      "detect_anomalies:motor_current",
-      "run_slab:stall_events",
-    ]
-  facts: ["obstacle|wall|push|blocked"]
-- id: zed_crash_logs
-  question: Why did the camera node restart around 14:12 UTC in the autonomous-nav run?
-  any:
-    [
-      "run_slab:container_events",
-      search_logs,
-      logs_around,
-      timeline,
-      "investigate:container_crashes",
-    ]
-  facts: ["139|segmentation", "tracking|tilt"]
-- id: who_stopped
-  question: Who sent the stop command at 14:13 UTC in the autonomous-nav run?
-  any: [timeline, "run_slab:command_timeline"]
-  facts: ["forge|Forge"]
+- id: why_nav_stopped
+  anchor: |
+    SELECT run_id, argMax(reason, ts) AS reason FROM events
+    WHERE name = 'nav.safety_stop' GROUP BY run_id ORDER BY max(ts) DESC LIMIT 1
+  question: Why did the robot stop in run {run_id}?
+  any: ["run_slab:nav_stops", "run_slab:decisions", timeline]
+  facts: ["{reason}"]
+- id: camera_restarts_per_boot
+  anchor: |
+    SELECT run_id, countIf(name = 'camera.restart') AS restarts FROM events
+    GROUP BY run_id HAVING restarts > 0 ORDER BY max(ts) DESC LIMIT 1
+  question: How many times did the camera restart in run {run_id}, and why?
+  all: ["run_slab:camera_restarts"]
+  facts: ["{restarts}"]
+- id: exploration_decisions
+  anchor: |
+    SELECT run_id, argMax(exploration_id, ts) AS exploration_id FROM events
+    WHERE name = 'explore.finished' GROUP BY run_id ORDER BY max(ts) DESC LIMIT 1
+  question: Walk me through what the robot decided during exploration {exploration_id} and why it ended.
+  all: ["run_slab:decisions"]

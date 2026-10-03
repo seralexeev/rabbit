@@ -260,6 +260,28 @@ nodes:
     hz: 1
     floor: 1
     slabs: [jetson_throttling, thermal_timeline]
+  cpu_actual_freq:
+    label: Actual slowest CPU clock
+    group: compute
+    unit: MHz
+    description: Clock the slowest CPU core actually ran at when sampled; over-current (OC3) events halve it for about 1 ms, which the requested clock never shows. Recorded from 2026-10-03.
+    source:
+      table: jetson
+      expr: "if(notEmpty(cpu_actual_mhz), arrayMin(cpu_actual_mhz), NULL)"
+    hz: 1
+    floor: 1
+    slabs: [power_throttling]
+  cpu_clock_floor:
+    label: CPU clock floor
+    group: compute
+    unit: MHz
+    description: Lowest allowed CPU clock; 1728 MHz while jetson_clocks pins the clocks, 729.6 MHz after nvpmodel resets them. Recorded from 2026-10-03.
+    source:
+      table: jetson
+      expr: "if(notEmpty(cpu_min_freq_mhz), arrayMin(cpu_min_freq_mhz), NULL)"
+    hz: 1
+    floor: 1
+    slabs: [power_throttling]
   fan_rpm:
     label: Fan speed
     group: compute
@@ -728,6 +750,24 @@ edges:
     type: correlates_with
     evidence: physics
     why: The CPU sensor and the hottest junction move together.
+  - from: cpu_clock_floor
+    to: cpu_freq
+    type: causes
+    sign: positive
+    evidence: design
+    why: With the floor pinned at the maximum the governor cannot lower the clock; once nvpmodel resets the floor the clock follows the load.
+  - from: jetson_power
+    to: cpu_actual_freq
+    type: causes
+    sign: negative
+    evidence: observed
+    why: Instantaneous input-power peaks trigger soctherm OC3, which halves the CPU and GPU clocks for about 1 ms.
+  - from: cpu_freq
+    to: cpu_actual_freq
+    type: explains
+    sign: positive
+    evidence: design
+    why: The actual clock follows the requested one except during hardware throttling.
   - from: junction_temp
     to: fan_rpm
     type: drives

@@ -1,5 +1,7 @@
 import type z from 'zod';
 
+import { withLocalTimes } from './local_time.ts';
+
 export type ForgeTool<I extends z.ZodObject = z.ZodObject> = {
   title: string;
   description: string;
@@ -17,9 +19,11 @@ export const forgeTool = <I extends z.ZodObject, O>(
 ): ForgeTool<I> => tool;
 
 export const modelView = (tool: ForgeTool, output: unknown) =>
-  tool.forModel == null
-    ? output
-    : (tool.forModel as (value: unknown) => unknown)(output);
+  withLocalTimes(
+    tool.forModel == null
+      ? output
+      : (tool.forModel as (value: unknown) => unknown)(output),
+  );
 
 export const approvalConfig = (tools: Record<string, ForgeTool>) =>
   Object.fromEntries(

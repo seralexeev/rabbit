@@ -3,7 +3,6 @@ import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { writer } from './clickhouse.ts';
 import { ROOT, config } from './config.ts';
 import { errorMessage } from './errors.ts';
 import { Batcher } from './ingest/batcher.ts';
@@ -17,9 +16,14 @@ import {
   nowNanos,
   openRuns,
   recentRuns,
+  recordRunEvents,
   runAt,
+  serveRunControl,
 } from './runs.ts';
-import { migrate } from './schema.ts';
+import { startMaintenance } from './store/compact.ts';
+import { closeStore } from './store/engine.ts';
+import { recover } from './store/layout.ts';
+import { nextFileId, writeRows } from './store/write.ts';
 import { type Row, STREAMS } from './streams.ts';
 
 const FLUSH_MS = 10_000;
@@ -145,13 +149,8 @@ const deadLetter = (table: string, rows: Row[], reason: string) => {
   }
 };
 
-const insert = async (table: string, rows: Row[], token: string) => {
-  await writer.insert({
-    table,
-    values: rows,
-    format: 'JSONEachRow',
-    clickhouse_settings: { insert_deduplication_token: token },
-  });
+const insert = async (table: string, rows: Row[], id: number) => {
+  await writeRows(table, rows, id);
 };
 
 const WRITER_HEARTBEAT = join(tmpdir(), 'forge-writer.heartbeat');
@@ -194,16 +193,27 @@ const subscribeStreams = (
 };
 
 export const runWriter = async () => {
-  await migrate();
+  const recovered = recover(config.dataDir);
+  if (recovered.length > 0) {
+    log('Removed unfinished and already merged files', {
+      files: recovered.length,
+    });
+  }
   const buffers = new Batcher(insert, deadLetter, {
     batchRows: BATCH_ROWS,
     maxBufferedRows: MAX_BUFFERED_ROWS,
+    nextId: nextFileId,
   });
   const tracker = new RunTracker((event) => {
     buffers.push('run_events', [event]);
   });
+  recordRunEvents(async (events) => {
+    await writeRows('run_events', events);
+    await tracker.poll();
+  });
   await tracker.closeStaleAutoRuns();
   await tracker.poll();
+  const maintenance = startMaintenance();
 
   const parseErrors = new Map<string, number>();
   let natsState = 'connecting';
@@ -232,6 +242,7 @@ export const runWriter = async () => {
     const totals = new Map([
       ...buffers.received,
       ['logs', robot?.logs.inserted() ?? 0],
+      ['events', robot?.logs.events() ?? 0],
     ]);
     const rates = Object.fromEntries(
       [...totals].map(([table, total]) => [
@@ -273,7 +284,8 @@ export const runWriter = async () => {
       buffers.drainUnsent('writer shutdown');
       log('Unsent rows dead-lettered at shutdown', { rows: unsent });
     }
-    await writer.close();
+    await maintenance.stop();
+    await closeStore();
     process.exit(0);
   };
   process.once('SIGINT', () => void shutdown());
@@ -302,6 +314,7 @@ export const runWriter = async () => {
   })();
 
   subscribeStreams(nc, tracker, buffers, parseErrors);
+  serveRunControl(nc);
   const recordedAt = (ts: string) => tracker.runIdAt(ts, Date.now());
   robot = {
     nc,
@@ -309,11 +322,7 @@ export const runWriter = async () => {
       nc,
       recordedAt,
       async (table, rows) => {
-        await insert(
-          table,
-          rows,
-          `${table}:${String(rows[0]?.seq)}-${String(rows.at(-1)?.seq)}`,
-        );
+        await writeRows(table, rows);
       },
       deadLetter,
     ),

@@ -4,6 +4,7 @@ import {
   convertToModelMessages,
   isStepCount,
   isTextUIPart,
+  isToolUIPart,
   streamText,
 } from 'ai';
 import { randomBytes } from 'node:crypto';
@@ -44,6 +45,46 @@ const lastUserText = (messages: UIMessage[]) =>
     .map((part) => part.text)
     .join(' ') ?? '';
 
+const UNSETTLED = new Set([
+  'input-streaming',
+  'input-available',
+  'approval-requested',
+  'approval-responded',
+]);
+
+const NOT_RUN =
+  'Not run: the operator did not approve it before the next message, so nothing was sent to the robot.';
+
+export const settlePendingTools = (messages: UIMessage[]): UIMessage[] =>
+  messages.map((message, index) =>
+    index === messages.length - 1 || message.role !== 'assistant'
+      ? message
+      : {
+          ...message,
+          parts: message.parts.map((part) => {
+            if (
+              !isToolUIPart(part) ||
+              !UNSETTLED.has(part.state) ||
+              part.input === undefined
+            ) {
+              return part;
+            }
+            const { approval } = part;
+            return approval == null
+              ? { ...part, state: 'output-error', errorText: NOT_RUN }
+              : {
+                  ...part,
+                  state: 'output-denied',
+                  approval: {
+                    id: approval.id,
+                    approved: false,
+                    reason: NOT_RUN,
+                  },
+                };
+          }) as UIMessage['parts'],
+        },
+  );
+
 export const withLanguageReminder = (history: ModelMessage[]) =>
   history.at(-1)?.role === 'tool' ? history : [...history, LANGUAGE_REMINDER];
 
@@ -61,7 +102,7 @@ export const chatSettings = async (
         content: await groundingContext(lastUserText(messages)),
       },
       ...withLanguageReminder(
-        await convertToModelMessages(messages, { tools }),
+        await convertToModelMessages(settlePendingTools(messages), { tools }),
       ),
     ],
     allowSystemInMessages: true,

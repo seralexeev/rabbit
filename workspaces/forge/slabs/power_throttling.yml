@@ -1,0 +1,87 @@
+title: Jetson over-current and clock-floor throttling
+description: >-
+  Per time bucket on the Jetson Orin: soctherm over-current events (OC1 under-voltage, OC2 average
+  power, OC3 instantaneous power) per second, the share of time the BPMP spent throttling, the
+  lowest clock a CPU core actually ran at against the requested clock, and whether the clock
+  floors that jetson_clocks pins (CPU 1728 MHz, GPU 1020 MHz, EMC 3199 MHz) were in place. Use it
+  to answer whether the robot was throttled by power or because the clocks were reset.
+tags:
+  [
+    jetson,
+    throttling,
+    power,
+    over-current,
+    clocks,
+    oc3,
+    jetson_clocks,
+    nvpmodel,
+  ]
+prompts:
+  - Was the robot throttled?
+  - Did the Jetson hit over-current throttling?
+  - Were the Jetson clocks pinned?
+guidelines: >-
+  OC3 at 1-2 events per second is normal for this board in MAXN_SUPER: each event halves the CPU
+  and GPU clocks for about 1 ms, so throttled_share stays under 1 %. Call it a power problem only
+  when OC1 or OC2 events appear, or OC3 stays above about 20 per second for a minute. A
+  clocks_pinned_share below 1 means jetson_clocks was undone (nvpmodel reapplied its defaults, for
+  example after systemctl isolate) and the clocks fell back to frequency scaling, which costs far
+  more than OC3; restart rabbit-performance on the robot. Rows recorded before 2026-10-03 have no
+  clock or over-current data (NULL).
+dims: [t]
+sql: |
+  WITH d AS (
+    SELECT
+      ts,
+      cpu_freq_mhz,
+      cpu_actual_mhz,
+      cpu_min_freq_mhz,
+      gpu_min_freq_mhz,
+      emc_freq_mhz,
+      power_mode,
+      oc1_events - lagInFrame(oc1_events, 1, oc1_events) OVER w AS oc1_step,
+      oc2_events - lagInFrame(oc2_events, 1, oc2_events) OVER w AS oc2_step,
+      oc3_events - lagInFrame(oc3_events, 1, oc3_events) OVER w AS oc3_step,
+      oc_throttle_ticks - lagInFrame(oc_throttle_ticks, 1, oc_throttle_ticks) OVER w AS tick_step
+    FROM jetson
+    WHERE run_id = {run_id:String}
+      AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+      AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    WINDOW w AS (ORDER BY ts ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
+  )
+  SELECT
+    toStartOfInterval(ts, toIntervalSecond({bucket_s:UInt32})) AS t,
+    sumIf(toFloat64(oc1_step), oc1_step >= 0) AS oc1_events,
+    sumIf(toFloat64(oc2_step), oc2_step >= 0) AS oc2_events,
+    sumIf(toFloat64(oc3_step), oc3_step >= 0) / {bucket_s:UInt32} AS oc3_per_s,
+    sumIf(toFloat64(tick_step), tick_step >= 0) / 31250000 / {bucket_s:UInt32} AS throttled_share,
+    minIf(arrayMin(cpu_actual_mhz), notEmpty(cpu_actual_mhz)) AS min_actual_cpu_mhz,
+    countIf(notEmpty(cpu_actual_mhz) AND arrayMin(cpu_actual_mhz) < 0.9 * arrayMin(cpu_freq_mhz))
+      / greatest(countIf(notEmpty(cpu_actual_mhz)), 1) AS cut_sample_share,
+    minIf(arrayMin(cpu_min_freq_mhz), notEmpty(cpu_min_freq_mhz)) AS min_cpu_floor_mhz,
+    min(gpu_min_freq_mhz) AS min_gpu_floor_mhz,
+    min(emc_freq_mhz) AS min_emc_mhz,
+    countIf(notEmpty(cpu_min_freq_mhz) AND arrayMin(cpu_min_freq_mhz) >= 1728 AND gpu_min_freq_mhz >= 1020 AND emc_freq_mhz >= 3199)
+      / greatest(countIf(notEmpty(cpu_min_freq_mhz)), 1) AS clocks_pinned_share,
+    anyLast(power_mode) AS power_mode
+  FROM d
+  GROUP BY t
+  ORDER BY t
+columns:
+  t: { kind: time }
+  oc1_events: { measure: event }
+  oc2_events: { measure: event }
+  oc3_per_s: { measure: ratio, unit: 1/s }
+  throttled_share: { measure: ratio, unit: 0..1 }
+  min_actual_cpu_mhz: { measure: gauge, unit: MHz }
+  cut_sample_share: { measure: ratio, unit: 0..1 }
+  min_cpu_floor_mhz: { measure: gauge, unit: MHz }
+  min_gpu_floor_mhz: { measure: gauge, unit: MHz }
+  min_emc_mhz: { measure: gauge, unit: MHz }
+  clocks_pinned_share: { measure: ratio, unit: 0..1 }
+  power_mode: { kind: attribute }
+subs:
+  bucket_s:
+    type: UInt32
+    default: 0
+    description: Bucket size in seconds; 0 picks one that keeps the result under about 180 rows

@@ -1,47 +1,30 @@
-import { ClickHouseError } from '@clickhouse/client';
-import { randomUUID } from 'node:crypto';
-
 import { errorMessage } from '../errors.ts';
 import { log } from '../log.ts';
+import { clickhouseCode } from '../store/engine.ts';
 import type { Row } from '../streams.ts';
 
-export type Insert = (
-  table: string,
-  rows: Row[],
-  token: string,
-) => Promise<void>;
+export type Insert = (table: string, rows: Row[], id: number) => Promise<void>;
 
 export type DeadLetter = (table: string, rows: Row[], reason: string) => void;
 
 const TRANSIENT_CODES = new Set([
-  '60',
-  '81',
-  '159',
-  '202',
-  '203',
-  '209',
-  '210',
-  '241',
-  '242',
-  '252',
-  '319',
-  '394',
-  '425',
-  '999',
-  '1000',
+  74, 75, 76, 159, 173, 202, 241, 243, 425, 1000,
 ]);
 
-export const isTransient = (error: unknown) =>
-  !(error instanceof ClickHouseError) || TRANSIENT_CODES.has(error.code);
+export const isTransient = (error: unknown) => {
+  const code = clickhouseCode(error);
+  return code == null || TRANSIENT_CODES.has(code);
+};
 
 const MAX_BACKOFF_MS = 30_000;
 const OVERFLOW_CHUNK_DIVISOR = 10;
 
-type Job = { rows: Row[]; token: string; attempts: number };
+type Job = { rows: Row[]; id: number; attempts: number };
 
 type Options = {
   batchRows: number;
   maxBufferedRows: number;
+  nextId: () => number;
   now?: () => number;
 };
 
@@ -143,7 +126,7 @@ export class Batcher {
     );
     return rows.length === 0
       ? null
-      : { rows, token: randomUUID(), attempts: 0 };
+      : { rows, id: this.options.nextId(), attempts: 0 };
   }
 
   private requeue(table: string, ...jobs: Job[]) {
@@ -163,7 +146,7 @@ export class Batcher {
   private async run(table: string, job: Job) {
     this.inFlight.add(table);
     try {
-      await this.insert(table, job.rows, job.token);
+      await this.insert(table, job.rows, job.id);
       this.inserted.set(
         table,
         (this.inserted.get(table) ?? 0) + job.rows.length,
@@ -193,10 +176,14 @@ export class Batcher {
           table,
           {
             rows: job.rows.slice(0, half),
-            token: `${job.token}.a`,
+            id: this.options.nextId(),
             attempts: 0,
           },
-          { rows: job.rows.slice(half), token: `${job.token}.b`, attempts: 0 },
+          {
+            rows: job.rows.slice(half),
+            id: this.options.nextId(),
+            attempts: 0,
+          },
         );
       }
     } finally {

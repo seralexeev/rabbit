@@ -1,0 +1,57 @@
+title: Explorations
+description: >-
+  Every autonomous exploration run by the explore node: its id, when it started and ended, how
+  long it took, the final phase (done, failed or idle after a cancel) and the message saying why
+  it ended (distance limit reached, no reachable frontiers left, cancelled, an error), the
+  distance driven, the frontiers of the last plan and how many were given up, and the limits it
+  ran with. Use it for "how did the last exploration go" and "why did exploring stop"; the
+  individual legs it drove are trips with source explore in planner_trips.
+tags: [explore, exploration, frontiers, mapping, autonomous]
+prompts:
+  - How did the most recent exploration go?
+  - Why did the exploration stop?
+  - How far did the robot drive while exploring?
+guidelines: >-
+  Newest explorations first. Set all_runs to 1 to search every run, for example for "the last
+  exploration" when it may not be in the latest run. An exploration that ended within seconds
+  with an error never drove; idle with the message cancelled means someone stopped it.
+dims: [exploration_id]
+sql: |
+  SELECT
+    exploration_id,
+    min(ts) AS started_at,
+    minIf(ts, phase IN ('done', 'failed', 'idle')) AS ended_at,
+    dateDiff('millisecond', started_at, ended_at) / 1000 AS duration_s,
+    argMax(phase, ts) AS final_phase,
+    argMax(message, ts) AS end_message,
+    max(travelled_m) AS travelled_m,
+    argMax(frontiers, ts) AS frontiers,
+    max(failed_frontiers) AS failed_frontiers,
+    any(max_distance_m) AS max_distance_m,
+    any(max_duration_s) AS max_duration_s,
+    any(run_id) AS in_run
+  FROM explore_state
+  WHERE (run_id = {run_id:String} OR {all_runs:UInt32} = 1)
+    AND exploration_id != ''
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+  GROUP BY exploration_id
+  ORDER BY started_at DESC
+columns:
+  exploration_id: { kind: entity }
+  started_at: { kind: attribute }
+  ended_at: { kind: attribute }
+  duration_s: { measure: gauge, unit: s }
+  final_phase: { kind: attribute }
+  end_message: { kind: attribute }
+  travelled_m: { measure: gauge, unit: m }
+  frontiers: { measure: gauge }
+  failed_frontiers: { measure: event }
+  max_distance_m: { measure: gauge, unit: m }
+  max_duration_s: { measure: gauge, unit: s }
+  in_run: { kind: attribute }
+subs:
+  all_runs:
+    type: UInt32
+    default: 0
+    description: 1 searches every run instead of run_id

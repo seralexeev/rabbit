@@ -1,0 +1,83 @@
+title: Route planner trips
+description: >-
+  Every trip of the route planner (rabbit-planner): go_to from the chat, GO TO from the HUD and
+  exploration legs. Per trip its id, who asked for it, the target (object class, place, room or
+  point), when it started and ended, how long it took, the final phase (arrived, failed,
+  cancelled, or planned for a preview), the planner's last message (why it failed or how short it
+  stopped), the last replan reason, the planned route length, and how often it replanned and
+  backed up to recover. Use it for "how did the trip to the fridge go", "why did go_to fail" and
+  "how many trips arrived"; nav_missions only has the low-level nav missions a trip is made of.
+tags:
+  [
+    planner,
+    trip,
+    route,
+    go_to,
+    destination,
+    refrigerator,
+    fridge,
+    arrived,
+    replans,
+    recovery,
+  ]
+prompts:
+  - How did the last trip to the refrigerator go?
+  - Why did the go to fail?
+  - Did the robot reach the kitchen?
+  - How many trips arrived?
+guidelines: >-
+  Newest trips first. A phase of arrived with a message like "stopped 0.27 m short" means it ended
+  next to an obstacle close to the goal, which counts as arrived. Trips with source explore are
+  exploration legs. Set all_runs to 1 to search every run, for example for "the last trip to X"
+  when the trip may not be in the latest run, and target to filter by object class, place name
+  or trip id.
+dims: [trip_id]
+sql: |
+  SELECT
+    trip_id,
+    anyIf(source, source != '') AS source,
+    max(preview) AS preview,
+    anyIf(target_kind, target_kind != '') AS target_kind,
+    anyIf(target_label, target_label != '') AS target_label,
+    min(ts) AS started_at,
+    max(ts) AS ended_at,
+    dateDiff('millisecond', min(ts), max(ts)) / 1000 AS duration_s,
+    argMax(phase, ts) AS final_phase,
+    argMax(message, ts) AS final_message,
+    argMaxIf(reason, ts, reason != '') AS last_replan_reason,
+    argMinIf(path_length_m, ts, path_length_m IS NOT NULL) AS planned_length_m,
+    max(replans) AS replans,
+    max(recoveries) AS recoveries,
+    any(run_id) AS in_run
+  FROM planner_state
+  WHERE (run_id = {run_id:String} OR {all_runs:UInt32} = 1)
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+  GROUP BY trip_id
+  HAVING {target:String} = '' OR positionCaseInsensitive(target_label, {target:String}) > 0 OR trip_id = {target:String}
+  ORDER BY started_at DESC
+columns:
+  trip_id: { kind: entity }
+  source: { kind: attribute }
+  preview: { kind: attribute }
+  target_kind: { kind: attribute }
+  target_label: { kind: attribute }
+  started_at: { kind: attribute }
+  ended_at: { kind: attribute }
+  duration_s: { measure: gauge, unit: s }
+  final_phase: { kind: attribute }
+  final_message: { kind: attribute }
+  last_replan_reason: { kind: attribute }
+  planned_length_m: { measure: gauge, unit: m }
+  replans: { measure: event }
+  recoveries: { measure: event }
+  in_run: { kind: attribute }
+subs:
+  all_runs:
+    type: UInt32
+    default: 0
+    description: 1 searches every run instead of run_id
+  target:
+    type: String
+    default: ""
+    description: Only trips whose target label contains this text (case-insensitive), or this trip id; empty for all

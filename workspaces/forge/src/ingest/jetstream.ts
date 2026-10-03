@@ -8,6 +8,7 @@ import {
 import type { NatsConnection } from '@nats-io/transport-node';
 import z from 'zod';
 
+import { config } from '../config.ts';
 import { errorMessage } from '../errors.ts';
 import { log } from '../log.ts';
 import { type Row, nanos } from '../streams.ts';
@@ -15,11 +16,11 @@ import { isTransient } from './batcher.ts';
 
 export const LOG_STREAM = 'LOGS';
 export const LOG_SUBJECTS = 'rabbit.log.>';
+export const EVENT_SUFFIX = '.event';
 export const KV_SUBJECTS = '$KV.rabbit.>';
 
 const KV_STREAM = 'KV_rabbit';
 const KV_PREFIX = '$KV.rabbit.';
-const LOG_CONSUMER = 'forge-writer';
 const FETCH_MESSAGES = 1000;
 const FETCH_EXPIRES_MS = 1000;
 const ACK_WAIT_NS = 120_000_000_000;
@@ -31,9 +32,11 @@ export type RunAt = (tsNanos: string) => string;
 export type InsertRows = (table: string, rows: Row[]) => Promise<void>;
 export type DeadLetter = (table: string, rows: Row[], reason: string) => void;
 
+const Level = z.enum(['debug', 'info', 'warning', 'error', 'critical']);
+
 const LogRecord = z.object({
   node: z.string(),
-  level: z.enum(['debug', 'info', 'warning', 'error', 'critical']),
+  level: Level,
   logger: z.string(),
   message: z.string(),
   template: z.string().default(''),
@@ -46,6 +49,114 @@ const LogRecord = z.object({
   dropped: z.number().int().min(0).optional(),
   pid: z.number().int().min(0).default(0),
 });
+
+const Strings = z.record(z.string(), z.string()).default({});
+
+const EventRecord = z.object({
+  node: z.string(),
+  name: z.string(),
+  severity: Level.default('info'),
+  reason: z.string().default(''),
+  boot_id: z.string().default(''),
+  instance_id: z.string().default(''),
+  ids: Strings,
+  values: z.record(z.string(), z.number()).default({}),
+  labels: Strings,
+  suppressed: z.number().int().min(0).default(0),
+  snapshot: z
+    .object({
+      host: z.string().default(''),
+      pid: z.number().int().min(0).default(0),
+      code_hash: z.string().default(''),
+      git_rev: z.string().default(''),
+      versions: Strings,
+      env: Strings,
+      config: Strings,
+    })
+    .optional(),
+});
+
+export type TableRows = { table: string; rows: Row[] };
+
+export const eventRows = (
+  text: string,
+  seq: number,
+  runAt: RunAt,
+): TableRows[] => {
+  const ts = nanos(text);
+  const record = EventRecord.parse(JSON.parse(text));
+  const run_id = runAt(ts);
+  const {
+    mission_id: missionId,
+    trip_id: tripId,
+    exploration_id: explorationId,
+    odom_session: odomSession,
+    map_id: mapId,
+    map_session: mapSession,
+    ...otherIds
+  } = record.ids;
+  const tables: TableRows[] = [
+    {
+      table: 'events',
+      rows: [
+        {
+          run_id,
+          ts,
+          node: record.node,
+          name: record.name,
+          severity: record.severity,
+          reason: record.reason,
+          mission_id: missionId ?? '',
+          trip_id: tripId ?? '',
+          exploration_id: explorationId ?? '',
+          odom_session: odomSession ?? '',
+          map_id: mapId ?? '',
+          map_session: mapSession ?? '',
+          boot_id: record.boot_id,
+          instance_id: record.instance_id,
+          values: record.values,
+          labels: { ...record.labels, ...otherIds },
+          suppressed: record.suppressed,
+          seq,
+        },
+      ],
+    },
+  ];
+  const snapshot = record.snapshot;
+  if (snapshot != null) {
+    tables.push({
+      table: 'node_starts',
+      rows: [
+        {
+          run_id,
+          ts,
+          node: record.node,
+          boot_id: record.boot_id,
+          instance_id: record.instance_id,
+          host: snapshot.host,
+          pid: snapshot.pid,
+          code_hash: snapshot.code_hash,
+          git_rev: snapshot.git_rev,
+          versions: snapshot.versions,
+          env: snapshot.env,
+          config: snapshot.config,
+          seq,
+        },
+      ],
+    });
+  }
+  return tables;
+};
+
+export const recordRows = (
+  subject: string,
+  text: string,
+  seq: number,
+  runAt: RunAt,
+): TableRows[] =>
+  subject.endsWith(EVENT_SUFFIX)
+    ? eventRows(text, seq, runAt)
+    : [{ table: 'logs', rows: [logRow(text, seq, runAt)] }];
 
 export const logRow = (text: string, seq: number, runAt: RunAt): Row => {
   const ts = nanos(text);
@@ -85,32 +196,33 @@ const sleep = async (ms: number) =>
 const ensureLogConsumer = async (nc: NatsConnection) => {
   const jsm = await jetstreamManager(nc);
   try {
-    await jsm.consumers.info(LOG_STREAM, LOG_CONSUMER);
+    await jsm.consumers.info(LOG_STREAM, config.logConsumer);
   } catch {
     await jsm.consumers.add(LOG_STREAM, {
-      durable_name: LOG_CONSUMER,
+      durable_name: config.logConsumer,
       ack_policy: AckPolicy.All,
       deliver_policy: DeliverPolicy.All,
       ack_wait: ACK_WAIT_NS,
       max_ack_pending: 20_000,
     });
   }
-  return await jetstream(nc).consumers.get(LOG_STREAM, LOG_CONSUMER);
+  return await jetstream(nc).consumers.get(LOG_STREAM, config.logConsumer);
 };
 
 const insertUntilStored = async (
   insert: InsertRows,
   deadLetter: DeadLetter,
+  table: string,
   rows: Row[],
   running: () => boolean,
 ) => {
   for (let attempt = 0; ; attempt++) {
     try {
-      await insert('logs', rows);
+      await insert(table, rows);
       return true;
     } catch (error) {
       if (!isTransient(error)) {
-        deadLetter('logs', rows, errorMessage(error).slice(0, 300));
+        deadLetter(table, rows, errorMessage(error).slice(0, 300));
         return true;
       }
       if (!running()) {
@@ -127,7 +239,7 @@ export const consumeLogs = (
   insert: InsertRows,
   deadLetter: DeadLetter,
 ) => {
-  const state = { running: true, inserted: 0 };
+  const state = { running: true, inserted: 0, events: 0 };
   const running = () => state.running;
   const done = (async () => {
     while (running()) {
@@ -146,30 +258,45 @@ export const consumeLogs = (
           if (last == null) {
             continue;
           }
-          const rows: Row[] = [];
+          const batches = new Map<string, Row[]>();
           for (const msg of messages) {
             try {
-              rows.push(logRow(msg.string(), msg.seq, runAt));
+              for (const { table, rows } of recordRows(
+                msg.subject,
+                msg.string(),
+                msg.seq,
+                runAt,
+              )) {
+                const batch = batches.get(table);
+                if (batch == null) {
+                  batches.set(table, rows);
+                } else {
+                  batch.push(...rows);
+                }
+              }
             } catch (error) {
               deadLetter(
-                'logs',
+                msg.subject.endsWith(EVENT_SUFFIX) ? 'events' : 'logs',
                 [{ subject: msg.subject, seq: msg.seq, text: msg.string() }],
                 errorMessage(error).slice(0, 300),
               );
             }
           }
-          if (
-            rows.length > 0 &&
-            !(await insertUntilStored(
-              insert,
-              deadLetter,
-              rows,
-              () => state.running,
-            ))
-          ) {
-            return;
+          for (const [table, rows] of batches) {
+            if (
+              !(await insertUntilStored(
+                insert,
+                deadLetter,
+                table,
+                rows,
+                () => state.running,
+              ))
+            ) {
+              return;
+            }
           }
-          state.inserted += rows.length;
+          state.inserted += batches.get('logs')?.length ?? 0;
+          state.events += batches.get('events')?.length ?? 0;
           last.ack();
         }
       } catch (error) {
@@ -184,6 +311,7 @@ export const consumeLogs = (
   })();
   return {
     inserted: () => state.inserted,
+    events: () => state.events,
     stop: async () => {
       state.running = false;
       await done;

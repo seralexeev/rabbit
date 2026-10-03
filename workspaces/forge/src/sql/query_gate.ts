@@ -1,6 +1,6 @@
-import { type Params, reader, select } from '../clickhouse.ts';
 import { ForgeError, errorMessage } from '../errors.ts';
 import { describeSchema, queryableTables } from '../schema.ts';
+import { type Params, select } from '../store/engine.ts';
 import { validateSql } from './validate_sql.ts';
 
 export const DEFAULT_ROW_LIMIT = 200;
@@ -53,7 +53,7 @@ export const checkSql = async (sql: string, params: Params = {}) => {
     });
   }
   try {
-    await select(reader, `EXPLAIN PLAN ${sql}`, params);
+    await select(`EXPLAIN PLAN ${sql}`, params);
   } catch (error) {
     throw new ForgeError('SQL rejected by ClickHouse EXPLAIN', {
       llm: await repairHint(errorMessage(error), sql),
@@ -76,7 +76,7 @@ export const runSql = async (
 ): Promise<QueryResult> => {
   await checkSql(sql, params);
   try {
-    const rows = await select<Record<string, unknown>>(reader, sql, params);
+    const rows = await select<Record<string, unknown>>(sql, params);
     return {
       row_count: rows.length,
       truncated: rows.length > limit,
@@ -93,7 +93,6 @@ export const runSql = async (
 
 export const describeQuery = async (sql: string, params: Params = {}) =>
   await select<{ name: string; type: string }>(
-    reader,
     `DESCRIBE TABLE (${sql})`,
     params,
   );

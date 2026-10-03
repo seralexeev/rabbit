@@ -1,5 +1,9 @@
-import { reader, select, writer } from './clickhouse.ts';
-import { ForgeError } from './errors.ts';
+import { type NatsConnection, connect } from '@nats-io/transport-node';
+import z from 'zod';
+
+import { config } from './config.ts';
+import { ForgeError, errorMessage } from './errors.ts';
+import { select } from './store/engine.ts';
 
 export type RunKind = 'manual' | 'auto';
 
@@ -39,17 +43,36 @@ export const newRunId = (name: string, at = new Date()) => {
   return `${stamp}-${slug(name)}`;
 };
 
-const insertRunEvents = async (events: RunEvent[]) => {
-  await writer.insert({
-    table: 'run_events',
-    values: events,
-    format: 'JSONEachRow',
-  });
+type RunEventSink = (events: RunEvent[]) => Promise<void>;
+
+let sink: RunEventSink | null = null;
+
+export const recordRunEvents = (record: RunEventSink) => {
+  sink = record;
 };
+
+const insertRunEvents = async (events: RunEvent[]) => {
+  if (sink == null) {
+    throw new ForgeError('Runs are recorded by the Forge writer');
+  }
+  await sink(events);
+};
+
+const RUN_SUBJECT = 'forge.run';
+const RUN_REPLY_MS = 5000;
+
+const RunRequest = z.object({
+  name: z.string().min(1).optional(),
+  note: z.string().default(''),
+});
+
+const RunReply = z.object({
+  run_id: z.string().optional(),
+  error: z.string().optional(),
+});
 
 export const openRuns = async (kind: RunKind) =>
   await select<Pick<Run, 'run_id' | 'name'>>(
-    writer,
     'SELECT run_id, name FROM runs WHERE kind = {kind:String} AND stopped_at IS NULL ORDER BY started_at DESC',
     { kind },
   );
@@ -69,7 +92,6 @@ export const recentRuns = async (days: number) =>
       start: string;
       stop: string | null;
     }>(
-      writer,
       'SELECT run_id, kind, toUnixTimestamp64Milli(started_at) AS start, toUnixTimestamp64Milli(stopped_at) AS stop FROM runs WHERE started_at > now() - toIntervalDay({days:UInt32}) ORDER BY started_at',
       { days },
     )
@@ -92,7 +114,40 @@ export const runAt = (runs: RunSpan[], at: number) => {
   )?.run_id;
 };
 
-export const startRun = async (name: string, note = '') => {
+const requestRun = async (action: 'start' | 'stop', payload: object) => {
+  let nc: NatsConnection;
+  try {
+    nc = await connect({
+      servers: config.natsUrl,
+      name: 'forge-cli',
+      timeout: RUN_REPLY_MS,
+    });
+  } catch (error) {
+    throw new ForgeError('Robot is unreachable', {
+      llm: 'Runs are recorded by the Forge writer on the robot, and its NATS server did not answer.',
+      cause: error,
+    });
+  }
+  try {
+    const reply = RunReply.parse(
+      (
+        await nc.request(`${RUN_SUBJECT}.${action}`, JSON.stringify(payload), {
+          timeout: RUN_REPLY_MS,
+        })
+      ).json(),
+    );
+    if (reply.error != null || reply.run_id == null) {
+      throw new ForgeError(
+        reply.error ?? 'The Forge writer did not return a run',
+      );
+    }
+    return reply.run_id;
+  } finally {
+    await nc.close();
+  }
+};
+
+const startLocal = async (name: string, note = '') => {
   const [open] = await openRuns('manual');
   if (open != null) {
     throw new ForgeError('A run is already recording', {
@@ -113,7 +168,7 @@ export const startRun = async (name: string, note = '') => {
   return runId;
 };
 
-export const stopRun = async () => {
+const stopLocal = async () => {
   const [open] = await openRuns('manual');
   if (open == null) {
     throw new ForgeError('No run is recording');
@@ -124,9 +179,36 @@ export const stopRun = async () => {
   return open.run_id;
 };
 
+export const startRun = async (name: string, note = '') =>
+  sink == null
+    ? await requestRun('start', { name, note })
+    : await startLocal(name, note);
+
+export const stopRun = async () =>
+  sink == null ? await requestRun('stop', {}) : await stopLocal();
+
+export const serveRunControl = (nc: NatsConnection) => {
+  for (const action of ['start', 'stop'] as const) {
+    const subscription = nc.subscribe(`${RUN_SUBJECT}.${action}`);
+    void (async () => {
+      for await (const msg of subscription) {
+        try {
+          const request = RunRequest.parse(msg.json());
+          const runId =
+            action === 'start'
+              ? await startLocal(request.name ?? 'run', request.note)
+              : await stopLocal();
+          msg.respond(JSON.stringify({ run_id: runId }));
+        } catch (error) {
+          msg.respond(JSON.stringify({ error: errorMessage(error) }));
+        }
+      }
+    })();
+  }
+};
+
 export const listRuns = async (limit = 20) =>
   await select<Run>(
-    reader,
     'SELECT run_id, name, kind, started_at, stopped_at, duration_s, note FROM runs ORDER BY started_at DESC LIMIT {limit:UInt32}',
     { limit },
   );
@@ -139,7 +221,6 @@ export const resolveRunId = async (runId: string) => {
     return runId;
   }
   const [run] = await select<Pick<Run, 'run_id'>>(
-    reader,
     "SELECT run_id FROM runs ORDER BY kind = 'manual' DESC, started_at DESC LIMIT 1 OFFSET {offset:UInt32}",
     { offset },
   );

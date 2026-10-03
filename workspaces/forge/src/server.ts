@@ -12,11 +12,17 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import { chat } from './agent/chat.ts';
-import { reader, select } from './clickhouse.ts';
+import {
+  VoiceCall,
+  VoiceToolCall,
+  openVoiceCall,
+  runVoiceTool,
+} from './agent/voice.ts';
 import { config } from './config.ts';
 import { ForgeError, errorMessage } from './errors.ts';
 import { log } from './log.ts';
 import { startLiveStatus } from './robot.ts';
+import { ping, select } from './store/engine.ts';
 
 const ALLOWED_ORIGIN =
   /^https:\/\/(localhost|dev\.rabbit|jetson\.rabbit)(:\d+)?$/;
@@ -67,13 +73,11 @@ const readBody = async (request: IncomingMessage) => {
 
 const computeHealth = async () => {
   const [clickhouse, latest, run] = await Promise.all([
-    reader.ping().then((result) => result.success),
+    ping(),
     select<{ age_s: number | null }>(
-      reader,
       "SELECT dateDiff('millisecond', max(ts), now64(3)) / 1000 AS age_s FROM power WHERE ts > now64(3) - INTERVAL 1 DAY",
     ).catch(() => []),
     select<{ run_id: string; name: string }>(
-      reader,
       "SELECT run_id, name FROM runs WHERE kind = 'manual' AND stopped_at IS NULL ORDER BY started_at DESC LIMIT 1",
     ).catch(() => []),
   ]);
@@ -154,11 +158,26 @@ const streamChat = async (
   );
 };
 
+const readJson = async <T>(
+  request: IncomingMessage,
+  response: ServerResponse,
+  schema: { parse: (value: unknown) => T },
+) => {
+  try {
+    return schema.parse(JSON.parse(await readBody(request)));
+  } catch (error) {
+    sendJson(request, response, 400, { error: errorMessage(error) });
+    return null;
+  }
+};
+
+const POST_PATHS = new Set(['/api/chat', '/api/voice/call', '/api/voice/tool']);
+
 const rejection = (request: IncomingMessage, path: string) => {
   if (!ALLOWED_HOSTS.has(request.headers.host ?? '')) {
     return { status: 403, error: 'Host not allowed' };
   }
-  if (request.method !== 'POST' || path !== '/api/chat') {
+  if (request.method !== 'POST' || !POST_PATHS.has(path)) {
     return null;
   }
   if (!allowedOrigin(request)) {
@@ -188,6 +207,21 @@ const handle = async (request: IncomingMessage, response: ServerResponse) => {
   }
   if (request.method === 'POST' && path === '/api/chat') {
     await streamChat(request, response);
+    return;
+  }
+  if (request.method === 'POST' && path === '/api/voice/call') {
+    const call = await readJson(request, response, VoiceCall);
+    if (call != null) {
+      sendJson(request, response, 200, { sdp: await openVoiceCall(call) });
+    }
+    return;
+  }
+  if (request.method === 'POST' && path === '/api/voice/tool') {
+    const call = await readJson(request, response, VoiceToolCall);
+    if (call != null) {
+      log('Voice tool', { name: call.name, approved: call.approved });
+      sendJson(request, response, 200, await runVoiceTool(call));
+    }
     return;
   }
   sendJson(request, response, 404, { error: 'Not found' });

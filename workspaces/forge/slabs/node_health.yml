@@ -1,0 +1,70 @@
+title: Node process health
+description: >-
+  Per robot node over a window: CPU (mean and peak percent of one core), peak resident memory,
+  worst event-loop stall, NATS messages sent and received, and the error counters (exceptions
+  caught in callbacks, publishes dropped while NATS reconnected, log records and events dropped),
+  plus how many times the node process started. Use it for "which node uses the CPU", "is
+  anything leaking memory", "did a node stall" and "are messages being dropped".
+tags:
+  [
+    cpu,
+    memory,
+    rss,
+    stall,
+    loop lag,
+    gil,
+    nats,
+    dropped,
+    errors,
+    nodes,
+    performance,
+  ]
+prompts:
+  - Which node used the most CPU?
+  - Did any node stall?
+  - Is any node leaking memory?
+guidelines: >-
+  loop_lag_max_ms above 100 means the node's callbacks stalled (GIL, a blocking call); on
+  rabbit-zed compare with values['gil_gap_ms_max'] and values['grab_ms_max'] in node_metrics.
+  Counters are per process: instances above 1 means the node restarted in the window. The
+  container view (jetson_containers) includes native threads and children.
+dims: [node]
+sql: |
+  SELECT
+    node,
+    uniqExact(instance_id) AS instances,
+    round(avg(cpu_pct), 1) AS cpu_mean_pct,
+    round(max(cpu_pct), 1) AS cpu_max_pct,
+    round(max(rss_bytes) / 1048576, 1) AS rss_max_mb,
+    round(argMax(rss_bytes, ts) / 1048576, 1) AS rss_last_mb,
+    round(max(loop_lag_max_ms), 1) AS loop_lag_max_ms,
+    sum(sent_msgs) AS sent_msgs,
+    sum(received_msgs) AS received_msgs,
+    max(callback_errors) AS callback_errors,
+    max(dropped_publishes) AS dropped_publishes,
+    max(log_dropped) AS log_dropped,
+    sum(events) AS events,
+    sum(events_suppressed) AS events_suppressed,
+    sum(events_dropped) AS events_dropped
+  FROM node_metrics
+  WHERE run_id = {run_id:String}
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+  GROUP BY node
+  ORDER BY cpu_mean_pct DESC
+columns:
+  node: { kind: entity }
+  instances: { measure: counter }
+  cpu_mean_pct: { measure: gauge, unit: "% of a core" }
+  cpu_max_pct: { measure: gauge, unit: "% of a core" }
+  rss_max_mb: { measure: gauge, unit: MiB }
+  rss_last_mb: { measure: gauge, unit: MiB }
+  loop_lag_max_ms: { measure: gauge, unit: ms }
+  sent_msgs: { measure: counter }
+  received_msgs: { measure: counter }
+  callback_errors: { measure: counter }
+  dropped_publishes: { measure: counter }
+  log_dropped: { measure: counter }
+  events: { measure: counter }
+  events_suppressed: { measure: counter }
+  events_dropped: { measure: counter }

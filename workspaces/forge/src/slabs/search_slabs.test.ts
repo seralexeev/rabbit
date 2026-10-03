@@ -16,6 +16,8 @@ describe('searchSlabs', () => {
     ['average battery voltage in the last run', 'run_summary'],
     ['Jetson CPU frequency over time', 'jetson_throttling'],
     ['was there high ping or packet loss', 'wifi_health'],
+    ['Was the robot throttled?', 'power_throttling'],
+    ['were the Jetson clocks pinned', 'power_throttling'],
   ])('ranks %s to %s', (question, slab) => {
     expect(searchSlabs(question, 3).map((hit) => hit.slab)).toContain(slab);
   });

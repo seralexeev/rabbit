@@ -3,7 +3,6 @@ import { parseArgs } from 'node:util';
 import { ask } from './agent/ask.ts';
 import { writeQuery } from './agent/sql_agent.ts';
 import { detectAnomaliesTool } from './anomaly/detect.ts';
-import { closeClickhouse } from './clickhouse.ts';
 import { ForgeError, errorMessage } from './errors.ts';
 import { runChatEval } from './eval/chat_eval.ts';
 import { runToolEval } from './eval/tool_eval.ts';
@@ -12,35 +11,45 @@ import { investigateTool, metricGraphTool } from './graph/tools.ts';
 import { serveMcp } from './mcp/server.ts';
 import { resolveRunParams } from './runs.ts';
 import { listRuns, startRun, stopRun } from './runs.ts';
-import { describeSchema, migrate } from './schema.ts';
+import { describeSchema } from './schema.ts';
 import { serve } from './server.ts';
 import { checkSlab, runSlab } from './slabs/run_slab.ts';
 import { searchSlabs, slabSummary } from './slabs/search_slabs.ts';
 import { loadSlabs } from './slabs/slab.ts';
 import { runSql } from './sql/query_gate.ts';
+import { bench } from './store/bench.ts';
+import { applyRetention, compact } from './store/compact.ts';
+import { closeStore } from './store/engine.ts';
+import { importTables } from './store/import.ts';
+import { parity } from './store/parity.ts';
+import { syncMirror } from './store/sync.ts';
 import { runWriter } from './writer.ts';
 
 const USAGE = `Usage: pnpm forge <command>
 
-  migrate                          apply clickhouse/schema.sql
-  writer                           ingest NATS into ClickHouse until Ctrl-C
+  writer                           record NATS into Parquet files until Ctrl-C
+  serve [--writer]                 serve the chat API on http://127.0.0.1:18080; --writer also records
+  sync [<host:dir>]                mirror the robot's Parquet files into FORGE_DATA_DIR
+  compact                          merge small Parquet files and apply retention once
+  import <dir> [--before <time>]   import <table>.parquet exports (rows before <time> UTC replace the store's)
+  bench [<run id>]                 time the heaviest tool queries and report memory
+  parity [<clickhouse url>] --before <time> [--limit <runs>]   compare tool queries on the store and ClickHouse
   run start --name <name> [--note <text>]
   run stop
   run list [--limit <n>]
   slab list
   slab search <text>
   slab run <slab> [--param name=value ...] [--limit <n>]
-  slab check                       validate every slab against ClickHouse and run it
+  slab check                       validate every slab against the store and run it
   query <sql> [--param name=value ...] [--limit <n>]
   detect <signal>[,<signal>...] [--param run_id=<id>] [--param from=..] [--param to=..] [--param covariates=auto|a,b] [--param threshold=<n>]
   graph [<metric>] [--param to=<metric>] [--param hops=<n>]
-  graph check                      validate graph/metrics.yml and run every metric against ClickHouse
+  graph check                      validate graph/metrics.yml and run every metric against the store
   investigate <metric> [--param at=HH:MM] [--param from=..] [--param to=..] [--param run_id=..]
   schema
   ask <question>                   answer with the agent (fast path slabs, heavy path generated SQL)
   write-query <request>            run only the SQL sub-agent
   mcp                              serve the MCP server over stdio
-  serve                            serve the chat API on http://127.0.0.1:18080
   eval tools [<case id>]           run investigate and detect_anomalies against ground truth in evals/tools.yml
   eval [<case id>]                 run the chat agent eval in evals/chat.yml (robot actions are dry runs)
 `;
@@ -58,6 +67,8 @@ const { positionals, values } = parseArgs({
     note: { type: 'string' },
     limit: { type: 'string' },
     param: { type: 'string', multiple: true },
+    writer: { type: 'boolean' },
+    before: { type: 'string' },
   },
 });
 
@@ -90,8 +101,26 @@ const required = (value: string | undefined, flag: string) => {
 };
 
 const commands: Record<string, (() => Promise<void> | void) | undefined> = {
-  migrate: async () => {
-    print(`Applied ${await migrate()} statements`);
+  sync: async () => {
+    print(await syncMirror(sub));
+  },
+  compact: async () => {
+    print({ merged: await compact(), ...(await applyRetention()) });
+  },
+  bench: async () => {
+    print(await bench(sub));
+  },
+  parity: async () => {
+    print(
+      await parity(
+        sub ?? 'http://192.168.1.53:18123',
+        required(values.before, 'before'),
+        limit,
+      ),
+    );
+  },
+  import: async () => {
+    print(await importTables(required(sub, 'dir'), values.before));
   },
   writer: async () => {
     await runWriter();
@@ -183,8 +212,11 @@ const commands: Record<string, (() => Promise<void> | void) | undefined> = {
   mcp: () => {
     serveMcp();
   },
-  serve: () => {
+  serve: async () => {
     serve();
+    if (values.writer === true) {
+      await runWriter();
+    }
   },
   'eval tools': async () => {
     print(await runToolEval(rest[0]));
@@ -222,6 +254,6 @@ try {
   process.exitCode = 1;
 } finally {
   if (!longRunning) {
-    await closeClickhouse();
+    await closeStore();
   }
 }

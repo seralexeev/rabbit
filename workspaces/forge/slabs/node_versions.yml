@@ -1,0 +1,75 @@
+title: Code and parameters each node ran
+description: >-
+  Every node start with the code it ran (git revision of the deployed tree, a hash of the robot
+  Python sources, so uncommitted changes show), the Python and package versions, the environment
+  settings (LOC_MODE, SIM_*, USE_*), and how many constants it had in effect. With key it shows
+  the value of one parameter (for example nav.Node.SAFETY_STOP or trip.DETOUR_HOLD) at each
+  start. Use it for "which version was running at 03:12", "what was the stop distance then" and
+  "what changed between these runs".
+tags:
+  [
+    version,
+    git,
+    code,
+    deploy,
+    config,
+    parameters,
+    constants,
+    settings,
+    environment,
+  ]
+prompts:
+  - Which code was running on the robot at 03:12?
+  - What was the safety stop distance during the last run?
+  - Did the deployed code change between the two runs?
+guidelines: >-
+  Newest first. The key lookup matches the end of the constant name, so SAFETY_STOP finds
+  nav.Node.SAFETY_STOP. A changed code_hash with the same git_rev means uncommitted edits.
+dims: [t]
+sql: |
+  SELECT
+    ts AS t,
+    node,
+    boot_id,
+    instance_id,
+    git_rev,
+    code_hash,
+    versions['python'] AS python,
+    toString(env) AS environment,
+    length(mapKeys(config)) AS constants,
+    arrayStringConcat(arrayMap(k -> concat(k, '=', config[k]),
+      arrayFilter(k -> {key:String} != '' AND endsWith(k, {key:String}), mapKeys(config))), ', ') AS matching
+  FROM node_starts
+  WHERE (run_id = {run_id:String} OR {all_runs:UInt32} = 1)
+    AND ts >= parseDateTime64BestEffort({from:String}, 9, 'UTC')
+    AND ts < parseDateTime64BestEffort({to:String}, 9, 'UTC')
+    AND ({node:String} = '' OR node = {node:String})
+  ORDER BY t DESC
+columns:
+  t: { kind: time }
+  node: { kind: attribute }
+  boot_id: { kind: attribute }
+  instance_id: { kind: attribute }
+  git_rev: { kind: attribute }
+  code_hash: { kind: attribute }
+  python: { kind: attribute }
+  environment: { kind: attribute }
+  constants: { measure: gauge, unit: count }
+  matching:
+    {
+      kind: attribute,
+      description: "Constants whose name ends with key, as name=value",
+    }
+subs:
+  key:
+    type: String
+    default: ""
+    description: A constant name or its end, e.g. SAFETY_STOP; empty for none
+  node:
+    type: String
+    default: ""
+    description: Only this node, e.g. nav; empty for all
+  all_runs:
+    type: UInt32
+    default: 0
+    description: 1 searches every run instead of run_id
