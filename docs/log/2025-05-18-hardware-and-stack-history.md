@@ -13,7 +13,7 @@ Rabbit is a small rover on an RC car kit with Ackermann steering. The goal from 
 | Chassis | RC car kit with Ackermann steering; aluminium steering hubs and metal ball links replaced the plastic parts (blog #101, #93) |
 | Compute | NVIDIA Jetson Orin Nano Super developer kit, 8 GB (7.4 GB usable), 6 cores, NVMe 915 GB, L4T R36.4.4 (JetPack 6), power mode MAXN_SUPER |
 | Camera | ZED 2i, 2.1 mm lenses (serial 31819002, firmware 1523), on USB. Depth from about 0.3 m only, so there is a blind zone in front of the bumper |
-| Drive | 2 × Pololu 37D 70:1 12 V gear motors at the rear, RoboClaw 2x30A (firmware USB Roboclaw 2x30a v4.3.6). The wheel encoders do not count (always 0), so speed comes from the camera pose |
+| Drive | 2 × Pololu 37D 70:1 12 V gear motors at the rear, 37Dx70L with 64 CPR encoders, helical pinion (#4754, 4480 counts per wheel revolution; confirmed by the owner 2026-10-03; the old whiteboard says 37Dx54L, which is wrong), RoboClaw 2x30A (firmware USB Roboclaw 2x30a v4.3.6). The wheel encoders do not count (always 0), so speed comes from the camera pose |
 | Steering | brushless servo (A50BHL) on a PCA9685 (I2C bus 7, address 0x40), 1000–2000 µs, centre trimmed to 1532 µs |
 | Power | 99 Wh V-mount 4S Li-ion pack (16.8 V full, 14.8 V nominal) with its own BMS; buck converters for 12 V (RoboClaw), 6 V (servo) and the Jetson input; INA4235 4-channel monitor at I2C 0x41 with 10 mΩ shunts (channel 1 battery, channel 2 the 6 V rail; channels 3–4 unwired) |
 | Network | Wi-Fi only: Realtek rtl88x2ce PCIe card (`wlP1p1s0`) |
