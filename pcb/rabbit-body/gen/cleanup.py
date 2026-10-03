@@ -13,7 +13,11 @@ for v in d["violations"]:
             spots.append((v["type"], round(i["pos"]["x"], 3), round(i["pos"]["y"], 3)))
 b = pcbnew.LoadBoard(str(PRJ / "rabbit-body.kicad_pcb"))
 n = 0
-for t in list(b.GetTracks()):
+tracks = list(b.GetTracks())
+for t in tracks:   # Freerouting sometimes necks a segment below the 0.1 mm minimum at a pad
+    if t.GetClass() == "PCB_TRACK" and t.GetWidth() < pcbnew.FromMM(0.1):
+        t.SetWidth(pcbnew.FromMM(0.12)); n += 1
+for t in tracks:
     for kind, x, y in spots:
         p = t.GetPosition() if kind == "via_dangling" else t.GetStart()
         if kind == "via_dangling" and t.GetClass() == "PCB_VIA" and abs(pcbnew.ToMM(p.x) - x) < 0.01 and abs(pcbnew.ToMM(p.y) - y) < 0.01:
@@ -22,8 +26,5 @@ for t in list(b.GetTracks()):
             pts = [t.GetStart(), t.GetEnd(), t.GetPosition()]
             if any(abs(pcbnew.ToMM(q.x) - x) < 0.01 and abs(pcbnew.ToMM(q.y) - y) < 0.01 for q in pts):
                 b.Remove(t); n += 1; break
-for t in b.GetTracks():   # Freerouting sometimes necks a segment below the 0.1 mm minimum at a pad
-    if t.GetClass() == "PCB_TRACK" and t.GetWidth() < pcbnew.FromMM(0.1):
-        t.SetWidth(pcbnew.FromMM(0.12)); n += 1
 pcbnew.SaveBoard(str(PRJ / "rabbit-body.kicad_pcb"), b)
 print("removed", n)

@@ -26,18 +26,20 @@ def px(X, Y):
 
 
 BLOCKS = [  # (label, X0, Y0, X1, Y1, colour)
-    ("POWER IN\nXT60 > F1 15A >\nswitch > 2 mOhm", 37.5, -112.0, 58.5, -37.0, "#e4572e"),
-    ("FUSES F2-F7\nVBUS bar", 13.5, -108.5, 37.0, -48.5, "#f3a712"),
-    ("ROBOCLAW 2x30A\nterminals to the rear", -56.5, -109.5, -3.0, -34.5, "#29335c"),
-    ("MOTOR B+/B- \n+ 1000 uF", -37.0, -127.0, 8.0, -110.0, "#e4572e"),
+    ("POWER IN: XT60 > F1 15A >\nLM74800 ideal diode +\nswitch (Q1, Q2) > 2 mOhm", 34.0, -112.0, 58.5, -50.0, "#e4572e"),
+    ("VBUS bus + spine\nto the front", 36.0, -53.5, 58.5, -34.0, "#f3a712"),
+    ("MOTOR MCU\nSTM32G474RET6", -21.0, -92.0, 22.0, -58.0, "#9b5de5"),
+    ("DRV8316 L", -40.0, -117.0, -18.0, -96.0, "#29335c"),
+    ("DRV8316 R", 12.0, -117.0, 34.0, -96.0, "#29335c"),
+    ("BRAKE\nCHOPPER", -17.5, -117.0, 11.5, -92.0, "#d62828"),
+    ("MOTOR / HALL / ENC", -32.5, -135.0, 32.5, -117.5, "#29335c"),
     ("RASPBERRY PI 4\nUSB / ETH to the right edge", -29.8, -32.3, 57.5, 24.3, "#669bbc"),
-    ("5 V 9 A\n(Pi, lidar, ToF)", -54.5, -24.7, -33.5, 16.7, "#2a9d8f"),
-    ("40-pin to Pi\n(ribbon)", -27.0, 25.0, 33.0, 35.0, "#669bbc"),
-    ("12 V Jetson\n+ 10 mOhm", -42.0, 37.5, -4.0, 80.0, "#2a9d8f"),
-    ("6 V servo\n+ 10 mOhm", 4.0, 37.5, 41.0, 63.5, "#2a9d8f"),
+    ("40-pin to Pi (ribbon)", -27.0, 25.0, 33.0, 35.0, "#669bbc"),
+    ("5.17 V 10 A\nLM61495", -41.0, 33.5, -19.0, 67.0, "#2a9d8f"),
+    ("JETSON\neFuse 4.6 A", -15.5, 41.0, 2.0, 60.0, "#2a9d8f"),
+    ("6 V SERVO\nLM61495", 3.0, 33.5, 26.0, 67.0, "#2a9d8f"),
     ("ZED USB\ncable cut", 21.5, 64.6, 32.6, 82.6, "#8d99ae"),
-    ("PCA9685 + servo\nheaders, RTC", -24.0, 86.0, 21.0, 123.0, "#9b5de5"),
-    ("INA4235", 15.0, -46.0, 28.0, -36.0, "#d62828"),
+    ("PCA9685, servo\nheaders, RTC", -24.0, 86.0, 21.0, 122.0, "#9b5de5"),
 ]
 fig = plt.figure(figsize=(img.shape[1] / 150, img.shape[0] / 150), dpi=150)
 ax = fig.add_axes([0, 0, 1, 1])

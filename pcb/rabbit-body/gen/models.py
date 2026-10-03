@@ -1,7 +1,7 @@
-"""Envelope 3D models (STEP) of the modules mounted on the body board.
+"""Envelope 3D models (STEP) of the parts on the body board that have no KiCad library model.
 
-Built from the vendor dimension drawings: Raspberry Pi 4 mechanical drawing, RoboClaw 2x30A datasheet p.14,
-Pololu D36V50Fx / D24V90F5 / Big Pushbutton HP dimension diagrams, Keystone 3557 catalogue page.
+Built from the vendor dimension drawings: Raspberry Pi 4 mechanical drawing, AMASS XT30PW-F, TI RGF/RPH/DRR
+package outlines (DRV8316, LM61495, LM74800), Littelfuse NANO2 451.
 Frame: KiCad footprint model frame (X right, Y up = -footprint y, Z up), origin at the footprint origin,
 Z = 0 at the bottom of the module (the footprint adds the standoff height as a model offset).
 
@@ -59,80 +59,13 @@ def rpi4():
     return Compound(parts)
 
 
-def roboclaw():
-    # datasheet top view, terminals at +Y; 52.32 x 73.66, holes 45.72 x 66.68
-    w, h = 52.32, 73.66
-    holes = [(sx * 22.86, sy * 33.34) for sx in (-1, 1) for sy in (-1, 1)]
-    parts = [rounded_board(w, h, 1.6, 0.5, holes, 3.175)]
-    top = 1.6
-    ytop = h / 2
-    parts.append(box(49.5, 12.7, 11.0, 0, ytop - 13.65, top))                 # 6-way screw terminal block
-    for xd in (5.5, 13.8, 22.1, 30.5, 38.6, 47.0):
-        parts.append(cyl(2.4, 1.0, xd - w / 2, ytop - 13.6, top + 11.0))      # screw heads
-    hs_y0, hs_y1 = ytop - 49.0, ytop - 20.0
-    parts.append(box(w, hs_y1 - hs_y0, 3.0, 0, (hs_y0 + hs_y1) / 2, top))      # heatsink base
-    for i in range(9):
-        parts.append(box(1.6, hs_y1 - hs_y0, 12.6, -w / 2 + 2.5 + i * 5.9, (hs_y0 + hs_y1) / 2, top + 3.0))
-    for xd in (12.5, 21.0, 29.5, 38.0):
-        parts.append(cyl(4.2, 12.0, xd - w / 2, ytop - 23.0, top + 3.0))      # bulk capacitors
-    parts.append(box(27.0, 5.0, 8.5, 26.5 - w / 2 + 7.0, ytop - 64.5, top))   # control / encoder headers
-    parts.append(box(12.5, 2.5, 8.5, 26.5 - w / 2 + 11.0, ytop - 69.5, top))  # S1..S5 row
-    parts.append(box(8.0, 5.5, 3.0, 6.5 - w / 2, -h / 2 + 2.75, top))          # micro USB
-    parts.append(box(46.0, 20.0, 1.2, 0, -h / 2 + 12.0, -1.2))                 # bottom-side components
-    return Compound(parts)
+def qfn(sx, sy, sz):
+    return Compound([box(sx, sy, sz)])
 
 
-def pololu_d36v50():
-    # 25.4 x 25.4, pins along the bottom edge (two rows at 1.27 / 3.81 mm from the edge), components 6.1 mm
-    parts = [box(25.4, 25.4, 1.57, 0, 0, 0)]
-    t = 1.57
-    parts += [box(9.0, 9.0, 6.1, -5.0, 2.0, t),        # inductor
-              cyl(3.2, 6.1, 4.5, 8.5, t), cyl(3.2, 6.1, 9.0, 3.0, t),
-              box(5.0, 5.0, 1.0, 5.0, -4.0, t)]
-    for i in range(6):
-        for row in (8.89, 11.43):
-            parts.append(box(0.64, 0.64, 8.5, -6.35 + 2.54 * i, -row, -2.54 - 3.0))
-    parts.append(box(15.24, 5.08, 2.54, 0, -10.16, -2.54))   # header plastic
-    return Compound(parts)
-
-
-def pololu_d24v90():
-    # 20.3 x 40.6, power ends at +-Y, side signal pins at -X; component height 6.1
-    parts = [box(20.3, 40.6, 1.57, 0, 0, 0)]
-    t = 1.57
-    parts += [cyl(3.2, 6.1, 4.0, 12.0, t), cyl(3.2, 6.1, 4.0, -12.0, t), box(8.5, 8.5, 4.5, -2.0, 0.0, t)]
-    for y in (-15.24, 15.24):
-        parts.append(box(10.16, 2.54, 2.54, 0.0, y, -2.54))
-    parts.append(box(2.54, 10.16, 2.54, -8.88, -4.0, -2.54))
-    return Compound(parts)
-
-
-def pololu_switch_hp():
-    # 20.3 x 25.4, power holes along the top edge, two 1x8 pin columns, MOSFETs 2.4 mm
-    parts = [box(20.3, 25.4, 1.57, 0, 0, 0)]
-    t = 1.57
-    parts += [box(6.5, 6.0, 2.4, -3.8, 2.0, t), box(6.5, 6.0, 2.4, 3.8, 2.0, t), box(3.0, 2.5, 1.9, 4.5, -8.0, t)]
-    for x in (-9.0, 9.0):
-        parts.append(box(2.54, 20.32, 2.54, x, -1.27 - 0.6, -2.54))
-    return Compound(parts)
-
-
-def ato_fuse_3557():
-    # two Keystone 3557 clips at W = 13.5 mm plus a standard ATO fuse (19.1 x 5.1, 18.5 mm with blades)
-    parts = []
-    for x in (-6.75, 6.75):
-        parts.append(box(3.8, 4.7, 10.2, x, 0, 0))
-    parts.append(box(19.1, 5.1, 12.0, 0, 0, 10.2 - 3.0))
-    parts.append(box(14.0, 3.6, 1.5, 0, 0, 10.2 + 9.0))
-    return Compound(parts)
-
-
-def dsbga16():
-    parts = [box(1.508, 1.508, 0.4, 0, 0, 0.17)]
-    for r in range(4):
-        for c in range(4):
-            parts.append(Pos(-0.6 + 0.4 * c, 0.6 - 0.4 * r, 0.1) * Cylinder(0.12, 0.2))
-    return Compound(parts)
+def fuse_2410():
+    # NANO2 451: 6.10 x 2.69 x 2.69 body with end caps
+    return Compound([box(4.0, 2.5, 2.5, 0, 0, 0.05), box(1.0, 2.69, 2.69, -2.55, 0, 0), box(1.0, 2.69, 2.69, 2.55, 0, 0)])
 
 
 def xt30pw_f():
@@ -142,9 +75,11 @@ def xt30pw_f():
 
 def main():
     OUT.mkdir(exist_ok=True)
-    for name, fn in [("rpi4", rpi4), ("roboclaw_2x30a", roboclaw), ("pololu_d36v50fx", pololu_d36v50),
-                     ("pololu_d24v90f5", pololu_d24v90), ("pololu_big_pushbutton_hp", pololu_switch_hp),
-                     ("ato_fuse_keystone_3557x2", ato_fuse_3557), ("ina4235_dsbga16", dsbga16), ("xt30pw_f", xt30pw_f)]:
+    for f in OUT.glob("*.step"):
+        f.unlink()
+    for name, fn in [("rpi4", rpi4), ("xt30pw_f", xt30pw_f), ("vqfn40_5x7", lambda: qfn(5.0, 7.0, 1.0)),
+                     ("vqfn16_3.5x4.5", lambda: qfn(3.5, 4.5, 1.0)), ("wson12_3x3", lambda: qfn(3.0, 3.0, 0.8)),
+                     ("fuse_2410", fuse_2410)]:
         shape = fn()
         export_step(shape, str(OUT / f"{name}.step"))
         bb = shape.bounding_box()

@@ -1,0 +1,765 @@
+{
+ "date": "2026-10-03",
+ "parts": {
+  "C12891": {
+   "model": "CL31A226KAHNNNE",
+   "package": "1206",
+   "stock": 584674,
+   "type": "base",
+   "price": 0.1733,
+   "describe": "22uF 25V X5R \u00b110% 1206 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C131334": {
+   "model": "B4B-PH-K-S(LF)(SN)",
+   "package": "Plugin,P=2mm",
+   "stock": 111140,
+   "type": "expand",
+   "price": 0.0454,
+   "describe": "-25\u2103~+85\u2103 1 100V 1x4P 2A 2mm 4 4.5mm 4P 6mm 9.9mm Brass K Pin PA66 PH Through Hole Tin UL94V-0 White \u63d2\u4ef6,P=2mm Wire To Bo"
+  },
+  "C131337": {
+   "model": "B2B-PH-K-S(LF)(SN)",
+   "package": "Plugin,P=2mm",
+   "stock": 62789,
+   "type": "expand",
+   "price": 0.0353,
+   "describe": "-25\u2103~+85\u2103 1 100V 1x2P 2 2A 2P 2mm 4.5mm 5.9mm 6mm Brass K Pin PA66 PH Through Hole Tin UL94V-0 White \u63d2\u4ef6,P=2mm Wire To Bo"
+  },
+  "C131339": {
+   "model": "B3B-PH-K-S(LF)(SN)",
+   "package": "Plugin,P=2mm",
+   "stock": 138892,
+   "type": "expand",
+   "price": 0.0449,
+   "describe": "-25\u2103~+85\u2103 1 100V 1x3P 2A 2mm 3 3P 4.5mm 6mm 7.9mm Brass K Pin PA66 PH Through Hole Tin UL94V-0 White \u63d2\u4ef6,P=2mm Wire To Bo"
+  },
+  "C13564": {
+   "model": "NCP18XH103F03RB",
+   "package": "0603",
+   "stock": 257718,
+   "type": "expand",
+   "price": 0.0464,
+   "describe": "-40\u2103~+125\u2103 0.8mm 1.6mm 100mW 10k\u03a9 1mW/\u2103 310uA 3380K 3434K 3455K \u00b11% \u00b11% 0603 NTC Thermistors ROHS"
+  },
+  "C142876": {
+   "model": "0451008.MRL",
+   "package": "2410",
+   "stock": 19260,
+   "type": "expand",
+   "price": 0.3492,
+   "describe": "-55\u2103~+125\u2103 125V 125V 20.23 50A 8A Surface Mount Fuse 2410 Disposable fuses ROHS"
+  },
+  "C144395": {
+   "model": "B4B-XH-A(LF)(SN)",
+   "package": "Plugin,P=2.5mm",
+   "stock": 87602,
+   "type": "expand",
+   "price": 0.0615,
+   "describe": "-25\u2103~+85\u2103 1 12.4mm 1x4P 2.5mm 250V 3A 4 4P 5.75mm 7mm Brass K Pin PA66 Through Hole Tin UL94V-0 White XH \u63d2\u4ef6,P=2.5mm Wire"
+  },
+  "C14663": {
+   "model": "CC0603KRX7R9BB104",
+   "package": "0603",
+   "stock": 58069443,
+   "type": "base",
+   "price": 0.0123,
+   "describe": "100nF 50V X7R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C151257": {
+   "model": "SMBJ20A",
+   "package": "DO-214AA",
+   "stock": 16790,
+   "type": "expand",
+   "price": 0.1841,
+   "describe": "-65\u2103~+150\u2103 18.6A@10/1000us 1uA 20V 24.5V 32.4V 600W@10/1000us IEC 61000-4-2\u3001IEC 61000-4-4 TVS Unidirectional DO-214AA ES"
+  },
+  "C151258": {
+   "model": "SMBJ20CA",
+   "package": "DO-214AA",
+   "stock": 14543,
+   "type": "expand",
+   "price": 0.1431,
+   "describe": "-65\u2103~+150\u2103 18.6A@10/1000us 1uA 20V 24.5V 32.4V 600W@10/1000us Bidirectional IEC 61000-4-2\u3001IEC 61000-4-4 TVS DO-214AA ESD"
+  },
+  "C1525": {
+   "model": "CL05B104KO5NNNC",
+   "package": "0402",
+   "stock": 21613368,
+   "type": "base",
+   "price": 0.0045,
+   "describe": "100nF 16V X7R \u00b110% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C154685": {
+   "model": "LR2512-23R002F4",
+   "package": "2512",
+   "stock": 28301,
+   "type": "expand",
+   "price": 0.1883,
+   "describe": "2m\u03a9 3W Alloy Resistor SMD \u00b11% \u00b150ppm/\u2103 2512 Current Sense Resistors / Shunt Resistors ROHS"
+  },
+  "C154688": {
+   "model": "LR2512-23R005F4",
+   "package": "2512",
+   "stock": 11124,
+   "type": "expand",
+   "price": 0.1221,
+   "describe": "3W 5m\u03a9 Alloy Resistor SMD \u00b11% \u00b125ppm/\u2103 2512 Current Sense Resistors / Shunt Resistors ROHS"
+  },
+  "C157991": {
+   "model": "B5B-XH-A(LF)(SN)",
+   "package": "Plugin,P=2.5mm",
+   "stock": 69954,
+   "type": "expand",
+   "price": 0.0852,
+   "describe": "-25\u2103~+85\u2103 1 14.9mm 1x5P 2.5mm 250V 3A 5 5.75mm 5P 7mm Brass K Pin PA66 Through Hole Tin UL94V-0 White XH \u63d2\u4ef6,P=2.5mm Wire"
+  },
+  "C157993": {
+   "model": "B5B-PH-K-S(LF)(SN)",
+   "package": "Plugin,P=2mm",
+   "stock": 158208,
+   "type": "expand",
+   "price": 0.0542,
+   "describe": "-25\u2103~+85\u2103 1 100V 11.9mm 1x5P 2A 2mm 4.5mm 5 5P 6mm Brass K Pin PA66 PH Through Hole Tin UL94V-0 White \u63d2\u4ef6,P=2mm Wire To B"
+  },
+  "C158012": {
+   "model": "B2B-XH-A(LF)(SN)",
+   "package": "Plugin,P=2.5mm",
+   "stock": 311372,
+   "type": "expand",
+   "price": 0.0405,
+   "describe": "-25\u2103~+85\u2103 1 1x2P 2 2.5mm 250V 2P 3A 5.75mm 7.4mm 7mm Brass K Pin PA66 Through Hole Tin UL94V-0 White XH \u63d2\u4ef6,P=2.5mm Wire "
+  },
+  "C15849": {
+   "model": "CL10A105KB8NNNC",
+   "package": "0603",
+   "stock": 6233363,
+   "type": "base",
+   "price": 0.0168,
+   "describe": "1uF 50V X5R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C15850": {
+   "model": "CL21A106KAYNNNE",
+   "package": "0805",
+   "stock": 4946571,
+   "type": "base",
+   "price": 0.0651,
+   "describe": "10uF 25V X5R \u00b110% 0805 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C1588": {
+   "model": "CL10B102KB8NNNC",
+   "package": "0603",
+   "stock": 7806741,
+   "type": "base",
+   "price": 0.0089,
+   "describe": "1nF 50V X7R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C1622": {
+   "model": "CL10B473KB8NNNC",
+   "package": "0603",
+   "stock": 826746,
+   "type": "base",
+   "price": 0.0073,
+   "describe": "47nF 50V X7R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C1623": {
+   "model": "CL10B474KA8NNNC",
+   "package": "0603",
+   "stock": 925752,
+   "type": "base",
+   "price": 0.0296,
+   "describe": "25V 470nF X7R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C1634": {
+   "model": "CL10C100JB8NNNC",
+   "package": "0603",
+   "stock": 1257041,
+   "type": "base",
+   "price": 0.0076,
+   "describe": "10pF 50V C0G \u00b15% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C1647": {
+   "model": "CL10C180JB8NNNC",
+   "package": "0603",
+   "stock": 425648,
+   "type": "base",
+   "price": 0.0157,
+   "describe": "18pF 50V C0G \u00b15% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C173429": {
+   "model": "BZT52C12",
+   "package": "SOD-123",
+   "stock": 355445,
+   "type": "expand",
+   "price": 0.0161,
+   "describe": "1 Independent 100nA@9V 11.4V~12.6V 12V 35\u03a9 500mW SOD-123 Zener Diodes ROHS"
+  },
+  "C173432": {
+   "model": "BZT52C8V2",
+   "package": "SOD-123",
+   "stock": 101308,
+   "type": "expand",
+   "price": 0.015,
+   "describe": "1 Independent 30\u03a9 500mW 500nA 7.79V~8.61V 8.2V SOD-123 Zener Diodes ROHS"
+  },
+  "C175263": {
+   "model": "CRH2512F39R0E04Z",
+   "package": "2512",
+   "stock": 6123,
+   "type": "expand",
+   "price": 0.0594,
+   "describe": "-55\u2103~+155\u2103 200V 2W 39\u03a9 Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 2512 Chip Resistor - Surface Mount ROHS"
+  },
+  "C1849461": {
+   "model": "TPS16630PWPR",
+   "package": "HTSSOP-20",
+   "stock": 1131,
+   "type": "expand",
+   "price": 2.7734,
+   "describe": "-40\u2103~+125\u2103@(Tj) 1 1.2mm 30.44m\u03a9 4.4mm 4.5V~60V 6.5mm Integrated FET Surface Mount HTSSOP-20 Surge Protection Devices (SP"
+  },
+  "C19268037": {
+   "model": "XT60PB-M.G.Y",
+   "package": "-",
+   "stock": 19495,
+   "type": "expand",
+   "price": 0.3593,
+   "describe": "- Power connector / plug connector ROHS"
+  },
+  "C19666": {
+   "model": "CL10A475KO8NNNC",
+   "package": "0603",
+   "stock": 2523918,
+   "type": "base",
+   "price": 0.0295,
+   "describe": "16V 4.7uF X5R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C20917": {
+   "model": "AO3400A",
+   "package": "SOT-23",
+   "stock": 953602,
+   "type": "base",
+   "price": 0.0888,
+   "describe": "-55\u2103~+150\u2103 1 N-channel 1.45V 1.4W 30V 48m\u03a9@2.5V 5.7A 50pF 630pF 75pF 7nC@10V N-Channel SOT-23 MOSFETs ROHS"
+  },
+  "C21190": {
+   "model": "0603WAF1001T5E",
+   "package": "0603",
+   "stock": 21599839,
+   "type": "base",
+   "price": 0.0026,
+   "describe": "-55\u2103~+155\u2103 100mW 1k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C2128": {
+   "model": "1N4148WS",
+   "package": "SOD-323",
+   "stock": 2446373,
+   "type": "base",
+   "price": 0.0158,
+   "describe": "1.25V@150mA 100V 150mA 1uA@75V 200mW 2A 4ns Independent SOD-323 Switching Diodes ROHS"
+  },
+  "C22775": {
+   "model": "0603WAF1000T5E",
+   "package": "0603",
+   "stock": 11544509,
+   "type": "base",
+   "price": 0.0031,
+   "describe": "-55\u2103~+155\u2103 100mW 100\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C22807": {
+   "model": "0603WAF1503T5E",
+   "package": "0603",
+   "stock": 609299,
+   "type": "base",
+   "price": 0.0044,
+   "describe": "-55\u2103~+155\u2103 100mW 150k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C22843": {
+   "model": "0603WAF1501T5E",
+   "package": "0603",
+   "stock": 4814537,
+   "type": "base",
+   "price": 0.002,
+   "describe": "-55\u2103~+155\u2103 1.5k\u03a9 100mW 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C22859": {
+   "model": "0603WAF100JT5E",
+   "package": "0603",
+   "stock": 8035398,
+   "type": "base",
+   "price": 0.0032,
+   "describe": "-55\u2103~+155\u2103 100mW 10\u03a9 75V Thick Film Resistor \u00b11% \u00b1400ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C2286": {
+   "model": "KT-0603R",
+   "package": "0603",
+   "stock": 4800317,
+   "type": "base",
+   "price": 0.0076,
+   "describe": "-40\u2103~+85\u2103 1.6mm x 0.8mm square LED 1.8V~2.4V 120\u00b0 20mA 300mcd 40mW 615nm~630nm 645nm Discrete Diode Red Water Clear 0603"
+  },
+  "C22935": {
+   "model": "0603WAF1004T5E",
+   "package": "0603",
+   "stock": 6599341,
+   "type": "base",
+   "price": 0.0019,
+   "describe": "-55\u2103~+155\u2103 100mW 1M\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C22961": {
+   "model": "0603WAF2203T5E",
+   "package": "0603",
+   "stock": 1440699,
+   "type": "base",
+   "price": 0.0015,
+   "describe": "-55\u2103~+155\u2103 100mW 220k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C22962": {
+   "model": "0603WAF2200T5E",
+   "package": "0603",
+   "stock": 1898037,
+   "type": "base",
+   "price": 0.0035,
+   "describe": "-55\u2103~+155\u2103 100mW 220\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23018": {
+   "model": "0603WAF3901T5E",
+   "package": "0603",
+   "stock": 857973,
+   "type": "base",
+   "price": 0.0027,
+   "describe": "-55\u2103~+155\u2103 100mW 3.9k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23046": {
+   "model": "0603WAF4991T5E",
+   "package": "0603",
+   "stock": 1523653,
+   "type": "base",
+   "price": 0.0024,
+   "describe": "-55\u2103~+155\u2103 100mW 4.99k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23089": {
+   "model": "0603WAF6042T5E",
+   "package": "0603",
+   "stock": 92785,
+   "type": "expand",
+   "price": 0.0015,
+   "describe": "-55\u2103~+155\u2103 100mW 60.4k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23138": {
+   "model": "0603WAF3300T5E",
+   "package": "0603",
+   "stock": 3271658,
+   "type": "base",
+   "price": 0.0026,
+   "describe": "-55\u2103~+155\u2103 100mW 330\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23153": {
+   "model": "0603WAF3902T5E",
+   "package": "0603",
+   "stock": 458068,
+   "type": "base",
+   "price": 0.0016,
+   "describe": "-55\u2103~+155\u2103 100mW 39k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23162": {
+   "model": "0603WAF4701T5E",
+   "package": "0603",
+   "stock": 22424139,
+   "type": "base",
+   "price": 0.0028,
+   "describe": "-55\u2103~+155\u2103 100mW 4.7k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23186": {
+   "model": "0603WAF5101T5E",
+   "package": "0603",
+   "stock": 25255027,
+   "type": "base",
+   "price": 0.0015,
+   "describe": "-55\u2103~+155\u2103 100mW 5.1k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23231": {
+   "model": "0603WAF6802T5E",
+   "package": "0603",
+   "stock": 1008455,
+   "type": "base",
+   "price": 0.0016,
+   "describe": "-55\u2103~+155\u2103 100mW 68k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23345": {
+   "model": "0603WAF220JT5E",
+   "package": "0603",
+   "stock": 9017791,
+   "type": "base",
+   "price": 0.0017,
+   "describe": "-55\u2103~+155\u2103 100mW 22\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23352": {
+   "model": "0603WAF2402T5E",
+   "package": "0603",
+   "stock": 968769,
+   "type": "base",
+   "price": 0.0024,
+   "describe": "-55\u2103~+155\u2103 100mW 24k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C23630": {
+   "model": "CL10A225KO8NNNC",
+   "package": "0603",
+   "stock": 2613963,
+   "type": "base",
+   "price": 0.0181,
+   "describe": "16V 2.2uF X5R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C238097": {
+   "model": "3000",
+   "package": "-",
+   "stock": 7556,
+   "type": "expand",
+   "price": 0.3398,
+   "describe": "- ROHS"
+  },
+  "C240823": {
+   "model": "26604030",
+   "package": "Plugin,P=3.96mm",
+   "stock": 11348,
+   "type": "expand",
+   "price": 0.2366,
+   "describe": "1 1x3P 3 3.96mm 3P 600V 7A Brass Through Hole Tin UL94V-0 White \u63d2\u4ef6,P=3.96mm Wire To Board Connector ROHS"
+  },
+  "C242145": {
+   "model": "EEUFR1C471",
+   "package": "Plugin,D8xL11.5mm",
+   "stock": 84,
+   "type": "expand",
+   "price": 0.2107,
+   "describe": "-40\u2103~+105\u2103 11.5mm 16V 3.5mm 470uF 56m\u03a9@100kHz 6000hrs@105\u2103 8mm 950mA@100kHz \u00b120% \u63d2\u4ef6,D8xL11.5mm Aluminum Electrolytic Cap"
+  },
+  "C25092": {
+   "model": "0402WGF220JTCE",
+   "package": "0402",
+   "stock": 4611578,
+   "type": "base",
+   "price": 0.0027,
+   "describe": "-55\u2103~+155\u2103 22\u03a9 50V 62.5mW Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0402 Chip Resistor - Surface Mount ROHS"
+  },
+  "C25803": {
+   "model": "0603WAF1003T5E",
+   "package": "0603",
+   "stock": 22108555,
+   "type": "base",
+   "price": 0.0031,
+   "describe": "-55\u2103~+155\u2103 100k\u03a9 100mW 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C25804": {
+   "model": "0603WAF1002T5E",
+   "package": "0603",
+   "stock": 23001243,
+   "type": "base",
+   "price": 0.0018,
+   "describe": "-55\u2103~+155\u2103 100mW 10k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C25819": {
+   "model": "0603WAF4702T5E",
+   "package": "0603",
+   "stock": 1861887,
+   "type": "base",
+   "price": 0.002,
+   "describe": "-55\u2103~+155\u2103 100mW 47k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C2678753": {
+   "model": "PCA9685PW,118",
+   "package": "TSSOP-28",
+   "stock": 393,
+   "type": "expand",
+   "price": 2.871,
+   "describe": "-40\u2103~+85\u2103 100kHz~1MHz 16 2.3V~5.5V 25mA 5.5V Built-in PWM TSSOP-28 LED Drivers ROHS"
+  },
+  "C272875": {
+   "model": "CC0402KRX7R9BB473",
+   "package": "0402",
+   "stock": 1177052,
+   "type": "expand",
+   "price": 0.0039,
+   "describe": "47nF 50V X7R \u00b110% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C2913282": {
+   "model": "XT30PW-F20.G.Y",
+   "package": "-",
+   "stock": 24307,
+   "type": "expand",
+   "price": 0.3398,
+   "describe": "Model aircraft plug - Power connector / plug connector ROHS"
+  },
+  "C2915006": {
+   "model": "61300311121",
+   "package": "Plugin,P=2.54mm",
+   "stock": 16774,
+   "type": "expand",
+   "price": 0.2005,
+   "describe": "-40\u2103~+105\u2103 1 1x3P 2.54mm 250V 3A 3P 6mm Black Copper alloy Pin Header Through Hole \u63d2\u4ef6,P=2.54mm Pin Headers ROHS"
+  },
+  "C2915055": {
+   "model": "61300211121",
+   "package": "Plugin,P=2.54mm",
+   "stock": 15308,
+   "type": "expand",
+   "price": 0.1247,
+   "describe": "-40\u2103~+105\u2103 1 1x2P 2.54mm 250V 2P 3A 6mm Black Copper alloy Pin Header Through Hole \u63d2\u4ef6,P=2.54mm Pin Headers ROHS"
+  },
+  "C2943584": {
+   "model": "LM61495RPHR",
+   "package": "VQFN-16-HR(3.5x4.5)",
+   "stock": 581,
+   "type": "expand",
+   "price": 2.7393,
+   "describe": "-40\u2103~+150\u2103@(TJ) 1 10A 2.2MHz 3V~36V Adjustable Buck Buck Built-in VQFN-16-HR(3.5x4.5) DC-DC Converters ROHS"
+  },
+  "C3039672": {
+   "model": "BSC026N04LS",
+   "package": "TDSON-8(5x6)",
+   "stock": 29359,
+   "type": "expand",
+   "price": 0.7056,
+   "describe": "-55\u2103~+150\u2103 1 N-channel 104pF 119A 2V 3.22nF 3.6m\u03a9@4.5V 40V 45nC@10V 63W 900pF N-Channel \u00b120V TDSON-8(5x6) MOSFETs ROHS"
+  },
+  "C31334": {
+   "model": "TPS73733DCQR",
+   "package": "SOT-223-6",
+   "stock": 2750,
+   "type": "expand",
+   "price": 0.452,
+   "describe": "-40\u2103~+125\u2103@(Tj) 1 1A 3.3V 400uA 5.5V 500mV@(1A) 58dB@(100Hz) 89.1uVrms Fixed Over Current Protection\u3001Over Temperature Pr"
+  },
+  "C31850": {
+   "model": "0603WAF2202T5E",
+   "package": "0603",
+   "stock": 3700925,
+   "type": "base",
+   "price": 0.0041,
+   "describe": "-55\u2103~+155\u2103 100mW 22k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C367183": {
+   "model": "XXDCELNANF-8MHZ",
+   "package": "SMD3225-4P",
+   "stock": 10982,
+   "type": "expand",
+   "price": 0.3363,
+   "describe": "-40\u2103~+85\u2103 12pF 8MHz Crystal Oscillator \u00b120ppm \u00b120ppm SMD3225-4P Crystals ROHS"
+  },
+  "C378970": {
+   "model": "BM07B-GHS-TBT(LF)(SN)(N)",
+   "package": "SMD,P=1.25mm",
+   "stock": 23395,
+   "type": "expand",
+   "price": 0.3036,
+   "describe": "-25\u2103~+85\u2103 1 1.25mm 12mm 1A 1x7P 4.05mm 4.32mm 50V 7 7P Auxiliary Solder Pin GH PA9T Phosphor bronze Surface Mount,Vertic"
+  },
+  "C3911672": {
+   "model": "XAL1010-332MED",
+   "package": "SMD,11.3x10mm",
+   "stock": 158,
+   "type": "expand",
+   "price": 11.4008,
+   "describe": "18.2A 27.4A 3.3uH 4.1m\u03a9 Magnetic Shielded Inductor \u00b120% SMD,11.3x10mm Power Inductors ROHS"
+  },
+  "C403723": {
+   "model": "SN74LVC1G132DBVR",
+   "package": "SOT-23-5",
+   "stock": 30058,
+   "type": "expand",
+   "price": 0.163,
+   "describe": "-40\u2103~+125\u2103 1 1.16V~3.33V 1.65V~5.5V 10uA 2 2.3V\u30013.8V 32mA 32mA 5.3ns@3.3V,15pF 550mV 74LVC Series Local shutdown mode NA"
+  },
+  "C404027": {
+   "model": "TLV75533PDBVR",
+   "package": "SOT-23-5",
+   "stock": 136251,
+   "type": "expand",
+   "price": 0.1421,
+   "describe": "-40\u2103~+125\u2103@(Tj) 1 238mV@(500mA) 25uA 3.3V 46dB@(100kHz) 5.5V 500mA 71.5uVrms Fixed Over Current Protection\u3001Thermal Shutd"
+  },
+  "C4172": {
+   "model": "0603WAF1504T5E",
+   "package": "0603",
+   "stock": 217794,
+   "type": "expand",
+   "price": 0.0019,
+   "describe": "-55\u2103~+155\u2103 1.5M\u03a9 100mW 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C4184": {
+   "model": "0603WAF2002T5E",
+   "package": "0603",
+   "stock": 8033484,
+   "type": "base",
+   "price": 0.0023,
+   "describe": "-55\u2103~+155\u2103 100mW 20k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C4216": {
+   "model": "0603WAF3302T5E",
+   "package": "0603",
+   "stock": 3234987,
+   "type": "base",
+   "price": 0.0022,
+   "describe": "-55\u2103~+155\u2103 100mW 33k\u03a9 75V Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0603 Chip Resistor - Surface Mount ROHS"
+  },
+  "C44480": {
+   "model": "0451015.MRL",
+   "package": "2410",
+   "stock": 37694,
+   "type": "expand",
+   "price": 0.245,
+   "describe": "-55\u2103~+125\u2103 15A 2.5mm 50A 6.1mm 65V 65V 97.82 Surface Mount Fuse 2410 Disposable fuses ROHS"
+  },
+  "C454287": {
+   "model": "EEHZK1V221UP",
+   "package": "SMD,D8xL10.2mm",
+   "stock": 997,
+   "type": "expand",
+   "price": 0.8015,
+   "describe": "-55\u2103~+125\u2103 10.2mm 220uF 35V 4000hrs@125\u2103 8mm Polarized SMD \u00b120% SMD,D8xL10.2mm Hybrid Aluminum Electrolytic Capacitors R"
+  },
+  "C48467": {
+   "model": "0451005.MRL",
+   "package": "2410",
+   "stock": 33509,
+   "type": "expand",
+   "price": 0.2457,
+   "describe": "-55\u2103~+125\u2103 125V 125V 2.5mm 5.566 50A 5A 6.1mm Surface Mount Fuse 2410 Disposable fuses ROHS"
+  },
+  "C49851": {
+   "model": "INA226AIDGSR",
+   "package": "VSSOP-10",
+   "stock": 44009,
+   "type": "expand",
+   "price": 0.7544,
+   "describe": "-40\u2103~+125\u2103 0.1uV/\u2103 0V~36V 100pA 140dB 2.5uV 2.7V~5.5V 330uA High-side detection\u3001Low-side detection\u3001Bidirectional detecti"
+  },
+  "C501508": {
+   "model": "BSC010N04LS",
+   "package": "TDSON-8FL",
+   "stock": 11188,
+   "type": "expand",
+   "price": 0.8681,
+   "describe": "-55\u2103~+150\u2103 1 N-channel 139W 1m\u03a9@10V 247A 2V 320pF 40V 9.52nF 95nC TDSON-8FL MOSFETs ROHS"
+  },
+  "C521608": {
+   "model": "STM32G474RET6",
+   "package": "LQFP-64(10x10)",
+   "stock": 361,
+   "type": "expand",
+   "price": 13.5369,
+   "describe": "-40\u2103~+85\u2103 1.71V~3.6V 128KB 12bit 12bit 170MHz 32 Bit 512KB 52 ARM Cortex-M4F Built-in FLASH LQFP-64(10x10) Microcontroll"
+  },
+  "C52923": {
+   "model": "CL05A105KA5NQNC",
+   "package": "0402",
+   "stock": 5597595,
+   "type": "base",
+   "price": 0.0099,
+   "describe": "1uF 25V X5R \u00b110% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C5382952": {
+   "model": "FTSH-105-01-F-DV-K",
+   "package": "SMD,P=1.27mm",
+   "stock": 4953,
+   "type": "expand",
+   "price": 1.8858,
+   "describe": "-55\u2103~+125\u2103 1.27mm 10P 2 2x5P 3.05mm 3.4A Black Gold Phosphor bronze Pin Header Surface Mount,Vertical SMD,P=1.27mm Pin H"
+  },
+  "C5447274": {
+   "model": "DRV8316CRRGFR",
+   "package": "VQFN40",
+   "stock": 2828,
+   "type": "expand",
+   "price": 4.295,
+   "describe": "-40\u2103~+125\u2103 1.5uA 3 8A 95m\u03a9 SPI Three Phase Yes VQFN40 Brushless DC (BLDC) Motor Driver ROHS"
+  },
+  "C57112": {
+   "model": "0603B103K500NT",
+   "package": "0603",
+   "stock": 6788981,
+   "type": "base",
+   "price": 0.0108,
+   "describe": "10nF 50V X7R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C6971": {
+   "model": "TL431BCDBZR",
+   "package": "SOT-23-3",
+   "stock": 6587,
+   "type": "expand",
+   "price": 0.1322,
+   "describe": "-40\u2103~+85\u2103 100mA 1mA 2.5V~36V 2.5V~36V Adjustable Parallel \u00b10.5% SOT-23-3 Voltage Reference ROHS"
+  },
+  "C7216630": {
+   "model": "LM74800MDRRR",
+   "package": "WSON-12(3x3)",
+   "stock": 6031,
+   "type": "expand",
+   "price": 3.6757,
+   "describe": "-55\u2103~+150\u2103 10.5mV 13V 2.67A 20mA 397uA 3V~65V 65V External Common Source FET WSON-12(3x3) ORing Controllers ROHS"
+  },
+  "C7433390": {
+   "model": "61204021621",
+   "package": "Plugin,P=2.54mm",
+   "stock": 119,
+   "type": "expand",
+   "price": 1.3867,
+   "describe": "-40\u2103~+105\u2103 2 2.54mm 2.54mm 20 2x20P 3A Black Copper alloy Gold IDC Header Through Hole Plugin,P=2.54mm IDC Connectors RO"
+  },
+  "C7509570": {
+   "model": "1729128",
+   "package": "Plugin,P=5.08mm",
+   "stock": 4419,
+   "type": "expand",
+   "price": 0.5365,
+   "describe": "1 17.5A 1x2P 2 2P 400V 5.08mm Green \u63d2\u4ef6,P=5.08mm Screw Terminal Blocks ROHS"
+  },
+  "C75549": {
+   "model": "MMBT3906,215",
+   "package": "SOT-23",
+   "stock": 109255,
+   "type": "expand",
+   "price": 0.036,
+   "describe": "1 PNP 100 200mA 250MHz 250mW 400mV 40V 50nA 6V PNP SOT-23 Bipolar (BJT) ROHS"
+  },
+  "C77102": {
+   "model": "GRM32ER71H106KA12L",
+   "package": "1210",
+   "stock": 66298,
+   "type": "expand",
+   "price": 0.3288,
+   "describe": "10uF 50V X7R \u00b110% 1210 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C7955": {
+   "model": "LM393DR2G",
+   "package": "SOIC-8",
+   "stock": 233708,
+   "type": "base",
+   "price": 0.0661,
+   "describe": "-18V~-1V\u30011V~18V 0\u2103~+70\u2103 1.3us 2 25nA 2V~36V 300ns 36V 400uA 5mV 5nA ESD protection TTL\u3001CMOS SOIC-8 Comparators ROHS"
+  },
+  "C844901": {
+   "model": "WSL2512R0100FEA",
+   "package": "2512",
+   "stock": 9761,
+   "type": "expand",
+   "price": 0.358,
+   "describe": "-65\u2103~+170\u2103 10m\u03a9 1W \u00b11% \u00b175ppm/\u2103 2512 Chip Resistor - Surface Mount ROHS"
+  },
+  "C8592": {
+   "model": "BAT54S KL4",
+   "package": "SOT-23",
+   "stock": 168285,
+   "type": "expand",
+   "price": 0.0231,
+   "describe": "1 Pair Series Connection 1V@100mA 200mA 2uA@25V 30V 600mA SOT-23 Schottky Diodes ROHS"
+  },
+  "C9866": {
+   "model": "DS3231SN#T&R",
+   "package": "SOIC-16-300mil",
+   "stock": 4510,
+   "type": "expand",
+   "price": 9.3817,
+   "describe": "-40\u2103~+85\u2103 0.84uA 2.3V~5.5V 200uA Built-in I2C Temperature compensation\u3001Programmable clock output\u3001Alarm function Yes SOIC"
+  }
+ }
+}

@@ -1,5 +1,6 @@
-"""Fabrication outputs for JLCPCB into fab/: Gerbers + drill (zip), JLC BOM + CPL (SMD assembly),
-full BOM (everything incl. hand-soldered parts and modules), outline DXF with all holes, board STEP.
+"""Fabrication outputs for JLCPCB into fab/ (rev B): Gerbers + drill (zip), JLC BOM + CPL (SMT and THT assembly:
+JLC solders every part with an LCSC number), full BOM with JLC stock and price (fab/stock.json from gen/stock.py),
+outline DXF with all holes, board STEP.
 
 Run with KiCad's Python: gen/fab.py
 """
@@ -31,13 +32,14 @@ def run(*args):
 
 
 def sync_fields():
-    """Copy LCSC / MPN / BOM fields from design.py into the routed board (no re-route needed)."""
+    """Copy value and LCSC / MPN / BOM fields from design.py into the routed board (no re-route needed)."""
     b = pcbnew.LoadBoard(str(PCB))
     by_ref = {p["ref"]: p for p in design.PARTS}
     for fp in b.GetFootprints():
         p = by_ref.get(fp.GetReference())
         if not p:
             continue
+        fp.SetValue(p["value"])
         for key, val in (("LCSC", p["lcsc"]), ("MPN", p["mpn"]), ("BOM", p["bom"])):
             if val:
                 fp.SetField(key, val)
@@ -58,7 +60,7 @@ def gerbers():
         "-o", str(g) + "/", str(PCB))
     run("pcb", "export", "drill", "--format", "excellon", "--excellon-separate-th", "--generate-map",
         "--map-format", "pdf", "--drill-origin", "absolute", "-o", str(g) + "/", str(PCB))
-    z = FAB / "rabbit-body-gerbers.zip"
+    z = FAB / f"rabbit-body-rev{design.REV}-gerbers.zip"
     with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
         for f in sorted(g.iterdir()):
             if f.suffix != ".pdf":
@@ -67,28 +69,34 @@ def gerbers():
 
 
 def boms():
-    smt = defaultdict(list)
+    jlc = defaultdict(list)
     full = defaultdict(list)
     for p in design.PARTS:
         if p["bom"] == "none":
             continue
         key = (p["value"], p["fp"].split(":")[1], p["lcsc"] or "", p["mpn"], p["bom"])
         full[key].append(p["ref"])
-        if p["bom"] == "smt":
-            smt[(p["value"], p["fp"].split(":")[1], p["lcsc"])].append(p["ref"])
-    with open(FAB / "rabbit-body-bom-jlc.csv", "w", newline="") as fh:
+        if p["bom"] in ("smt", "tht"):
+            jlc[(p["value"], p["fp"].split(":")[1], p["lcsc"])].append(p["ref"])
+    stock_file = FAB / "stock.json"
+    stock = json.loads(stock_file.read_text()) if stock_file.exists() else {"date": "", "parts": {}}
+    rev = design.REV
+    with open(FAB / f"rabbit-body-rev{rev}-bom-jlc.csv", "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #"])
-        for (val, fp, lcsc), refs in sorted(smt.items()):
+        for (val, fp, lcsc), refs in sorted(jlc.items()):
             w.writerow([val, ",".join(sorted(refs, key=natural)), fp, lcsc])
-    with open(FAB / "rabbit-body-bom-full.csv", "w", newline="") as fh:
+    with open(FAB / f"rabbit-body-rev{rev}-bom-full.csv", "w", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(["Qty", "Designator", "Value", "Footprint", "LCSC", "MPN / description", "Assembly"])
+        w.writerow(["Qty", "Designator", "Value", "Footprint", "LCSC", "MPN / description", "Assembly",
+                    f"JLC stock {stock['date']}", "JLC library", "Unit price USD"])
         for (val, fp, lcsc, mpn, kind), refs in sorted(full.items(), key=lambda kv: (kv[0][4], kv[0][0])):
-            how = {"smt": "JLCPCB SMT", "tht": "hand-solder (order from LCSC/JLC parts)",
-                   "module": "owner's module, mounted on standoffs / pins"}[kind]
-            w.writerow([len(refs), ",".join(sorted(refs, key=natural)), val, fp, lcsc, mpn, how])
-    return smt
+            how = {"smt": "JLCPCB SMT", "tht": "JLCPCB THT", "hand": "hand-solder",
+                   "module": "owner's module, on standoffs"}[kind]
+            s = stock["parts"].get(lcsc) or {}
+            w.writerow([len(refs), ",".join(sorted(refs, key=natural)), val, fp, lcsc, mpn, how, s.get("stock", ""),
+                        s.get("type", ""), s.get("price", "")])
+    return jlc
 
 
 def natural(ref):
@@ -97,13 +105,13 @@ def natural(ref):
     return (m.group(1), int(m.group(2))) if m else (ref, 0)
 
 
-def cpl(smt):
+def cpl(jlc):
     tmp = FAB / "pos-all.csv"
     run("pcb", "export", "pos", "--format", "csv", "--units", "mm", "--side", "front", "--use-drill-file-origin",
         "-o", str(tmp), str(PCB))
-    smt_refs = {r for refs in smt.values() for r in refs}
+    smt_refs = {r for refs in jlc.values() for r in refs}
     rows = list(csv.DictReader(open(tmp)))
-    with open(FAB / "rabbit-body-cpl-jlc.csv", "w", newline="") as fh:
+    with open(FAB / f"rabbit-body-rev{design.REV}-cpl-jlc.csv", "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
         for r in rows:
@@ -173,13 +181,15 @@ def main():
     FAB.mkdir(exist_ok=True)
     sync_fields()
     z = gerbers()
+    for old in ("rabbit-body-gerbers.zip", "rabbit-body-bom-jlc.csv", "rabbit-body-cpl-jlc.csv", "rabbit-body-bom-full.csv"):
+        (FAB / old).unlink(missing_ok=True)             # rev A names (rev A stays in git)
     smt = boms()
     cpl(smt)
     print("outline.dxf holes:", len(outline_dxf()))
     run("pcb", "export", "step", "--force", "--subst-models", "--user-origin", "150x150mm",
         "-o", str(PRJ / "rabbit-body.step"), str(PCB))
     print("gerbers:", z)
-    print("JLC SMT lines:", len(smt), "placements:", sum(len(v) for v in smt.values()))
+    print("JLC BOM lines:", len(smt), "placements:", sum(len(v) for v in smt.values()))
 
 
 if __name__ == "__main__":

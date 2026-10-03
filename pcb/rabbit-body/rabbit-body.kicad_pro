@@ -290,7 +290,7 @@
       },
       {
         "bus_width": 12,
-        "clearance": 0.2,
+        "clearance": 0.15,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -301,7 +301,7 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": -1,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 1.5,
+        "track_width": 0.8,
         "tuning_profile": "",
         "via_diameter": 0.8,
         "via_drill": 0.4,
@@ -309,7 +309,7 @@
       },
       {
         "bus_width": 12,
-        "clearance": 0.3,
+        "clearance": 0.15,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -320,10 +320,10 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": -1,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 2.0,
+        "track_width": 0.25,
         "tuning_profile": "",
-        "via_diameter": 1.0,
-        "via_drill": 0.5,
+        "via_diameter": 0.8,
+        "via_drill": 0.4,
         "wire_width": 6
       },
       {
@@ -339,7 +339,7 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": -1,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.4,
+        "track_width": 0.3,
         "tuning_profile": "",
         "via_diameter": 0.6,
         "via_drill": 0.3,
@@ -347,7 +347,7 @@
       },
       {
         "bus_width": 12,
-        "clearance": 0.2,
+        "clearance": 0.15,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -358,7 +358,7 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": -1,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 1.0,
+        "track_width": 0.5,
         "tuning_profile": "",
         "via_diameter": 0.8,
         "via_drill": 0.4,
@@ -377,11 +377,15 @@
       },
       {
         "netclass": "PWR_HI",
-        "pattern": "BAT_FUSED"
+        "pattern": "BAT_F"
       },
       {
         "netclass": "PWR_HI",
-        "pattern": "SW_OUT"
+        "pattern": "SW_MID"
+      },
+      {
+        "netclass": "PWR_HI",
+        "pattern": "VBUS_RAW"
       },
       {
         "netclass": "PWR_HI",
@@ -389,55 +393,87 @@
       },
       {
         "netclass": "PWR_HI",
-        "pattern": "MOT_FUSED"
+        "pattern": "MOT_F"
       },
       {
         "netclass": "PWR_HI",
-        "pattern": "MOT_BAT"
+        "pattern": "MOT_BUS"
       },
       {
         "netclass": "PWR_HI",
         "pattern": "GND_MOT"
       },
       {
+        "netclass": "PWR_HI",
+        "pattern": "BRK_D"
+      },
+      {
+        "netclass": "PWR_HI",
+        "pattern": "DG"
+      },
+      {
+        "netclass": "PWR_HI",
+        "pattern": "HG"
+      },
+      {
         "netclass": "PWR_5V",
         "pattern": "+5V"
       },
       {
-        "netclass": "PWR_MID",
-        "pattern": "BRAIN_IN"
-      },
-      {
-        "netclass": "PWR_MID",
-        "pattern": "BODY_IN"
-      },
-      {
-        "netclass": "PWR_MID",
-        "pattern": "STEER_IN"
-      },
-      {
-        "netclass": "PWR_MID",
-        "pattern": "HUB_PWR"
-      },
-      {
-        "netclass": "PWR_MID",
-        "pattern": "RES_PWR"
-      },
-      {
-        "netclass": "PWR_MID",
-        "pattern": "12V_RAW"
-      },
-      {
-        "netclass": "PWR_MID",
-        "pattern": "JET_12V"
-      },
-      {
-        "netclass": "PWR_MID",
+        "netclass": "PWR_5V",
         "pattern": "6V_RAW"
       },
       {
-        "netclass": "PWR_MID",
+        "netclass": "PWR_5V",
         "pattern": "SERVO_6V"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "JET_OUT"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "JET_PWR"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "BODY_IN"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "STEER_IN"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "SW4"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "SW6"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "MLA"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "MLB"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "MLC"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "MRA"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "MRB"
+      },
+      {
+        "netclass": "PWR_5V",
+        "pattern": "MRC"
       },
       {
         "netclass": "PWR_MID",
@@ -449,7 +485,19 @@
       },
       {
         "netclass": "PWR_LO",
-        "pattern": "RC_5V"
+        "pattern": "+3V3_MCU"
+      },
+      {
+        "netclass": "PWR_LO",
+        "pattern": "5V_HALL_L"
+      },
+      {
+        "netclass": "PWR_LO",
+        "pattern": "5V_HALL_R"
+      },
+      {
+        "netclass": "PWR_LO",
+        "pattern": "BRK_VCC"
       },
       {
         "netclass": "PWR_LO",

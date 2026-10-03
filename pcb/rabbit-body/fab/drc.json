@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.kicad.org/drc.v1.json",
     "coordinate_units": "mm",
-    "date": "2026-10-03T12:45:28",
+    "date": "2026-10-03T23:54:03",
     "ignored_checks": [
         {
             "description": "Footprint has no courtyard defined",
@@ -32,6 +32,1296 @@
     "kicad_version": "10.0.6",
     "schematic_parity": [],
     "source": "rabbit-body.kicad_pcb",
-    "unconnected_items": [],
-    "violations": []
+    "unconnected_items": [
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Track [MOT_BUS] on F.Cu, length 1.1215 mm",
+                    "pos": {
+                        "x": 134.368,
+                        "y": 263.393
+                    },
+                    "uuid": "1f3cecc6-be1f-4801-b798-c8b2837903e2"
+                },
+                {
+                    "description": "Pad 1 [MOT_BUS] of R55 on F.Cu",
+                    "pos": {
+                        "x": 133.575,
+                        "y": 254.2
+                    },
+                    "uuid": "190b63b9-b30a-4790-9b10-16a871405cbd"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        }
+    ],
+    "violations": [
+        {
+            "description": "Clearance violation ( clearance 0.1500 mm; actual 0.1380 mm)",
+            "items": [
+                {
+                    "description": "Track [INL_L] on F.Cu, length 1.2940 mm",
+                    "pos": {
+                        "x": 149.598,
+                        "y": 229.522
+                    },
+                    "uuid": "80af3a7a-fe9e-4484-b20e-b44a56cf28c4"
+                },
+                {
+                    "description": "Pad 29 [+3V3_MCU] of U1 on F.Cu",
+                    "pos": {
+                        "x": 149.25,
+                        "y": 229.675
+                    },
+                    "uuid": "f3565dde-65c3-4cfe-9a88-e11425d764e6"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Clearance violation ( clearance 0.1500 mm; actual 0.1380 mm)",
+            "items": [
+                {
+                    "description": "Track [INL_L] on F.Cu, length 0.2157 mm",
+                    "pos": {
+                        "x": 149.75,
+                        "y": 229.675
+                    },
+                    "uuid": "36e577de-153c-4244-a3ac-23079a9e32d1"
+                },
+                {
+                    "description": "Pad 29 [+3V3_MCU] of U1 on F.Cu",
+                    "pos": {
+                        "x": 149.25,
+                        "y": 229.675
+                    },
+                    "uuid": "f3565dde-65c3-4cfe-9a88-e11425d764e6"
+                }
+            ],
+            "severity": "error",
+            "type": "clearance"
+        },
+        {
+            "description": "Silkscreen clipped by board edge",
+            "items": [
+                {
+                    "description": "Segment on Edge.Cuts",
+                    "pos": {
+                        "x": 92.221499,
+                        "y": 129.3612
+                    },
+                    "uuid": "1b24612f-5101-4651-90a0-9f0c49282184"
+                },
+                {
+                    "description": "PCB text 'J48 ROBOCLAW S' on F.Silkscreen",
+                    "pos": {
+                        "x": 94.975,
+                        "y": 186.005
+                    },
+                    "uuid": "34449ae4-34ab-4304-b54b-8a2005e7f235"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_edge_clearance"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "Segment of C81 on F.Silkscreen",
+                    "pos": {
+                        "x": 138.35942,
+                        "y": 97.89
+                    },
+                    "uuid": "ce3818c7-7c1a-4526-8702-2ba5329f47e2"
+                },
+                {
+                    "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
+                    "pos": {
+                        "x": 144.0,
+                        "y": 98.455
+                    },
+                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "Segment of C81 on F.Silkscreen",
+                    "pos": {
+                        "x": 138.35942,
+                        "y": 98.91
+                    },
+                    "uuid": "dda5cf57-64ba-4f70-9077-0588dfd8c571"
+                },
+                {
+                    "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
+                    "pos": {
+                        "x": 144.0,
+                        "y": 98.455
+                    },
+                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "Segment of C82 on F.Silkscreen",
+                    "pos": {
+                        "x": 146.338748,
+                        "y": 98.135
+                    },
+                    "uuid": "f8921ce6-fb88-4267-87c0-e19d9bdbff7a"
+                },
+                {
+                    "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
+                    "pos": {
+                        "x": 144.0,
+                        "y": 98.455
+                    },
+                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'J45 ENC L A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 137.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "0d6ea15d-6826-45ff-8431-18853c3e7bda"
+                },
+                {
+                    "description": "Segment of R451 on F.Silkscreen",
+                    "pos": {
+                        "x": 128.965,
+                        "y": 266.027064
+                    },
+                    "uuid": "f8f32eb7-d23b-4a3a-859f-b8cba4bdd02d"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'J45 ENC L A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 137.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "0d6ea15d-6826-45ff-8431-18853c3e7bda"
+                },
+                {
+                    "description": "Segment of R451 on F.Silkscreen",
+                    "pos": {
+                        "x": 130.435,
+                        "y": 266.027064
+                    },
+                    "uuid": "401e1923-3eaf-4ce2-b4c0-ad6c91578f6f"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'J46 ENC R A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 162.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "47e27e72-a052-412f-8c4e-ce0e7a0c8fe9"
+                },
+                {
+                    "description": "Segment of R461 on F.Silkscreen",
+                    "pos": {
+                        "x": 171.035,
+                        "y": 266.027064
+                    },
+                    "uuid": "f7d2f02e-6f59-47fe-8fa3-2bd118935712"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'U11 DRV8316 L' on F.Silkscreen",
+                    "pos": {
+                        "x": 124.0,
+                        "y": 251.005
+                    },
+                    "uuid": "1df5ff35-dce0-480c-9b8b-fd16b8d257a6"
+                },
+                {
+                    "description": "Segment of RT65 on F.Silkscreen",
+                    "pos": {
+                        "x": 129.4775,
+                        "y": 251.737258
+                    },
+                    "uuid": "b0d23be9-96b1-4a45-9042-022206fbda19"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "Segment of C83 on F.Silkscreen",
+                    "pos": {
+                        "x": 154.85942,
+                        "y": 88.91
+                    },
+                    "uuid": "87c05672-dc29-4b92-9f2b-ec58d1207f16"
+                },
+                {
+                    "description": "PCB text 'U19 INA JET 0x46' on F.Silkscreen",
+                    "pos": {
+                        "x": 154.0,
+                        "y": 89.205
+                    },
+                    "uuid": "fd9aaf37-ed26-4b95-9bd9-9676ee6d7925"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "Segment of L6 on F.Silkscreen",
+                    "pos": {
+                        "x": 157.99,
+                        "y": 89.64
+                    },
+                    "uuid": "e0a879ac-70e9-491c-a1e6-c8e29fd24dd5"
+                },
+                {
+                    "description": "PCB text 'U19 INA JET 0x46' on F.Silkscreen",
+                    "pos": {
+                        "x": 154.0,
+                        "y": 89.205
+                    },
+                    "uuid": "fd9aaf37-ed26-4b95-9bd9-9676ee6d7925"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'J3 RASPBERRY PI 40-PIN (ribbon)' on F.Silkscreen",
+                    "pos": {
+                        "x": 153.0,
+                        "y": 114.005
+                    },
+                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                },
+                {
+                    "description": "Segment of R603 on F.Silkscreen",
+                    "pos": {
+                        "x": 161.162742,
+                        "y": 113.8225
+                    },
+                    "uuid": "c557a81c-83f8-4deb-b654-246799ebe68c"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'J3 RASPBERRY PI 40-PIN (ribbon)' on F.Silkscreen",
+                    "pos": {
+                        "x": 153.0,
+                        "y": 114.005
+                    },
+                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                },
+                {
+                    "description": "Segment of C608 on F.Silkscreen",
+                    "pos": {
+                        "x": 163.85942,
+                        "y": 113.81
+                    },
+                    "uuid": "f46dcddb-2006-477b-98ff-38d3d74f8066"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "Circle of TP1 on F.Silkscreen",
+                    "pos": {
+                        "x": 187.0,
+                        "y": 186.5
+                    },
+                    "uuid": "a1278276-6a5d-402b-97da-1a598dc505bb"
+                },
+                {
+                    "description": "PCB text 'U22 INA MOT 0x45' on F.Silkscreen",
+                    "pos": {
+                        "x": 182.0,
+                        "y": 187.205
+                    },
+                    "uuid": "bcacd5ab-43d6-453d-90ed-97956e563852"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'F2 MOTORS 8A' on F.Silkscreen",
+                    "pos": {
+                        "x": 186.0,
+                        "y": 195.605
+                    },
+                    "uuid": "3c58cb1d-fcb8-4711-82f7-277842e3719e"
+                },
+                {
+                    "description": "Segment of C32 on F.Silkscreen",
+                    "pos": {
+                        "x": 190.24,
+                        "y": 195.711252
+                    },
+                    "uuid": "7e75b294-ff9d-4c67-871d-40d9f4052b09"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'U21 INA BAT 0x41' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 203.605
+                    },
+                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
+                },
+                {
+                    "description": "Segment of C27 on F.Silkscreen",
+                    "pos": {
+                        "x": 188.85942,
+                        "y": 203.39
+                    },
+                    "uuid": "f4eb34a4-0f6e-4b08-82ca-f6988a29b735"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "Segment of C20 on F.Silkscreen",
+                    "pos": {
+                        "x": 195.25942,
+                        "y": 221.11
+                    },
+                    "uuid": "6fb97d35-d839-47a0-8835-5ed5d1e0bd3d"
+                },
+                {
+                    "description": "PCB text 'U10 POWER SWITCH' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 220.705
+                    },
+                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "Segment of C20 on F.Silkscreen",
+                    "pos": {
+                        "x": 195.25942,
+                        "y": 220.09
+                    },
+                    "uuid": "498dd594-2912-468d-a012-29427281ce3d"
+                },
+                {
+                    "description": "PCB text 'U10 POWER SWITCH' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 220.705
+                    },
+                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "Segment of J1 on F.Silkscreen",
+                    "pos": {
+                        "x": 195.85,
+                        "y": 260.75
+                    },
+                    "uuid": "05cd29bb-9ec7-4e1d-bc4c-d9a2eb94dfdf"
+                },
+                {
+                    "description": "PCB text 'J11 TOF RR' on F.Silkscreen",
+                    "pos": {
+                        "x": 201.0,
+                        "y": 261.255
+                    },
+                    "uuid": "68c846b5-29a3-466a-9452-dc5bd809ae33"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'J11 TOF RR' on F.Silkscreen",
+                    "pos": {
+                        "x": 201.0,
+                        "y": 261.255
+                    },
+                    "uuid": "68c846b5-29a3-466a-9452-dc5bd809ae33"
+                },
+                {
+                    "description": "Segment of J1 on F.Silkscreen",
+                    "pos": {
+                        "x": 204.15,
+                        "y": 260.75
+                    },
+                    "uuid": "a7910cae-3f1c-4814-a04c-a6ec36b2811d"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U4 5.2V BUCK' on F.Silkscreen",
+                    "pos": {
+                        "x": 120.0,
+                        "y": 101.255
+                    },
+                    "uuid": "714add6c-905f-47a1-b760-c2074c5b00c7"
+                },
+                {
+                    "description": "Pad 2 [GND] of C401 on F.Cu",
+                    "pos": {
+                        "x": 115.1,
+                        "y": 101.875
+                    },
+                    "uuid": "0b02220b-85d6-43f7-8c85-d2b5a6f4a0b6"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Circle of U4 on F.Silkscreen",
+                    "pos": {
+                        "x": 117.65,
+                        "y": 102.25
+                    },
+                    "uuid": "de938f44-fe65-483f-8c2b-744df2bc49e0"
+                },
+                {
+                    "description": "Pad 2 [GND] of C403 on F.Cu",
+                    "pos": {
+                        "x": 117.45,
+                        "y": 102.575
+                    },
+                    "uuid": "fd92a2c7-5c0e-4f5e-bca8-119b81b47b3a"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U4 5.2V BUCK' on F.Silkscreen",
+                    "pos": {
+                        "x": 120.0,
+                        "y": 101.255
+                    },
+                    "uuid": "714add6c-905f-47a1-b760-c2074c5b00c7"
+                },
+                {
+                    "description": "Pad 2 [GND] of C402 on F.Cu",
+                    "pos": {
+                        "x": 124.9,
+                        "y": 101.875
+                    },
+                    "uuid": "f81ef8ed-9dab-4790-8630-301d770882d7"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U1 MOTOR MCU' on F.Silkscreen",
+                    "pos": {
+                        "x": 147.0,
+                        "y": 216.255
+                    },
+                    "uuid": "d9c583d3-07db-4f0a-ba95-ceca1bd62e05"
+                },
+                {
+                    "description": "Pad 1 [+3V3_MCU] of C123 on F.Cu",
+                    "pos": {
+                        "x": 142.475,
+                        "y": 216.3
+                    },
+                    "uuid": "abc3b96f-b6cb-45f0-8d3e-2a442b3fc038"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U1 MOTOR MCU' on F.Silkscreen",
+                    "pos": {
+                        "x": 147.0,
+                        "y": 216.255
+                    },
+                    "uuid": "d9c583d3-07db-4f0a-ba95-ceca1bd62e05"
+                },
+                {
+                    "description": "Pad 2 [GND] of C123 on F.Cu",
+                    "pos": {
+                        "x": 144.025,
+                        "y": 216.3
+                    },
+                    "uuid": "6f53268a-25f4-41ec-aec3-3f035a6b452e"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'J45 ENC L A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 137.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "0d6ea15d-6826-45ff-8431-18853c3e7bda"
+                },
+                {
+                    "description": "Pad 1 [+5V] of R451 on F.Cu",
+                    "pos": {
+                        "x": 129.7,
+                        "y": 266.7125
+                    },
+                    "uuid": "5d2bb47d-b8b5-4493-87cb-5a49e6a1f372"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'J45 ENC L A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 137.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "0d6ea15d-6826-45ff-8431-18853c3e7bda"
+                },
+                {
+                    "description": "Pad 2 [5V_HALL_L] of R451 on F.Cu",
+                    "pos": {
+                        "x": 129.7,
+                        "y": 264.8875
+                    },
+                    "uuid": "b4693251-a199-460f-9ab2-65bcf2d7f4ca"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'J46 ENC R A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 162.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "47e27e72-a052-412f-8c4e-ce0e7a0c8fe9"
+                },
+                {
+                    "description": "Pad 2 [5V_HALL_R] of R461 on F.Cu",
+                    "pos": {
+                        "x": 170.3,
+                        "y": 264.8875
+                    },
+                    "uuid": "8ef9332d-02cb-48bc-8f95-17628496be07"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'J46 ENC R A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 162.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "47e27e72-a052-412f-8c4e-ce0e7a0c8fe9"
+                },
+                {
+                    "description": "Pad 1 [+5V] of R461 on F.Cu",
+                    "pos": {
+                        "x": 170.3,
+                        "y": 266.7125
+                    },
+                    "uuid": "70537020-49f7-4aa4-b407-f3e56ac33967"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U19 INA JET 0x46' on F.Silkscreen",
+                    "pos": {
+                        "x": 154.0,
+                        "y": 89.205
+                    },
+                    "uuid": "fd9aaf37-ed26-4b95-9bd9-9676ee6d7925"
+                },
+                {
+                    "description": "Pad 1 [+3V3_PI] of C83 on F.Cu",
+                    "pos": {
+                        "x": 154.225,
+                        "y": 88.4
+                    },
+                    "uuid": "fb82671c-57d7-46de-8d9b-40396b990f88"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U19 INA JET 0x46' on F.Silkscreen",
+                    "pos": {
+                        "x": 154.0,
+                        "y": 89.205
+                    },
+                    "uuid": "fd9aaf37-ed26-4b95-9bd9-9676ee6d7925"
+                },
+                {
+                    "description": "Pad 2 [GND] of C83 on F.Cu",
+                    "pos": {
+                        "x": 155.775,
+                        "y": 88.4
+                    },
+                    "uuid": "fe9e7b33-dbf8-416c-bfe5-eb1485c218f5"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'J3 RASPBERRY PI 40-PIN (ribbon)' on F.Silkscreen",
+                    "pos": {
+                        "x": 153.0,
+                        "y": 114.005
+                    },
+                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                },
+                {
+                    "description": "Pad 1 [6V_RAW] of R603 on F.Cu",
+                    "pos": {
+                        "x": 160.575,
+                        "y": 113.3
+                    },
+                    "uuid": "b5339b71-fc1e-4c4f-8c3d-25f80382529b"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'J3 RASPBERRY PI 40-PIN (ribbon)' on F.Silkscreen",
+                    "pos": {
+                        "x": 153.0,
+                        "y": 114.005
+                    },
+                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                },
+                {
+                    "description": "Pad 2 [FF6] of R603 on F.Cu",
+                    "pos": {
+                        "x": 162.225,
+                        "y": 113.3
+                    },
+                    "uuid": "b2e48a59-aae7-4a30-93cb-9c09229cf7ad"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'J3 RASPBERRY PI 40-PIN (ribbon)' on F.Silkscreen",
+                    "pos": {
+                        "x": 153.0,
+                        "y": 114.005
+                    },
+                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                },
+                {
+                    "description": "Pad 1 [FF6] of C608 on F.Cu",
+                    "pos": {
+                        "x": 163.225,
+                        "y": 113.3
+                    },
+                    "uuid": "10fc0a34-23ea-496a-8ccc-a5c981838550"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
+                    "pos": {
+                        "x": 144.0,
+                        "y": 98.455
+                    },
+                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                },
+                {
+                    "description": "Pad 1 [VBUS] of C81 on F.Cu",
+                    "pos": {
+                        "x": 137.725,
+                        "y": 98.4
+                    },
+                    "uuid": "c21653ee-76d9-4966-9b2e-6929f9d87ab6"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
+                    "pos": {
+                        "x": 144.0,
+                        "y": 98.455
+                    },
+                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                },
+                {
+                    "description": "Pad 2 [GND] of C81 on F.Cu",
+                    "pos": {
+                        "x": 139.275,
+                        "y": 98.4
+                    },
+                    "uuid": "531e5ab2-5cc3-4ed7-8ae2-916b8db5f31c"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
+                    "pos": {
+                        "x": 144.0,
+                        "y": 98.455
+                    },
+                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                },
+                {
+                    "description": "Pad 1 [JET_OUT] of C82 on F.Cu",
+                    "pos": {
+                        "x": 145.65,
+                        "y": 97.4
+                    },
+                    "uuid": "7b3abb7b-587f-44a1-adab-380193f4dfa5"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
+                    "pos": {
+                        "x": 144.0,
+                        "y": 98.455
+                    },
+                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                },
+                {
+                    "description": "Pad 2 [GND] of C82 on F.Cu",
+                    "pos": {
+                        "x": 147.55,
+                        "y": 97.4
+                    },
+                    "uuid": "bc29de16-b727-4030-a99c-1deb8d44bf89"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
+                    "pos": {
+                        "x": 144.0,
+                        "y": 98.455
+                    },
+                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                },
+                {
+                    "description": "Pad 1 [Q7_G] of R87 on F.Cu",
+                    "pos": {
+                        "x": 150.175,
+                        "y": 98.6
+                    },
+                    "uuid": "f5917611-0bc3-496e-b956-c55fd4565582"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'J3 RASPBERRY PI 40-PIN (ribbon)' on F.Silkscreen",
+                    "pos": {
+                        "x": 153.0,
+                        "y": 114.005
+                    },
+                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                },
+                {
+                    "description": "Pad 2 [FB6] of C608 on F.Cu",
+                    "pos": {
+                        "x": 164.775,
+                        "y": 113.3
+                    },
+                    "uuid": "3cc6220a-80b8-49ab-b91b-1ef04f34020c"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U6 6V SERVO BUCK' on F.Silkscreen",
+                    "pos": {
+                        "x": 164.0,
+                        "y": 101.255
+                    },
+                    "uuid": "adfcda27-22b5-49c5-95d5-0cbc59852d36"
+                },
+                {
+                    "description": "Pad 2 [GND] of C601 on F.Cu",
+                    "pos": {
+                        "x": 159.1,
+                        "y": 101.875
+                    },
+                    "uuid": "7022a680-644c-4e01-b97e-147d039077af"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "Circle of U6 on F.Silkscreen",
+                    "pos": {
+                        "x": 161.65,
+                        "y": 102.25
+                    },
+                    "uuid": "80f1ad39-e683-48f5-8081-a725ca804ac3"
+                },
+                {
+                    "description": "Pad 2 [GND] of C603 on F.Cu",
+                    "pos": {
+                        "x": 161.45,
+                        "y": 102.575
+                    },
+                    "uuid": "d0276ddc-5435-4ace-9c5d-737f7adf5b12"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U6 6V SERVO BUCK' on F.Silkscreen",
+                    "pos": {
+                        "x": 164.0,
+                        "y": 101.255
+                    },
+                    "uuid": "adfcda27-22b5-49c5-95d5-0cbc59852d36"
+                },
+                {
+                    "description": "Pad 2 [GND] of C602 on F.Cu",
+                    "pos": {
+                        "x": 168.9,
+                        "y": 101.875
+                    },
+                    "uuid": "2f1678a8-1586-4fb1-8b8a-d5b710af8208"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U22 INA MOT 0x45' on F.Silkscreen",
+                    "pos": {
+                        "x": 182.0,
+                        "y": 187.205
+                    },
+                    "uuid": "bcacd5ab-43d6-453d-90ed-97956e563852"
+                },
+                {
+                    "description": "PTH pad 1 [VBUS] of TP1",
+                    "pos": {
+                        "x": 187.0,
+                        "y": 186.5
+                    },
+                    "uuid": "b99a8fbe-ee34-469c-8d8d-c76049a2b96d"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'F2 MOTORS 8A' on F.Silkscreen",
+                    "pos": {
+                        "x": 186.0,
+                        "y": 195.605
+                    },
+                    "uuid": "3c58cb1d-fcb8-4711-82f7-277842e3719e"
+                },
+                {
+                    "description": "Pad 1 [VBUS] of C32 on F.Cu",
+                    "pos": {
+                        "x": 191.6,
+                        "y": 196.475
+                    },
+                    "uuid": "b02bdc4a-71b9-44bf-9079-99d90406cb4d"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U21 INA BAT 0x41' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 203.605
+                    },
+                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
+                },
+                {
+                    "description": "Pad 2 [GND] of C27 on F.Cu",
+                    "pos": {
+                        "x": 189.775,
+                        "y": 203.9
+                    },
+                    "uuid": "7875a2bd-7d8b-4a23-b0ad-49bbe6813946"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U21 INA BAT 0x41' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 203.605
+                    },
+                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
+                },
+                {
+                    "description": "Pad 1 [SH1_N] of R702 on F.Cu",
+                    "pos": {
+                        "x": 193.0,
+                        "y": 202.825
+                    },
+                    "uuid": "3bd0fcaa-bc71-4a66-bc35-a6364c58d5bf"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U21 INA BAT 0x41' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 203.605
+                    },
+                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
+                },
+                {
+                    "description": "Pad 1 [INA1_P] of C70 on F.Cu",
+                    "pos": {
+                        "x": 194.6,
+                        "y": 202.775
+                    },
+                    "uuid": "56057a7e-0116-40bb-989b-8697c3674f74"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U10 POWER SWITCH' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 220.705
+                    },
+                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                },
+                {
+                    "description": "Pad 1 [HOLD_Z] of R47 on F.Cu",
+                    "pos": {
+                        "x": 186.0,
+                        "y": 220.225
+                    },
+                    "uuid": "d10bb231-3ad2-477e-9074-10a84344cda3"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U10 POWER SWITCH' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 220.705
+                    },
+                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                },
+                {
+                    "description": "Pad 2 [GND] of C22 on F.Cu",
+                    "pos": {
+                        "x": 188.4,
+                        "y": 220.225
+                    },
+                    "uuid": "52732f19-3bcd-40ef-9ee6-c88424b62fc4"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U10 POWER SWITCH' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 220.705
+                    },
+                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                },
+                {
+                    "description": "Pad 1 [LM_CAP] of C20 on F.Cu",
+                    "pos": {
+                        "x": 194.625,
+                        "y": 220.6
+                    },
+                    "uuid": "ac0be6f4-d6a7-47f4-b0a3-cf322caa12b7"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U10 POWER SWITCH' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 220.705
+                    },
+                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                },
+                {
+                    "description": "Pad 2 [SW_MID] of C20 on F.Cu",
+                    "pos": {
+                        "x": 196.175,
+                        "y": 220.6
+                    },
+                    "uuid": "292ef4d1-6d9b-46aa-872d-13363e721911"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'STAR GND' on F.Silkscreen",
+                    "pos": {
+                        "x": 191.0,
+                        "y": 252.6
+                    },
+                    "uuid": "b7a57bb1-cd35-432c-a6a2-62b64991ce8c"
+                },
+                {
+                    "description": "Pad 2 [GND] of NT1 on F.Cu",
+                    "pos": {
+                        "x": 192.5,
+                        "y": 254.5
+                    },
+                    "uuid": "db7d3e8c-0e21-46e2-91fe-44756974096f"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U21 INA BAT 0x41' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 203.605
+                    },
+                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
+                },
+                {
+                    "description": "Pad 1 [+3V3_PI] of C27 on F.Cu",
+                    "pos": {
+                        "x": 188.225,
+                        "y": 203.9
+                    },
+                    "uuid": "80e2621f-f3b2-40a9-918a-07ca792a3e05"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        }
+    ]
 }

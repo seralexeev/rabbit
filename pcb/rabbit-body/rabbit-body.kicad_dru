@@ -1,4 +1,7 @@
 (version 1)
-(rule "INA4235 DSBGA 0.4 mm escape"
-	(condition "A.intersectsCourtyard('U3') || B.intersectsCourtyard('U3')")
-	(constraint clearance (min 0.1mm)))
+(rule "LM61495 parts packed per SNVSBZ4A figure 11-2"
+	(constraint courtyard_clearance (min -3mm))
+	(condition "(A.Reference == 'C40?' || A.Reference == 'C60?' || A.Reference == 'R40?' || A.Reference == 'R60?' || A.Reference == 'U4' || A.Reference == 'U6' || A.Reference == 'L4' || A.Reference == 'L6') && (B.Reference == 'C40?' || B.Reference == 'C60?' || B.Reference == 'R40?' || B.Reference == 'R60?' || B.Reference == 'U4' || B.Reference == 'U6' || B.Reference == 'L4' || B.Reference == 'L6')"))
+(rule "DRV8316 charge-pump and buck-resistor parts lined up with the 0.5 mm pins"
+	(constraint courtyard_clearance (min -3mm))
+	(condition "(A.Reference == 'C11??' || A.Reference == 'C12??' || A.Reference == 'R11??' || A.Reference == 'R12??' || A.Reference == 'U11' || A.Reference == 'U12') && (B.Reference == 'C11??' || B.Reference == 'C12??' || B.Reference == 'R11??' || B.Reference == 'R12??' || B.Reference == 'U11' || B.Reference == 'U12')"))
