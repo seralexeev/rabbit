@@ -8,7 +8,7 @@ Push in from above; the lip snaps under the plate. Print 2 in TPU 95A, flange do
 
 from build123d import Pos, Rot, SlotOverall, extrude
 
-from common import DECK3_BOTTOM, PLATE_T, box, export_part, on_bed
+from common import DECK3_BOTTOM, PLATE_T, export_part, on_bed
 
 SLOT = (23.88, 10.3)
 SLOTS = ((-25.68, -70.29), (30.54, -70.29))
@@ -24,11 +24,11 @@ def obround(length, width, z0, z1):
 
 
 def build():
-    l, w = SLOT
-    part = obround(l + 2 * FLANGE, w + 2 * FLANGE, PLATE_T, PLATE_T + FLANGE_T)
-    part += obround(l, w, -LIP_T, PLATE_T + 0.01)
-    part += obround(l + 2 * LIP, w + 2 * LIP, -LIP_T, -0.05)
-    part -= obround(l - 2 * WALL, w - 2 * WALL, -2, PLATE_T + FLANGE_T + 1)
+    length, w = SLOT
+    part = obround(length + 2 * FLANGE, w + 2 * FLANGE, PLATE_T, PLATE_T + FLANGE_T)
+    part += obround(length, w, -LIP_T, PLATE_T + 0.01)
+    part += obround(length + 2 * LIP, w + 2 * LIP, -LIP_T, -0.05)
+    part -= obround(length - 2 * WALL, w - 2 * WALL, -2, PLATE_T + FLANGE_T + 1)
     return part
 
 

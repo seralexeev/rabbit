@@ -4,7 +4,7 @@ J1 sits at board (50, -99.3)/(50, -106.5); the lead comes down from the V-mount 
 past the right rear corner and plugs in from above. This clip grips the board's right edge at
 board Y = -110 (3.5 mm under, 1 mm over) and carries a post outside the edge, up to 4 mm under
 deck 3, with three cable-tie slots: tie the lead so a pull on it never reaches the plug.
-The post stands 3.8 mm inboard of the rear right tyre. Print upright as used (clip down), no supports.
+The post stands 3.7 mm inboard of the rear right tyre. Print upright as used (clip down), no supports.
 
 Local frame: edge along X, board inward at +y, board bottom at z = 0.
 """

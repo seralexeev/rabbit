@@ -35,7 +35,7 @@ BLOCKS = [  # (label, X0, Y0, X1, Y1, colour)
     ("40-pin to Pi\n(ribbon)", -27.0, 25.0, 33.0, 35.0, "#669bbc"),
     ("12 V Jetson\n+ 10 mOhm", -42.0, 37.5, -4.0, 80.0, "#2a9d8f"),
     ("6 V servo\n+ 10 mOhm", 4.0, 37.5, 41.0, 63.5, "#2a9d8f"),
-    ("ZED USB\ncable cut", 23.2, 64.8, 31.0, 78.6, "#8d99ae"),
+    ("ZED USB\ncable cut", 21.5, 64.6, 32.6, 82.6, "#8d99ae"),
     ("PCA9685 + servo\nheaders, RTC", -24.0, 86.0, 21.0, 123.0, "#9b5de5"),
     ("INA4235", 15.0, -46.0, 28.0, -36.0, "#d62828"),
 ]

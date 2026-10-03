@@ -62,6 +62,10 @@ part("U2", "rabbit_body:Pololu_BigPushbutton_HP", "Pololu 2813", (47.9, -57.8), 
      {"VIN": "BAT_FUSED", "VOUT": "SW_OUT", "GND": "GND", "A": "BTN_ON", "OFF": "SW_OFF"}, "module",
      mpn="Pololu Big Pushbutton Power Switch HP #2813")
 part("D1", "Diode_SMD:D_SMB", "SMBJ20A", (55.5, -40.0), 90, {"1": "SW_OUT", "2": "GND"}, "smt", "C151922", "SMBJ20A")
+# switch input TVS (Pololu: TVS across the input against LC spikes); bidirectional so a reversed battery is
+# blocked by the switch instead of blowing F1
+part("D7", "Diode_SMD:D_SMB", "SMBJ20CA", (42.1, -82.2), 270, {"1": "BAT_FUSED", "2": "GND"}, "smt", "C151921",
+     "SMBJ20CA")
 part("R1", "rabbit_body:R_Shunt_2512_Kelvin", "2mR 3W", (45.6, -40.6), 180,
      {"1": "SW_OUT", "2": "VBUS", "3": "INA_IN1P", "4": "INA_IN1N"}, "smt", "C154685", "LR2512-23R002F4")
 
@@ -79,7 +83,7 @@ part("C1", "Capacitor_THT:CP_Radial_D12.5mm_P5.00mm", "1000uF 35V", (-2.5, -119.
      {"1": "MOT_BAT", "2": "GND_MOT"}, "tht", "C346962", "NXB 35V 1000uF 12.5x25 (or Panasonic EEU-FR1V102)")
 part("J2", "rabbit_body:WirePads_2x_AWG14_P8.4mm", "RoboClaw B+/B-", (-30.0, -114.0), 0,
      {"1": "MOT_BAT", "2": "GND_MOT"}, "none", label=None)
-part("NT1", "NetTie:NetTie-2_SMD_Pad2.0mm", "star GND", (42.4, -106.5), 0, {"1": "GND_MOT", "2": "GND"}, "none")
+part("NT1", "rabbit_body:NetTie_3.5mm", "star GND", (41.5, -106.5), 0, {"1": "GND_MOT", "2": "GND"}, "none")
 
 # INA4235, channel 1 battery, 2 servo 6 V, 3 motors, 4 Jetson 12 V; address 0x41 (A1 = GND, A0 = VS)
 part("U3", "rabbit_body:TI_DSBGA-16_YBJ_1.5x1.5mm_P0.4mm", "INA4235", (22.0, -41.5), 0,
@@ -194,9 +198,9 @@ part("J15", "Connector_JST:JST_XH_B5B-XH-A_1x05_P2.50mm_Vertical", "button", (37
      "BUTTON")
 res("R28", "10k", (30.0, 95.0), "POWER_BTN", "+3V3_PI", 0)
 cap("C10", "100nF", (30.0, 97.0), "POWER_BTN", "GND", 0)
-mosfet("Q3", (30.0, 84.5), "Q3_G", "BTN_LED_K", 0)
-res("R24", "1k", (26.0, 84.5), "GPIO27", "Q3_G", 90)
-res("R25", "100k", (30.0, 81.0), "Q3_G", "GND", 0)
+mosfet("Q3", (30.0, 87.5), "Q3_G", "BTN_LED_K", 0)
+res("R24", "1k", (26.0, 87.5), "GPIO27", "Q3_G", 90)
+res("R25", "100k", (30.0, 84.0), "Q3_G", "GND", 0)
 part("J16", "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical", "status LED", (40.0, 98.0), 0,
      {"1": "STATUS_LED_A", "2": "GND"}, "tht", "C131337", "JST B2B-PH-K-S", "LED")
 res("R27", "330", (34.0, 101.0), "GPIO19", "STATUS_LED_A", 0)
@@ -226,7 +230,7 @@ rtc.update({"2": "+3V3_PI", "14": "RTC_VBAT", "15": "I2C1_SDA", "16": "I2C1_SCL"
 part("U9", "Package_SO:SOIC-16W_7.5x10.3mm_P1.27mm", "DS3231SN", (-14.0, 95.0), 0, rtc, "smt", "C9866", "DS3231SN#T&R")
 cap("C5", "100nF", (-8.0, 89.0), "+3V3_PI", "GND", 0)
 part("BT1", "Battery:BatteryHolder_Keystone_3001_1x12mm", "CR1220", (-22.0, 113.0), 0,
-     {"1": "RTC_VBAT", "2": "GND"}, "tht", "C238098", "Keystone 3001 holder + CR1220 cell")
+     {"1": "RTC_VBAT", "2": "GND"}, "tht", None, "Keystone 3001 holder (not at LCSC: Digi-Key or Mouser) + CR1220 cell")
 
 # ---------------------------------------------------------------- test points, rail LED
 for i, (net, at) in enumerate([("VBUS", (33.5, -43.5)), ("+5V", (-31.7, -5.5)), ("SERVO_6V", (35.5, 56.0)),
@@ -247,13 +251,14 @@ LABEL_POS = {"J4": (0.0, 0.0, "top"), "J5": (1.5, 0.0, "top"), "J22": (6.0, 0.0,
 SILK = [("RABBIT 2.0 BODY  rev A  2026-10", -30.0, -60.0, 1.6, "B"),
         ("4L 1.6 mm, 1 oz outer; deck of the Red Ackerman kit", -30.0, -64.0, 1.0, "B"),
         ("FRONT ^", 0.0, 120.0, 1.4, "F"),
-        ("+", 44.0, -99.3, 1.4, "F"), ("-", 44.0, -106.5, 1.4, "F"),
-        ("STAR GND", 42.4, -103.8, 0.8, "F")]
+        ("+", 44.0, -99.3, 1.4, "F"), ("-", 55.8, -106.5, 1.4, "F"),
+        ("STAR GND", 41.0, -102.6, 1.0, "F")]
 
 
 # cable passthrough cut in the board, aligned with the front-right slot of the kit plate (deck 2) under it:
-# ZED USB 3 cable from deck 3 down to the Jetson on deck 1 (USB-A plug 12 x 4.5 mm fits diagonally)
-CUTOUTS = [[(23.2, 64.8), (31.0, 64.8), (31.0, 78.6), (23.2, 78.6)]]
+# ZED USB 3 cable from deck 3 down to the Jetson on deck 1: 11.1 x 18 mm passes a moulded USB-A plug (~16 x 8);
+# the kit slot it lines up with is 10.3 x 23.9
+CUTOUTS = [[(21.5, 64.6), (32.6, 64.6), (32.6, 82.6), (21.5, 82.6)]]
 
 
 def nets():
@@ -265,6 +270,7 @@ def nets():
 
 # power nets laid out by hand (zones and wide tracks); the autorouter skips nothing but these get wide rules
 POWER_HI = ["BAT_IN", "BAT_FUSED", "SW_OUT", "VBUS", "MOT_FUSED", "MOT_BAT", "GND_MOT"]
+POWER_5V = ["+5V"]
 POWER_MID = ["BRAIN_IN", "BODY_IN", "STEER_IN", "HUB_PWR", "RES_PWR", "12V_RAW", "JET_12V", "6V_RAW",
-             "SERVO_6V", "+5V"]
-POWER_LO = ["+3V3_PI", "+3V3_TOF", "RC_5V"]
+             "SERVO_6V", "+3V3_TOF"]
+POWER_LO = ["+3V3_PI", "RC_5V"]

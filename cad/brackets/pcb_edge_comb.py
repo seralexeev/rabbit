@@ -13,7 +13,6 @@ Local frame: edge along X, board inward at +y, board bottom at z = 0.
 from build123d import Pos, Rot
 
 from common import (
-    CX,
     DECK2_BOTTOM,
     EDGE_FLANGE_T,
     EDGE_SLOT,

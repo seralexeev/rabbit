@@ -25,6 +25,7 @@ Qty,Designator,Value,Footprint,LCSC,MPN / description,Assembly
 5,"D2,D3,D4,D5,D6",LED green,LED_0603_1608Metric,C12624,KT-0603G,JLCPCB SMT
 1,U8,PCA9685PW,TSSOP-28_4.4x9.7mm_P0.65mm,C2678753,"PCA9685PW,118",JLCPCB SMT
 1,D1,SMBJ20A,D_SMB,C151922,SMBJ20A,JLCPCB SMT
+1,D7,SMBJ20CA,D_SMB,C151921,SMBJ20CA,JLCPCB SMT
 1,U7,TPS73733,SOT-223-6,C31334,TPS73733DCQR,JLCPCB SMT
 1,C1,1000uF 35V,CP_Radial_D12.5mm_P5.00mm,C346962,NXB 35V 1000uF 12.5x25 (or Panasonic EEU-FR1V102),hand-solder (order from LCSC/JLC parts)
 1,C14,470uF 16V,CP_Radial_D8.0mm_P3.50mm,C19270651,470uF 16V polymer 8x12,hand-solder (order from LCSC/JLC parts)
@@ -34,7 +35,7 @@ Qty,Designator,Value,Footprint,LCSC,MPN / description,Assembly
 1,F6,ATO 2A,Fuseholder_ATO_Keystone_3557x2,C2680614,2x Keystone 3557 + ATO 2A,hand-solder (order from LCSC/JLC parts)
 2,"F3,F4",ATO 5A,Fuseholder_ATO_Keystone_3557x2,C2680614,2x Keystone 3557 + ATO 5A,hand-solder (order from LCSC/JLC parts)
 1,F5,ATO 7.5A,Fuseholder_ATO_Keystone_3557x2,C2680614,2x Keystone 3557 + ATO 7.5A,hand-solder (order from LCSC/JLC parts)
-1,BT1,CR1220,BatteryHolder_Keystone_3001_1x12mm,C238098,Keystone 3001 holder + CR1220 cell,hand-solder (order from LCSC/JLC parts)
+1,BT1,CR1220,BatteryHolder_Keystone_3001_1x12mm,,Keystone 3001 holder (not at LCSC: Digi-Key or Mouser) + CR1220 cell,hand-solder (order from LCSC/JLC parts)
 1,J5,E-stop loop,PinHeader_1x02_P2.54mm_Vertical,C53055672,1x2 header + jumper,hand-solder (order from LCSC/JLC parts)
 1,J6,ENC left,JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,C144395,JST B4B-XH-A,hand-solder (order from LCSC/JLC parts)
 1,J7,ENC right,JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,C144395,JST B4B-XH-A,hand-solder (order from LCSC/JLC parts)

@@ -33,9 +33,10 @@ class FP:
         self.items.append(f'  (pad "" np_thru_hole circle (at {_f(x)} {_f(y)}) (size {_f(d)} {_f(d)}) '
                           f'(drill {_f(d)}) (layers "*.Cu" "*.Mask"))')
 
-    def smd(self, num, x, y, sx, sy, shape="rect", paste=True):
+    def smd(self, num, x, y, sx, sy, shape="rect", paste=True, paste_margin=None):
         layers = '"F.Cu" "F.Paste" "F.Mask"' if paste else '"F.Cu" "F.Mask"'
-        self.items.append(f'  (pad "{num}" smd {shape} (at {_f(x)} {_f(y)}) (size {_f(sx)} {_f(sy)}) (layers {layers}))')
+        extra = f' (solder_paste_margin {_f(paste_margin)})' if paste_margin is not None else ""
+        self.items.append(f'  (pad "{num}" smd {shape} (at {_f(x)} {_f(y)}) (size {_f(sx)} {_f(sy)}) (layers {layers}){extra})')
 
     def rect(self, layer, x0, y0, x1, y1, w=None):
         w = w or {"F.CrtYd": 0.05, "F.SilkS": 0.12, "F.Fab": 0.1}.get(layer, 0.1)
@@ -178,7 +179,7 @@ def ina4235():
     f = FP("TI_DSBGA-16_YBJ_1.5x1.5mm_P0.4mm", "TI YBJ DSBGA-16, 4x4, 0.4 mm pitch, 0.25 mm NSMD pads (INA4235; JLCPCB minimum BGA pad)", "smd")
     for r, row in enumerate("ABCD"):
         for c in range(4):
-            f.smd(f"{row}{c + 1}", -0.6 + 0.4 * c, -0.6 + 0.4 * r, 0.25, 0.25, "circle")
+            f.smd(f"{row}{c + 1}", -0.6 + 0.4 * c, -0.6 + 0.4 * r, 0.25, 0.25, "circle", paste_margin=-0.02)
     f.rect("F.Fab", -0.755, -0.755, 0.755, 0.755)
     f.rect("F.CrtYd", -1.0, -1.0, 1.0, 1.0)
     f.rect("F.SilkS", -0.95, -0.95, 0.95, 0.95)
@@ -198,6 +199,18 @@ def shunt_2512():
     f.write(-2.6, 2.6)
 
 
+def net_tie():
+    """Star point GND_MOT -> GND: 3.5 mm copper bridge (the library NetTie-2_SMD_Pad2.0mm is 2 mm wide)."""
+    f = FP("NetTie_3.5mm", "Net tie, 2 pads, 3.5 mm wide copper bridge for the motor return star point", "smd")
+    f.items.append('  (net_tie_pad_groups "1, 2")')
+    f.smd("1", -2.0, 0, 3.5, 3.5, "circle", paste=False)
+    f.smd("2", 2.0, 0, 3.5, 3.5, "circle", paste=False)
+    f.items.append('  (fp_poly (pts (xy -2 -1.75) (xy 2 -1.75) (xy 2 1.75) (xy -2 1.75)) (stroke (width 0) (type solid)) '
+                   '(fill yes) (layer "F.Cu"))')
+    f.rect("F.CrtYd", -3.75, -1.85, 3.75, 1.85, 0.05)
+    f.write(-2.8, 2.8)
+
+
 def wire_pads():
     f = FP("WirePads_2x_AWG14_P8.4mm", "Two solder holes for AWG14 jumpers to the RoboClaw B+ / B- screw terminals")
     f.tht("1", -4.2, 0, 4.6, 2.2)
@@ -208,7 +221,7 @@ def wire_pads():
 
 
 def main():
-    for fn in (pololu_d36v50, pololu_d24v90, pololu_switch_hp, roboclaw, rpi4, ato_fuse, ina4235, shunt_2512, wire_pads):
+    for fn in (pololu_d36v50, pololu_d24v90, pololu_switch_hp, roboclaw, rpi4, ato_fuse, ina4235, shunt_2512, net_tie, wire_pads):
         fn()
     print("footprints in", LIB)
 

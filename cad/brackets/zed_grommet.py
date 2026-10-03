@@ -19,11 +19,11 @@ LIP_T = 0.8
 
 def build():
     (x0, y0), (x1, y1) = CUTOUT
-    w, l = x1 - x0, y1 - y0
-    part = box(-w / 2 - FLANGE, w / 2 + FLANGE, -l / 2 - FLANGE, l / 2 + FLANGE, PCB_T, PCB_T + FLANGE_T)
-    part += box(-w / 2, w / 2, -l / 2, l / 2, -LIP_T, PCB_T)
-    part += box(-w / 2 - LIP, w / 2 + LIP, -l / 2 - LIP, l / 2 + LIP, -LIP_T, -0.05)
-    part -= box(-w / 2 + WALL, w / 2 - WALL, -l / 2 + WALL, l / 2 - WALL, -2, PCB_T + FLANGE_T + 1)
+    w, length = x1 - x0, y1 - y0
+    part = box(-w / 2 - FLANGE, w / 2 + FLANGE, -length / 2 - FLANGE, length / 2 + FLANGE, PCB_T, PCB_T + FLANGE_T)
+    part += box(-w / 2, w / 2, -length / 2, length / 2, -LIP_T, PCB_T)
+    part += box(-w / 2 - LIP, w / 2 + LIP, -length / 2 - LIP, length / 2 + LIP, -LIP_T, -0.05)
+    part -= box(-w / 2 + WALL, w / 2 - WALL, -length / 2 + WALL, length / 2 - WALL, -2, PCB_T + FLANGE_T + 1)
     return part
 
 

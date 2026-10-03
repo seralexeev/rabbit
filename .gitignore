@@ -152,3 +152,6 @@ workspaces/links/
 # local data: SVO dumps, parquet exports, maps of the flat
 /data/
 workspaces/rabbit/REVISION
+
+# generated CAD assemblies (regenerate with cad/brackets/assembly.py)
+cad/brackets/rabbit-2.0-mounts.step

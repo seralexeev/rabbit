@@ -70,7 +70,6 @@ import cable_clip
 import cap_clamp
 import pcb_edge_comb
 import slot_grommet
-import usb_hub_bracket
 import xt60_strain_relief
 import zed_grommet
 import lidar_mast
@@ -150,7 +149,6 @@ def parts():
     out["zed_grommet"] = (zed_grommet.installed(zed_grommet.build()), "clip")
     for i in range(2):
         out[f"slot_grommet_{i}"] = (slot_grommet.installed(slot_grommet.build(), i), "clip")
-    out["usb_hub_bracket"] = (usb_hub_bracket.installed(usb_hub_bracket.build()), "deck")
     return out
 
 
@@ -163,7 +161,6 @@ def hardware():
     out["rplidar_c1"] = lidar_mast.installed(lidar_mast.lidar_solid())
     out["power_button"] = power_button_panel.installed(power_button_panel.button_solid())
     out["camera_module_3_wide"] = rear_camera_mount.installed(rear_camera_mount.camera_solid())
-    out["usb_hub_envelope"] = usb_hub_bracket.hub_solid()
     return out
 
 
@@ -406,8 +403,8 @@ def renders(parts_, hardware_, chassis_, env):
         items.append((s, PART_COLOURS["hardware"]))
     legend = [
         "orange: ToF pairs (VL53L8CX)   blue: bumpers (D2F-01L)   green: lidar mast (RPLIDAR C1)",
-        "red: power button pod   purple: rear camera mount   yellow: PCB combs, XT60 relief, C1 collar, USB hub bracket",
-        "dark green: body PCB (deck 2)   grey boxes: ZED 2i, battery, V-mount plate, USB hub (estimates)",
+        "red: power button pod   purple: rear camera mount   yellow: PCB edge combs, XT60 strain relief, C1 collar",
+        "dark green: body PCB (deck 2)   grey boxes: ZED 2i, battery, V-mount plate (estimates)",
     ]
     paths = render(items, RENDERS / "assembly", views=("iso", "iso_rear", "top", "side", "front", "rear"), size=(1600, 1200))
     for p in paths:
@@ -454,6 +451,12 @@ def part_renders(parts_, hardware_):
         "power_button_panel": (power_button_panel.build(), []),
         "rear_camera_mount": (rear_camera_mount.build(), [(rear_camera_mount.camera_solid(), "#2e7d32")]),
         "cable_clip": (cable_clip.build(), []),
+        "pcb_comb_front": (pcb_edge_comb.build("front"), []),
+        "pcb_comb_rear": (pcb_edge_comb.build("rear"), []),
+        "xt60_strain_relief": (xt60_strain_relief.build(), []),
+        "cap_clamp": (cap_clamp.build(), []),
+        "zed_grommet": (zed_grommet.build(), []),
+        "slot_grommet": (slot_grommet.build(), []),
     }
     colours = {
         "tof_pair": "tof",
@@ -463,6 +466,12 @@ def part_renders(parts_, hardware_):
         "power_button_panel": "button",
         "rear_camera_mount": "camera",
         "cable_clip": "clip",
+        "pcb_comb_front": "deck",
+        "pcb_comb_rear": "deck",
+        "xt60_strain_relief": "deck",
+        "cap_clamp": "deck",
+        "zed_grommet": "clip",
+        "slot_grommet": "clip",
     }
     for name, (shape, extra) in singles.items():
         items = [(shape, PART_COLOURS[colours[name]])] + extra
@@ -472,8 +481,8 @@ def part_renders(parts_, hardware_):
 
 def pcb_clearance(parts_, hardware_, deck2):
     """Smallest gap from each part near deck 2 to the board and its parts (pins included)."""
-    names = [k for k in parts_ if k.startswith(("tof_pair", "bumper", "pcb_comb", "xt60", "cap_clamp", "usb_hub"))]
-    items = {**{k: parts_[k][0] for k in names}, **{k: v for k, v in hardware_.items() if k.startswith(("tof_boards", "d2f", "usb_hub"))}}
+    names = [k for k in parts_ if k.startswith(("tof_pair", "bumper", "pcb_comb", "xt60", "cap_clamp"))]
+    items = {**{k: parts_[k][0] for k in names}, **{k: v for k, v in hardware_.items() if k.startswith(("tof_boards", "d2f"))}}
     out = {}
     for k, a in items.items():
         near = [s for s in deck2.values() if bbox_overlap(a, s, margin=15.0)]

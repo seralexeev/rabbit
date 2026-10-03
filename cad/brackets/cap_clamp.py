@@ -6,7 +6,7 @@ It is open toward the rear connectors J7 and J14 so it stays off them.
 Print standing on its base, no supports.
 """
 
-from build123d import Pos, Rot
+from build123d import Pos
 
 from common import DECK2_BOTTOM, PCB_T, board_to_model, box, cyl, export_part
 

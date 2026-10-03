@@ -64,6 +64,8 @@ class Builder:
         ds.m_MinSilkTextThickness = mm(0.15)
         ds.m_MinResolvedSpokes = 1
         ns = ds.m_NetSettings
+        ns.ClearNetclassPatternAssignments()   # NewBoard loads the existing .kicad_pro: drop stale classes and patterns
+        ns.ClearNetclasses()
         default = ns.GetDefaultNetclass()
         default.SetClearance(mm(0.15))
         default.SetTrackWidth(mm(0.15))
@@ -71,6 +73,7 @@ class Builder:
         default.SetViaDrill(mm(0.3))
         for name, width, clr, via, drill, nets in (
                 ("PWR_HI", 2.0, 0.3, 1.0, 0.5, design.POWER_HI),
+                ("PWR_5V", 1.5, 0.2, 0.8, 0.4, design.POWER_5V),
                 ("PWR_MID", 1.0, 0.2, 0.8, 0.4, design.POWER_MID),
                 ("PWR_LO", 0.4, 0.15, 0.6, 0.3, design.POWER_LO + ["GND"])):
             nc = pcbnew.NETCLASS(name)
@@ -136,6 +139,12 @@ class Builder:
             if p["bom"] == "none":
                 attrs |= pcbnew.FP_EXCLUDE_FROM_BOM
             fp.SetAttributes(attrs)
+            if p["bom"] != "smt":   # hand-soldered parts with SMD pads (CR1220 contact) get no stencil paste
+                for pad in fp.Pads():
+                    if pad.GetAttribute() == pcbnew.PAD_ATTRIB_SMD and pad.IsOnLayer(pcbnew.F_Paste):
+                        ls = pad.GetLayerSet()
+                        ls.RemoveLayer(pcbnew.F_Paste)
+                        pad.SetLayerSet(ls)
             ref = fp.Reference()
             ref.SetTextSize(pcbnew.VECTOR2I(mm(1.0), mm(1.0)))
             ref.SetTextThickness(mm(0.15))
