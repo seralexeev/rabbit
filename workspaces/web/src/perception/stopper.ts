@@ -18,8 +18,8 @@ export const createStopper = (nc: NatsConnection, store: TelemetryStore): Stoppe
     };
 
     const publish = () => {
-        nc.publish('rabbit.nav.cancel', JSON.stringify({}));
-        nc.publish('rabbit.cmd.drive', JSON.stringify({ speed: 0, steer: 0 }));
+        nc.publish('rabbit.nav.cancel', JSON.stringify({ source: 'hud' }));
+        nc.publish('rabbit.cmd.drive', JSON.stringify({ speed: 0, steer: 0, source: 'hud' }));
     };
 
     return {

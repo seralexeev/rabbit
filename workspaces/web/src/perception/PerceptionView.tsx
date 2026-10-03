@@ -25,7 +25,7 @@ import { L } from '../log.ts';
 import { ui } from '../ui/index.ts';
 import { TOP_ORIENTATIONS, type TopOrientation, VIEW_MODES, type ViewMode } from './CameraRig.ts';
 import { createFloorPlan } from './FloorPlan.ts';
-import { type Scene, type SceneSettings, createScene } from './Scene.ts';
+import { type MapMode, type Scene, type SceneSettings, createScene } from './Scene.ts';
 import { createTelemetryStore } from './Telemetry.ts';
 import { createHistory } from './history.ts';
 import { type MissionStep, remainingMission } from './mission.ts';
@@ -33,11 +33,14 @@ import { createStopper } from './stopper.ts';
 
 const VIEW_MODE_KEY = 'rabbit.perception.view_mode';
 const MISSION_SUBJECT = 'rabbit.nav.mission';
+const PLANNER_GOAL_SUBJECT = 'rabbit.planner.goal';
 
-const MAP_TOGGLE = [
-    { id: 'show', label: 'MAP' },
-    { id: 'hide', label: 'OFF' },
+const MAP_MODES = [
+    { id: 'voxel', label: 'VOX' },
+    { id: 'surface', label: 'SURF' },
+    { id: 'off', label: 'OFF' },
 ] as const;
+const MAP_MODE_KEY = 'rabbit.perception.map_style';
 
 const HINTS: Record<ViewMode, string> = {
     fpv: 'DRAG LOOK · WHEEL FOV · DBL-CLICK FOCUS',
@@ -65,7 +68,7 @@ export const PerceptionView: React.FC = () => {
     const settingsRef = React.useRef<SceneSettings>({
         viewMode: 'third',
         topOrientation: 'heading',
-        mapVisible: true,
+        map: 'voxel',
         goArmed: false,
     });
 
@@ -75,7 +78,11 @@ export const PerceptionView: React.FC = () => {
         'third',
     );
     const [topOrientation, setTopOrientation] = React.useState<TopOrientation>('heading');
-    const [mapVisible, setMapVisible] = React.useState(true);
+    const [mapMode, setMapMode] = useLocalState<MapMode>(
+        MAP_MODE_KEY,
+        (raw) => MAP_MODES.find((mode) => mode.id === raw)?.id ?? 'voxel',
+        'voxel',
+    );
     const [goArmed, setGoArmed] = React.useState(false);
 
     const changeViewMode = useEvent((mode: ViewMode) => setViewMode(() => mode));
@@ -87,13 +94,20 @@ export const PerceptionView: React.FC = () => {
             return;
         }
         const goto: MissionStep = { type: 'goto', x: Math.round(point.x * 1000) / 1000, z: Math.round(point.z * 1000) / 1000 };
+        if (!append) {
+            nc.publish(PLANNER_GOAL_SUBJECT, JSON.stringify({ x: goto.x, z: goto.z, source: 'hud' }));
+            publishedRef.current = null;
+            L.info('Trip requested', { x: goto.x, z: goto.z });
+            setGoArmed(false);
+            return;
+        }
         const published = publishedRef.current;
         const base =
             published != null && published.navVersion === store.nav.version
                 ? published.steps
                 : remainingMission(store.nav.value);
         const steps = append ? [...base, goto] : [goto];
-        nc.publish(MISSION_SUBJECT, JSON.stringify({ steps }));
+        nc.publish(MISSION_SUBJECT, JSON.stringify({ steps, source: 'hud' }));
         publishedRef.current = { steps, navVersion: store.nav.version };
         L.info(append ? 'Mission step appended' : 'Mission sent', { steps });
         if (!append) setGoArmed(false);
@@ -114,10 +128,10 @@ export const PerceptionView: React.FC = () => {
     React.useEffect(() => floorPlan.start(), [floorPlan]);
 
     React.useEffect(() => {
-        const settings = { viewMode, topOrientation, mapVisible, goArmed };
+        const settings = { viewMode, topOrientation, map: mapMode, goArmed };
         settingsRef.current = settings;
         sceneRef.current?.apply(settings);
-    }, [viewMode, topOrientation, mapVisible, goArmed]);
+    }, [viewMode, topOrientation, mapMode, goArmed]);
 
     React.useLayoutEffect(() => {
         const container = containerRef.current;
@@ -194,9 +208,9 @@ export const PerceptionView: React.FC = () => {
                         />
                     )}
                     <ui.SegmentedControl
-                        segments={MAP_TOGGLE}
-                        value={mapVisible ? 'show' : 'hide'}
-                        onChange={(id) => setMapVisible(id === 'show')}
+                        segments={MAP_MODES}
+                        value={mapMode}
+                        onChange={(id) => setMapMode(() => id as MapMode)}
                     />
                 </div>
 

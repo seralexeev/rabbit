@@ -58,7 +58,13 @@ type PathViewProps = { path: PathSpec; title?: string; height?: number };
 
 export const PathView: React.FC<PathViewProps> = ({ path, title, height = 170 }) => {
     const trail = path.trail.map(thin);
-    const all = [...robustCore(trail.flat()), ...path.plan, ...path.obstacles, ...(path.start == null ? [] : [path.start])];
+    const all = [
+        ...robustCore(trail.flat()),
+        ...path.plan,
+        ...path.obstacles,
+        ...path.landmarks,
+        ...(path.start == null ? [] : [path.start]),
+    ];
     if (all.length === 0) return null;
     const { cx, cz, span } = boundsOf(all);
     const grid = GRID_STEPS.find((step) => span / step <= MAX_GRID_LINES) ?? GRID_STEPS.at(-1)!;
@@ -104,6 +110,18 @@ export const PathView: React.FC<PathViewProps> = ({ path, title, height = 170 })
                             <line x1={p.x - r} x2={p.x + r} y1={p.z + r} y2={p.z - r} />
                         </g>
                     ))}
+                    {path.landmarks.map((landmark, i) => {
+                        const w = Math.max(landmark.width ?? 0, r * 2);
+                        const l = Math.max(landmark.length ?? 0, r * 2);
+                        return (
+                            <g key={i} data-layer='landmark' data-moving={landmark.moving}>
+                                <rect x={landmark.x - w / 2} y={landmark.z - l / 2} width={w} height={l} />
+                                <text x={landmark.x} y={landmark.z - l / 2 - r * 0.6} fontSize={r * 2.6}>
+                                    {landmark.label.toUpperCase()}
+                                </text>
+                            </g>
+                        );
+                    })}
                     {path.goal != null && (
                         <rect
                             x={path.goal.x - r}
@@ -127,6 +145,7 @@ export const PathView: React.FC<PathViewProps> = ({ path, title, height = 170 })
                 {trail.length > 0 && <span data-key='trail'>TRAIL</span>}
                 {path.plan.length > 1 && <span data-key='plan'>PLAN</span>}
                 {path.obstacles.length > 0 && <span data-key='obstacle'>OBSTACLE</span>}
+                {path.landmarks.length > 0 && <span data-key='landmark'>OBJECT</span>}
                 {path.facts.map(([label, value]) => (
                     <span key={label} className={factCss}>
                         {label} <b>{value}</b>
@@ -205,6 +224,28 @@ const svgCss = css`
         stroke-width: 1.4;
     }
 
+    & [data-layer='landmark'] rect {
+        fill: rgba(232, 251, 255, 0.08);
+        stroke: #e8fbff;
+        stroke-width: 1.2;
+    }
+
+    & [data-layer='landmark'] text {
+        fill: #e8fbff;
+        text-anchor: middle;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+
+    & [data-layer='landmark'][data-moving='true'] rect {
+        stroke: var(--hud-amber);
+        fill: rgba(255, 181, 71, 0.08);
+    }
+
+    & [data-layer='landmark'][data-moving='true'] text {
+        fill: var(--hud-amber);
+    }
+
     & [data-layer='robot'] {
         fill: var(--hud);
         filter: drop-shadow(0 0 3px var(--hud-glow));
@@ -247,6 +288,13 @@ const legendCss = css`
 
     & > [data-key='plan']::before {
         background: repeating-linear-gradient(90deg, var(--hud-amber) 0 3px, transparent 3px 5px);
+    }
+
+    & > [data-key='landmark']::before {
+        width: 6px;
+        height: 6px;
+        background: none;
+        box-shadow: inset 0 0 0 1px #e8fbff;
     }
 
     & > [data-key='obstacle']::before {

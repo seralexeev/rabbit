@@ -15,8 +15,8 @@ const formatBytes = (bytes: number) => {
     return `${value.toFixed(unit === 0 ? 0 : 1)}${UNITS[unit]}`;
 };
 
-export const VideoFeed: React.FC<{ subject: string }> = ({ subject }) => {
-    const { canvas, stats } = useCameraStream({ subject });
+export const VideoFeed: React.FC<{ subject: string; objects?: string }> = ({ subject, objects }) => {
+    const { canvas, stats } = useCameraStream({ subject, objects });
     const live = stats?.live === true;
 
     return (

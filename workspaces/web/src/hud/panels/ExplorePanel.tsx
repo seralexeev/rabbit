@@ -11,7 +11,7 @@ import { Rows } from '../Rows.tsx';
 import { type Tone, fixed, useFields, writeText } from '../fields.ts';
 
 const START_SUBJECT = 'rabbit.nav.explore';
-const START_REQUEST = { max_duration_s: 300, max_distance_m: 20 };
+const START_REQUEST = { max_duration_s: 300, max_distance_m: 20, source: 'hud' };
 const STALE_MS = 3000;
 const RUNNING = new Set(['planning', 'driving']);
 

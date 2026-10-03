@@ -80,6 +80,17 @@ export type Scan = {
     blind_fraction: number;
     blind: boolean;
 };
+export type DetectedObject = {
+    id: number;
+    label: string;
+    confidence: number;
+    position: Vec3;
+    dimensions: Vec3;
+    corners: Vec3[];
+    box: [number, number, number, number];
+    moving: boolean;
+};
+export type DetectedObjects = { ts: number; frame_number: number; objects: DetectedObject[] };
 type Obstacle = { nearest: Contact | null; ahead: Contact | null; scan?: Scan };
 type NavMode = 'idle' | 'driving' | 'maneuvering' | 'blocked' | 'arrived' | 'fault';
 export type NavState = {
@@ -97,7 +108,7 @@ export type NavState = {
     turn_remaining_deg?: number | null;
     fault?: string | null;
 };
-export type ExploreTarget = { x: number; z: number; theta: number; cells: number; path_length: number; reverse_length: number };
+export type ExploreTarget = { x: number; z: number; theta: number; cells: number; path_length: number | null };
 type ExplorePhase = 'idle' | 'planning' | 'driving' | 'done' | 'failed';
 export type ExploreState = {
     phase: ExplorePhase;
@@ -112,6 +123,35 @@ export type ExploreState = {
     map_chunks: number | null;
 };
 
+export type TripPhase =
+    | 'idle'
+    | 'planning'
+    | 'driving'
+    | 'replanning'
+    | 'recovering'
+    | 'waiting'
+    | 'arrived'
+    | 'failed'
+    | 'cancelled'
+    | 'planned';
+export type TripState = {
+    phase: TripPhase;
+    trip_id: string | null;
+    source?: string;
+    preview?: boolean;
+    target?: { kind: string; label: string | null; x: number; z: number } | null;
+    goal?: { x: number; z: number; heading_deg: number | null } | null;
+    path?: [number, number, number][];
+    path_length_m?: number | null;
+    remaining_m?: number | null;
+    replans?: number;
+    recoveries?: number;
+    reason?: string;
+    message?: string;
+    plan_ms?: number | null;
+    events?: string[];
+};
+
 type Channels = {
     pose: Pose;
     roboclaw: Roboclaw;
@@ -122,9 +162,11 @@ type Channels = {
     magnetometer: Magnetometer;
     barometer: Barometer;
     obstacle: Obstacle;
+    objects: DetectedObjects;
     nav: NavState;
     system: SystemTelemetry;
     explore: ExploreState;
+    trip: TripState;
 };
 
 export type ChannelName = keyof Channels;
@@ -161,9 +203,11 @@ const SUBJECTS: Record<ChannelName, string> = {
     magnetometer: 'rabbit.zed.magnetometer',
     barometer: 'rabbit.zed.barometer',
     obstacle: 'rabbit.zed.obstacle',
+    objects: 'rabbit.zed.objects',
     nav: 'rabbit.nav.state',
     system: 'rabbit.telemetry',
     explore: 'rabbit.explore.state',
+    trip: 'rabbit.planner.state',
 };
 
 const CHANNEL_NAMES = Object.keys(SUBJECTS) as ChannelName[];
@@ -183,9 +227,11 @@ export const createTelemetryStore = (): TelemetryStore => {
         magnetometer: channel(),
         barometer: channel(),
         obstacle: channel(),
+        objects: channel(),
         nav: channel(),
         system: channel(),
         explore: channel(),
+        trip: channel(),
         derived: {
             hasPose: false,
             x: 0,

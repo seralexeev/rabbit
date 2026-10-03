@@ -13,12 +13,12 @@ const HEALTH_INTERVAL_MS = 1000;
 const STALE_MS = 3500;
 
 type ZedHealth = {
-    frame_number: number;
-    current_fps: number;
-    camera_fps: number;
-    last_capture_duration_ms: number;
-    last_pose_state: string;
-    pose_drop_count: number;
+    frame_number?: number;
+    current_fps?: number;
+    camera_fps?: number;
+    last_capture_duration_ms?: number;
+    last_pose_state?: string;
+    pose_drop_count?: number;
     frames_dropped?: number;
     odometry_status?: string;
     spatial_memory_status?: string;
@@ -32,10 +32,15 @@ type ZedHealth = {
     whitebalance_temperature?: number;
     camera_moving_state?: string;
     temperature?: Record<string, number>;
-    mapping_state: string;
-    map_points: number;
-    map_chunks: number;
-    map_bytes: number;
+    mapping_state?: string;
+    map_points?: number;
+    map_chunks?: number;
+    map_bytes?: number;
+    idle?: boolean;
+    relocalizing?: boolean;
+    map_mode?: string;
+    held_poses?: number;
+    implausible_poses?: number;
 };
 
 const FLAGS = [
@@ -45,7 +50,8 @@ const FLAGS = [
     ['low_motion_sensors_reliability', 'IMU'],
 ] as const;
 
-const formatSize = (bytes: number) => {
+const formatSize = (bytes: number | undefined) => {
+    if (bytes == null || !Number.isFinite(bytes)) return '—';
     if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}G`;
     if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
     return `${(bytes / 1024).toFixed(0)}K`;
@@ -68,7 +74,7 @@ export const ZedPanel: React.FC = () => {
             live={live}
             detail={
                 <div className={detailCss}>
-                    <VideoFeed subject='rabbit.zed.frame.preview' />
+                    <VideoFeed subject='rabbit.zed.frame.preview' objects='rabbit.zed.objects' />
                     <div>
                         <div className={sectionCss}>HEALTH</div>
                         <div className={gridCss}>
@@ -91,7 +97,7 @@ export const ZedPanel: React.FC = () => {
                     </div>
                 </div>
             }>
-            <VideoFeed subject='rabbit.zed.frame.preview' />
+            <VideoFeed subject='rabbit.zed.frame.preview' objects='rabbit.zed.objects' />
             {zed == null ? (
                 <ui.Placeholder label='WAITING FOR CAMERA' />
             ) : (
@@ -100,18 +106,18 @@ export const ZedPanel: React.FC = () => {
                         <Pair
                             label='FPS'
                             value={`${fixed(zed.current_fps, 1)}/${fixed(zed.camera_fps, 0)}`}
-                            warn={zed.current_fps < zed.camera_fps * 0.8}
+                            warn={zed.idle !== true && zed.current_fps != null && zed.camera_fps != null && zed.current_fps < zed.camera_fps * 0.8}
                         />
                         <Pair
                             label='CAP'
                             value={fixed(zed.last_capture_duration_ms, 1, 'ms')}
-                            warn={zed.last_capture_duration_ms > 30}
+                            warn={(zed.last_capture_duration_ms ?? 0) > 30}
                         />
-                        <Pair label='POSE' value={zed.last_pose_state} warn={zed.last_pose_state !== 'OK'} />
+                        <Pair label='POSE' value={zed.last_pose_state ?? '—'} warn={zed.last_pose_state != null && zed.last_pose_state !== 'OK'} />
                         <Pair
                             label='DROP'
-                            value={`${zed.pose_drop_count}/${zed.frames_dropped ?? 0}`}
-                            warn={zed.pose_drop_count > 0}
+                            value={`${zed.pose_drop_count ?? '—'}/${zed.frames_dropped ?? '—'}`}
+                            warn={(zed.pose_drop_count ?? 0) > 0}
                         />
                         <Pair label='ODOM' value={zed.odometry_status ?? '—'} warn={!isOk(zed.odometry_status)} />
                         <Pair label='SMEM' value={zed.spatial_memory_status ?? '—'} warn={!isOk(zed.spatial_memory_status)} />
@@ -119,7 +125,7 @@ export const ZedPanel: React.FC = () => {
                         <Pair label='MOVE' value={zed.camera_moving_state ?? '—'} />
                         <Pair label='EXP' value={`${zed.exposure ?? '—'}`} />
                         <Pair label='GAIN' value={`${zed.gain ?? '—'}`} />
-                        <Pair label='WB' value={`${zed.whitebalance_temperature ?? '—'}K`} />
+                        <Pair label='WB' value={zed.whitebalance_temperature == null ? '—' : `${zed.whitebalance_temperature}K`} />
                         {Object.entries(zed.temperature ?? {}).map(([name, value]) => (
                             <Pair
                                 key={name}
@@ -138,7 +144,13 @@ export const ZedPanel: React.FC = () => {
                     </div>
                     <div className={sectionCss}>SPATIAL MAP</div>
                     <div className={gridCss}>
-                        <Pair label='MAP' value={zed.mapping_state} warn={zed.mapping_state !== 'OK'} />
+                        <Pair label='MAP' value={zed.mapping_state ?? '—'} warn={zed.mapping_state != null && zed.mapping_state !== 'OK'} />
+                        <Pair
+                            label='LOC'
+                            value={zed.relocalizing === true ? 'RELOCALIZING' : (zed.map_mode?.toUpperCase() ?? '—')}
+                            warn={zed.relocalizing === true}
+                        />
+                        <Pair label='HELD' value={`${(zed.held_poses ?? 0) + (zed.implausible_poses ?? 0)}`} />
                         <Pair label='PTS' value={zed.map_points?.toLocaleString() ?? '—'} />
                         <Pair label='CHNK' value={zed.map_chunks?.toLocaleString() ?? '—'} />
                         <Pair label='TX' value={formatSize(zed.map_bytes)} />

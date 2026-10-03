@@ -4,6 +4,7 @@ import { type ChartSpec, type GraphSpec, type Severity, type TableSpec, formatVa
 
 export type Point = { x: number; z: number };
 export type Pose = Point & { heading: number };
+export type Landmark = Point & { label: string; width: number | null; length: number | null; moving: boolean };
 
 export type PathSpec = {
     trail: Point[][];
@@ -11,6 +12,7 @@ export type PathSpec = {
     start: Pose | Point | null;
     goal: Point | null;
     obstacles: Point[];
+    landmarks: Landmark[];
     facts: [string, string][];
 };
 
@@ -63,6 +65,7 @@ export const missionPath = (steps: MissionStep[], start: Pose, obstacles: Point[
         start,
         goal: count > 0 ? (plan.at(-1) ?? null) : null,
         obstacles,
+        landmarks: [],
         facts: [
             ['steps', String(steps.length)],
             ['planned', `${pathLength(plan).toFixed(2)} m`],
@@ -132,11 +135,46 @@ const tablePath = (table: TableSpec): PathSpec | null => {
         start: first,
         goal: last,
         obstacles: [],
+        landmarks: [],
         facts: [
             ['samples', trail.length.toLocaleString('en-US')],
             ...(segments.length > 1 ? [['tracking jumps', String(segments.length - 1)] as [string, string]] : []),
             ...(travelled == null ? [] : [['travelled', `${travelled.toFixed(2)} m`] as [string, string]]),
             ...(first == null || last == null ? [] : [['net', `${distance(last, first).toFixed(2)} m`] as [string, string]]),
+        ],
+    };
+};
+
+const MOVING_LABELS = new Set(['person', 'cat', 'dog', 'robot vacuum']);
+
+const tableObjects = (table: TableSpec): PathSpec | null => {
+    const columns = columnsOf(table);
+    const find = (field: string) => columns.find((column) => column.field === field);
+    const labels = find('label');
+    const xs = find('x');
+    const zs = find('z');
+    if (labels == null || xs == null || zs == null) return null;
+    const widths = find('width_m');
+    const lengths = find('length_m');
+    const size = (row: TableSpec['rows'][number], column: typeof widths) =>
+        column == null ? null : toNumber(cellOf(row, column.field, column.index));
+    const landmarks = table.rows.flatMap((row) => {
+        const p = point(cellOf(row, 'x', xs.index), cellOf(row, 'z', zs.index));
+        const label = cellOf(row, 'label', labels.index);
+        if (p == null || typeof label !== 'string') return [];
+        return [{ ...p, label, width: size(row, widths), length: size(row, lengths), moving: MOVING_LABELS.has(label) }];
+    });
+    if (landmarks.length === 0) return null;
+    return {
+        trail: [],
+        plan: [],
+        start: null,
+        goal: null,
+        obstacles: [],
+        landmarks,
+        facts: [
+            ['objects', String(landmarks.length)],
+            ['classes', String(new Set(landmarks.map((landmark) => landmark.label)).size)],
         ],
     };
 };
@@ -192,6 +230,27 @@ const readPoints = (value: unknown): Point[] =>
         return p == null ? [] : [p];
     });
 
+const routePath = (raw: Record<string, unknown>, start: Pose, route: Point[]): PathSpec => {
+    const target = isRecord(raw['target']) ? raw['target'] : null;
+    const landmark = target == null ? null : point(target['x'], target['z']);
+    const label = target == null ? null : String(target['label'] ?? target['kind'] ?? '');
+    return {
+        trail: [],
+        plan: [start, ...route],
+        start,
+        goal: route.at(-1) ?? null,
+        obstacles: [],
+        landmarks:
+            landmark == null || target?.['kind'] === 'point'
+                ? []
+                : [{ ...landmark, label: label ?? '', width: null, length: null, moving: false }],
+        facts: [
+            ['route', `${formatValue(raw['path_length_m'])} m`],
+            ['planned in', `${formatValue(raw['plan_ms'])} ms`],
+        ],
+    };
+};
+
 export const readResult = (tool: string, raw: unknown): Result | null => {
     const output = readOutput(raw);
     if (output?.kind === 'chart') {
@@ -210,12 +269,20 @@ export const readResult = (tool: string, raw: unknown): Result | null => {
     }
     if (output?.kind === 'graph') return { kind: 'graph', id: output.id, graph: output };
     if (output?.kind === 'status') return { kind: 'status', status: output };
-    if (output?.kind === 'table') return { kind: 'table', table: output, trend: tableTrend(output), path: tablePath(output) };
+    if (output?.kind === 'table')
+        return { kind: 'table', table: output, trend: tableTrend(output), path: tableObjects(output) ?? tablePath(output) };
     if (!isRecord(raw)) return null;
     const steps = readSteps(raw);
     const start = readPose(raw['start']);
     if (steps != null && start != null)
         return { kind: 'path', title: 'Mission sent', path: missionPath(steps, start, readPoints(raw['obstacles'])) };
+    const route = readPoints(raw['route']);
+    if (route.length > 1 && start != null)
+        return {
+            kind: 'path',
+            title: raw['phase'] === 'planned' ? 'Route preview' : `Trip to ${String((isRecord(raw['target']) && raw['target']['label']) || 'point')}`,
+            path: routePath(raw, start, route),
+        };
     const fields = actionFields(raw);
     return fields == null ? null : { kind: 'fields', title: humanize(tool), values: fields };
 };

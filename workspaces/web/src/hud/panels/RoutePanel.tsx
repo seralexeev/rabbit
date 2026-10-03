@@ -1,7 +1,7 @@
 import { css, cx } from '@emotion/css';
 import React from 'react';
 
-import { type NavState, isLive } from '../../perception/Telemetry.ts';
+import { type NavState, type TripState, isLive } from '../../perception/Telemetry.ts';
 import type { MissionStep } from '../../perception/mission.ts';
 import { HistoryChart, type HistorySignals } from '../HistoryChart.tsx';
 import { useHud, useHudTick } from '../HudContext.ts';
@@ -12,6 +12,8 @@ import { detailGridCss } from '../detail.ts';
 import { type Tone, fixed, signed, useFields, writeBar, writeText } from '../fields.ts';
 
 const ROWS = [
+    { label: 'TRIP' },
+    { label: 'INFO' },
     { label: 'MODE' },
     { label: 'GOAL' },
     { label: 'DIST' },
@@ -26,7 +28,24 @@ const ROUTE_CHART: HistorySignals = [
 ];
 
 const MODE_TONES: Record<string, Tone> = { blocked: 'alert', fault: 'alert', maneuvering: 'warn' };
+const TRIP_TONES: Record<string, Tone> = {
+    arrived: 'good',
+    planned: 'good',
+    failed: 'alert',
+    replanning: 'warn',
+    recovering: 'warn',
+    waiting: 'warn',
+};
 const NAV_TIMEOUT_MS = 2000;
+const TRIP_TIMEOUT_MS = 5000;
+
+const describeTrip = (trip: TripState | null) => {
+    if (trip?.trip_id == null) return { head: '—', info: '—' };
+    const target = trip.target?.label ?? trip.target?.kind ?? 'point';
+    const left = trip.remaining_m == null ? '' : ` · ${fixed(trip.remaining_m, 1, ' m')} LEFT`;
+    const replans = (trip.replans ?? 0) + (trip.recoveries ?? 0) > 0 ? ` · ${trip.replans ?? 0}R ${trip.recoveries ?? 0}B` : '';
+    return { head: `${trip.phase.toUpperCase()} · ${target.toUpperCase()}${left}${replans}`, info: trip.message ?? '—' };
+};
 const MISSION_REFRESH_MS = 250;
 
 type MissionView = { done: number; total: number; steps: MissionStep[]; progress: string; key: string };
@@ -62,22 +81,26 @@ export const RoutePanel: React.FC<RoutePanelProps> = ({ armed, onArm, onCancel }
             }
         }
         const { values, bars } = fields.current;
+        const trip = isLive(store.trip, now, TRIP_TIMEOUT_MS) ? store.trip.value : null;
+        const tripView = describeTrip(trip);
+        writeText(values[0], trip == null ? 'PLANNER OFFLINE' : tripView.head, TRIP_TONES[trip?.phase ?? ''] ?? 'normal');
+        writeText(values[1], tripView.info, trip?.phase === 'failed' ? 'alert' : 'normal');
         if (nav == null) {
-            writeText(values[0], 'OFFLINE', 'warn');
-            for (let i = 1; i < ROWS.length; i++) writeText(values[i], '—');
-            writeBar(bars[3], 0);
+            writeText(values[2], 'OFFLINE', 'warn');
+            for (let i = 3; i < ROWS.length; i++) writeText(values[i], '—');
             writeBar(bars[5], 0);
+            writeBar(bars[7], 0);
             return;
         }
         const fault = nav.mode === 'fault' ? (nav.fault ?? 'FAULT') : null;
-        writeText(values[0], fault == null ? nav.mode.toUpperCase() : `FAULT · ${fault}`, MODE_TONES[nav.mode] ?? 'normal');
-        writeText(values[1], nav.goal == null ? '—' : `${signed(nav.goal.x, 2)} ${signed(nav.goal.z, 2)}`);
-        writeText(values[2], fixed(nav.distance_to_goal, 2, ' m'));
-        writeText(values[3], signed(nav.heading_error_deg, 0, '°'));
-        writeBar(bars[3], (nav.heading_error_deg ?? 0) / 90);
-        writeText(values[4], fixed(nav.speed, 2));
-        writeText(values[5], signed(nav.steer, 2));
-        writeBar(bars[5], nav.steer ?? 0);
+        writeText(values[2], fault == null ? nav.mode.toUpperCase() : `FAULT · ${fault}`, MODE_TONES[nav.mode] ?? 'normal');
+        writeText(values[3], nav.goal == null ? '—' : `${signed(nav.goal.x, 2)} ${signed(nav.goal.z, 2)}`);
+        writeText(values[4], fixed(nav.distance_to_goal, 2, ' m'));
+        writeText(values[5], signed(nav.heading_error_deg, 0, '°'));
+        writeBar(bars[5], (nav.heading_error_deg ?? 0) / 90);
+        writeText(values[6], fixed(nav.speed, 2));
+        writeText(values[7], signed(nav.steer, 2));
+        writeBar(bars[7], nav.steer ?? 0);
     });
 
     return (

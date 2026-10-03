@@ -25,6 +25,7 @@ import { clearMessages, loadMessages, saveMessages } from './persistence.ts';
 import { isChartLike, readResult } from './results.ts';
 import { CHAT_URL } from './session.ts';
 import { useBackendHealth } from './useBackendHealth.ts';
+import { VoiceLink } from './voice.ts';
 import { ResultView } from './widgets/ResultView.tsx';
 
 const LAYOUT_KEY = 'rabbit.chat.layout';
@@ -65,6 +66,8 @@ export const ChatPanel: React.FC = () => {
     const { stopRobot } = useHud();
     const moving = useRobotMoving();
     const [chat] = React.useState(createChat);
+    const [voice] = React.useState(() => new VoiceLink(chat));
+    const voiceState = useVoiceState(voice);
     const [layout, setLayout] = React.useState<Layout>(() =>
         readLocal<Layout>(LAYOUT_KEY, (raw) => raw as Layout, { open: false, width: 440, height: 520 }),
     );
@@ -77,6 +80,8 @@ export const ChatPanel: React.FC = () => {
             writeLocal(LAYOUT_KEY, merged);
             return merged;
         });
+
+    React.useEffect(() => () => voice.stop(), [voice]);
 
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -122,6 +127,7 @@ export const ChatPanel: React.FC = () => {
                 <HudModal code='AI' title='RABBIT // AI LINK' onClose={() => updateLayout({ expanded: false })}>
                     <ChatBody
                         chat={chat}
+                        voice={voice}
                         inputRef={inputRef}
                         expanded
                         onExpand={() => updateLayout({ expanded: false })}
@@ -138,6 +144,7 @@ export const ChatPanel: React.FC = () => {
                     <div className={resizeCss} onPointerDown={startResize} title='Resize' />
                     <ChatBody
                         chat={chat}
+                        voice={voice}
                         inputRef={inputRef}
                         expanded={false}
                         onExpand={() => updateLayout({ expanded: true })}
@@ -146,28 +153,45 @@ export const ChatPanel: React.FC = () => {
                 </section>
             ) : (
                 <button className={cx(frameCss, tabCss)} onClick={() => updateLayout({ open: true })}>
-                    ◆ AI LINK <span className={hotkeyCss}>[C]</span>
+                    ◆ AI LINK {voiceState.active && <span className={voiceDotCss}>● VOICE</span>}
+                    <span className={hotkeyCss}>[C]</span>
                 </button>
             )}
         </>
     );
 };
 
+const useVoiceState = (voice: VoiceLink) => {
+    React.useSyncExternalStore(voice.subscribe, voice.snapshot);
+    return { state: voice.state, active: voice.active, muted: voice.muted, error: voice.error };
+};
+
+const VOICE_LABELS = {
+    off: 'OFF',
+    connecting: 'LINKING VOICE…',
+    listening: 'LISTENING',
+    hearing: 'HEARING YOU',
+    thinking: 'THINKING',
+    speaking: 'SPEAKING',
+} as const;
+
 type ChatBodyProps = {
     chat: Chat<UIMessage>;
+    voice: VoiceLink;
     inputRef: React.RefObject<HTMLTextAreaElement | null>;
     expanded: boolean;
     onExpand: () => void;
     onCollapse: () => void;
 };
 
-const ChatBody: React.FC<ChatBodyProps> = ({ chat, inputRef, expanded, onExpand, onCollapse }) => {
+const ChatBody: React.FC<ChatBodyProps> = ({ chat, voice, inputRef, expanded, onExpand, onCollapse }) => {
     const { messages, sendMessage, status, stop, error, regenerate, clearError, setMessages, addToolApprovalResponse } =
         useChat({
             chat,
             experimental_throttle: THROTTLE_MS,
         });
     const health = useBackendHealth();
+    const voiceState = useVoiceState(voice);
     const [input, setInput] = React.useState('');
     const scrollRef = React.useRef<HTMLDivElement | null>(null);
     const busy = status === 'submitted' || status === 'streaming';
@@ -181,17 +205,21 @@ const ChatBody: React.FC<ChatBodyProps> = ({ chat, inputRef, expanded, onExpand,
 
     const send = (text: string) => {
         const trimmed = text.trim();
-        if (trimmed === '' || busy) return;
-        void sendMessage({ text: trimmed });
+        if (trimmed === '') return;
+        if (voice.active) voice.sendText(trimmed);
+        else if (busy) return;
+        else void sendMessage({ text: trimmed });
         setInput('');
         requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }));
     };
 
     const approve = (id: string, approved: boolean) => {
+        if (voice.decide(id, approved)) return;
         void Promise.resolve(addToolApprovalResponse({ id, approved })).then(() => saveMessages(chat.messages));
     };
 
     const clear = () => {
+        voice.stop();
         stop();
         setMessages([]);
         clearMessages();
@@ -246,6 +274,20 @@ const ChatBody: React.FC<ChatBodyProps> = ({ chat, inputRef, expanded, onExpand,
                 )}
             </div>
 
+            {voiceState.active && (
+                <div className={voiceBarCss} data-state={voiceState.state}>
+                    <span className={voiceLevelCss} />
+                    <span className={voiceLabelCss}>{voiceState.muted ? 'MIC MUTED' : VOICE_LABELS[voiceState.state]}</span>
+                    <button className={iconCss} onClick={() => voice.toggleMute()} title='Mute or unmute the microphone'>
+                        {voiceState.muted ? 'UNMUTE' : 'MUTE'}
+                    </button>
+                    <button className={iconCss} onClick={() => voice.stop()} title='End the voice session'>
+                        ■ END
+                    </button>
+                </div>
+            )}
+            {voiceState.error != null && <div className={errorCss}>{`VOICE ERROR · ${voiceState.error}`}</div>}
+
             <form
                 className={formCss}
                 onKeyDown={(event) => {
@@ -261,7 +303,11 @@ const ChatBody: React.FC<ChatBodyProps> = ({ chat, inputRef, expanded, onExpand,
                     className={inputCss}
                     value={input}
                     rows={2}
-                    placeholder='Ask or command… (Enter to send, Shift+Enter for a new line)'
+                    placeholder={
+                        voiceState.active
+                            ? 'Speak, or type to the voice agent… (Enter to send)'
+                            : 'Ask or command… (Enter to send, Shift+Enter for a new line)'
+                    }
                     onChange={(event) => setInput(event.target.value)}
                     onKeyDown={(event) => {
                         if (event.key === 'Enter' && !event.shiftKey) {
@@ -272,7 +318,17 @@ const ChatBody: React.FC<ChatBodyProps> = ({ chat, inputRef, expanded, onExpand,
                         }
                     }}
                 />
-                {busy ? (
+                {!voiceState.active && (
+                    <button
+                        type='button'
+                        className={sendCss}
+                        disabled={busy}
+                        onClick={() => void voice.start()}
+                        title='Talk to the agent by voice'>
+                        ◉ VOICE
+                    </button>
+                )}
+                {busy && !voiceState.active ? (
                     <button type='button' className={sendCss} onClick={() => void stop()}>
                         ■ STOP REPLY
                     </button>
@@ -376,6 +432,53 @@ const tabCss = css`
     letter-spacing: 0.12em;
     cursor: pointer;
     pointer-events: auto;
+`;
+
+const voiceDotCss = css`
+    margin: 0 6px;
+    color: var(--hud-amber);
+`;
+
+const voicePulse = keyframes`
+    50% { transform: scaleY(0.35); }
+`;
+
+const voiceBarCss = css`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 3px 6px;
+    border: 1px solid var(--hud-dim);
+    background: rgba(0, 0, 0, 0.45);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+
+    &[data-state='hearing'] {
+        border-color: var(--hud-amber);
+        color: var(--hud-amber);
+    }
+
+    &[data-state='speaking'] {
+        border-color: var(--hud);
+        box-shadow: 0 0 8px var(--hud-glow);
+    }
+`;
+
+const voiceLevelCss = css`
+    width: 6px;
+    height: 10px;
+    background: currentColor;
+    opacity: 0.8;
+
+    [data-state='hearing'] > &,
+    [data-state='speaking'] > & {
+        animation: ${voicePulse} 0.5s ease-in-out infinite;
+    }
+`;
+
+const voiceLabelCss = css`
+    flex: 1;
 `;
 
 const hotkeyCss = css`

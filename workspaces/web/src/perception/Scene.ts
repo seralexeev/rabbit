@@ -10,14 +10,16 @@ import { type TopOrientation, type ViewMode, createCameraRig } from './CameraRig
 import type { FloorPlan } from './FloorPlan.ts';
 import { createGroundFx } from './GroundFx.ts';
 import { MAX_WAYPOINTS, type NavFxFrame, createNavFx, sameContact } from './NavFx.ts';
+import { type ObjectsFxFrame, createObjectsFx } from './ObjectsFx.ts';
 import { createRobotModel } from './RobotModel.ts';
-import { createRoomMap } from './RoomMap.ts';
+import { type MapStyle, createRoomMap } from './RoomMap.ts';
 import { type SteerFxFrame, createSteerFx } from './SteerFx.ts';
 import { type Contact, type TelemetryStore, isLive } from './Telemetry.ts';
 import { driveCommand } from './drive.ts';
 import { predictWaypoints, remainingMission } from './mission.ts';
 
 const MAP_CHUNKS_SUBJECT = 'rabbit.map.chunks';
+const MAP_RESET_SUBJECT = 'rabbit.map.reset';
 const MAP_SNAPSHOT_SUBJECT = 'rabbit.map.snapshot';
 const SNAPSHOT_TIMEOUT_MS = 10_000;
 const SNAPSHOT_RETRY_MS = 3000;
@@ -29,11 +31,14 @@ const MAX_WHEEL_STEP = 0.2;
 const G_RATE = 0.25;
 const EYE_CLEARANCE = 0.2;
 const GRAVITY = 9.80665;
-const FLOOR_Y = 0;
+const CAMERA_HEIGHT = 0.137;
+const MAP_CUT: Record<ViewMode, number> = { fpv: 2.2, third: 2.2, top: 1.3, free: 1.8 };
 const CLEAR_COLOR = 0x0a0f14;
 const CONTACT_TIMEOUT_MS = 1000;
+const OBJECTS_TIMEOUT_MS = 2000;
 const NAV_TIMEOUT_MS = 2000;
 const EXPLORE_TIMEOUT_MS = 3000;
+const TRIP_TIMEOUT_MS = 5000;
 const ERROR_LOG_MS = 5000;
 const REVERSE_COMMAND = -0.02;
 const MOVING_COMMAND = 0.02;
@@ -43,7 +48,9 @@ const IDLE_EMPHASIS = 0.7;
 
 type ScreenPoint = { x: number; y: number; visible: boolean };
 
-export type SceneSettings = { viewMode: ViewMode; topOrientation: TopOrientation; mapVisible: boolean; goArmed: boolean };
+export type MapMode = MapStyle | 'off';
+
+export type SceneSettings = { viewMode: ViewMode; topOrientation: TopOrientation; map: MapMode; goArmed: boolean };
 
 type SceneOptions = {
     canvas: HTMLCanvasElement;
@@ -111,7 +118,7 @@ export const createScene = ({
     const centerLocal = bounds.getCenter(new THREE.Vector3());
     const frontLocal = new THREE.Vector3(centerLocal.x, centerLocal.y, bounds.min.z);
 
-    const roomMap = createRoomMap(floorPlan);
+    const roomMap = createRoomMap(floorPlan, new THREE.Color(CLEAR_COLOR));
     scene.add(roomMap.group);
     const groundFx = createGroundFx();
     scene.add(groundFx.group);
@@ -120,6 +127,8 @@ export const createScene = ({
     const steerFx = createSteerFx();
     scene.add(steerFx.group);
 
+    const objectsFx = createObjectsFx(tags);
+    scene.add(objectsFx.group);
     const nearestTag = createWorldTag(tags, false);
     const aheadTag = createWorldTag(tags, true);
 
@@ -130,6 +139,12 @@ export const createScene = ({
             } catch (error) {
                 L.error('Failed to decode map chunk', error);
             }
+        },
+    });
+    const resetSub = nc.subscribe(MAP_RESET_SUBJECT, {
+        callback: () => {
+            roomMap.reset();
+            objectsFx.reset();
         },
     });
     let snapshotRetry: number | null = null;
@@ -198,6 +213,14 @@ export const createScene = ({
         scanVersion: 0,
         dt: 0,
     };
+    const objectsFrame: ObjectsFxFrame = {
+        now: 0,
+        objects: null,
+        version: 0,
+        robot: robot.group.position,
+        forward,
+        project: (point, anchor) => project(point, anchor),
+    };
     let navVersion = 0;
     let poseVersion = 0;
     let imuVersion = 0;
@@ -208,7 +231,7 @@ export const createScene = ({
 
     const raycaster = new THREE.Raycaster();
     const hits: THREE.Intersection[] = [];
-    const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), -FLOOR_Y);
+    const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const picked = new THREE.Vector3();
 
     const pick = (ndc: THREE.Vector2) => {
@@ -248,7 +271,9 @@ export const createScene = ({
         current = next;
         rig.setMode(next.viewMode);
         rig.setTopOrientation(next.topOrientation);
-        roomMap.group.visible = next.mapVisible;
+        roomMap.group.visible = next.map !== 'off';
+        if (next.map !== 'off') roomMap.setStyle(next.map);
+        roomMap.setCut(MAP_CUT[next.viewMode]);
     };
     apply(settings);
 
@@ -350,7 +375,8 @@ export const createScene = ({
         derived.z = robot.group.position.z;
         localToWorld(centerLocal, center);
         localToWorld(frontLocal, front);
-        ground.set(center.x, FLOOR_Y, center.z);
+        ground.set(center.x, robot.group.position.y - CAMERA_HEIGHT, center.z);
+        floor.constant = -ground.y;
 
         const step = scratch.subVectors(robot.group.position, lastPosition).dot(forward);
         if (Math.abs(step) < MAX_WHEEL_STEP) travelled += step;
@@ -366,7 +392,7 @@ export const createScene = ({
             .getWorldPosition(rearAxle)
             .add(robot.wheels.rr.getWorldPosition(scratch))
             .multiplyScalar(0.5)
-            .setY(FLOOR_Y);
+            .setY(ground.y);
         groundFx.update(ground, rearAxle, derived.heading);
         derived.odometer = groundFx.distance();
         rig.update(dt, now, robotFrame);
@@ -397,6 +423,7 @@ export const createScene = ({
         fxFrame.showLeaders = robot.group.visible;
         fxFrame.waypointCount = waypointCount;
         fxFrame.target = explore?.target ?? null;
+        fxFrame.trip = now - store.trip.receivedAt < TRIP_TIMEOUT_MS ? store.trip.value : null;
         navFx.update(fxFrame);
 
         const command = driveCommand(store, now);
@@ -413,6 +440,11 @@ export const createScene = ({
         roomMap.flush();
         roomMap.setRobot(robot.group.position);
         renderer.render(scene, camera);
+
+        objectsFrame.now = now;
+        objectsFrame.objects = now - store.objects.receivedAt < OBJECTS_TIMEOUT_MS ? store.objects.value : null;
+        objectsFrame.version = store.objects.version;
+        objectsFx.update(objectsFrame);
 
         tagContact(nearestTag, nearest, 'CONTACT');
         tagContact(aheadTag, ahead, 'AHEAD');
@@ -453,7 +485,9 @@ export const createScene = ({
             renderer.setAnimationLoop(null);
             rig.dispose();
             mapSub.unsubscribe();
+            resetSub.unsubscribe();
             offLink();
+            objectsFx.dispose();
             nearestTag.dispose();
             aheadTag.dispose();
             groundFx.dispose();

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 import { HUD_COLOR } from '../hud/Hud.ts';
-import type { Contact, ExploreTarget, NavState } from './Telemetry.ts';
+import type { Contact, ExploreTarget, NavState, TripState } from './Telemetry.ts';
 import type { Waypoint } from './mission.ts';
 
 const MAX_PATH_POINTS = 512;
@@ -15,6 +15,8 @@ const ALERT = 0xff5a4a;
 const CONTACT_SIZE = 0.22;
 const GOAL_SIZE = 0.5;
 const BEAM_HEIGHT = 0.6;
+const ROUTE_LIFT = 0.02;
+const ROUTE_PHASES = new Set(['planned', 'planning', 'replanning', 'waiting', 'recovering']);
 
 export const sameContact = (a: Contact | null, b: Contact | null) =>
     a != null && b != null && a.point[0] === b.point[0] && a.point[1] === b.point[1] && a.point[2] === b.point[2];
@@ -115,6 +117,7 @@ export type NavFxFrame = {
     waypoints: readonly Waypoint[];
     waypointCount: number;
     target: ExploreTarget | null;
+    trip?: TripState | null;
 };
 
 export type NavFx = {
@@ -193,6 +196,34 @@ export const createNavFx = (): NavFx => {
         new THREE.LineDashedMaterial({ color: AMBER, dashSize: 0.05, gapSize: 0.04, transparent: true, opacity: 0.7 }),
     );
 
+    const route = addPolyline(
+        MAX_PATH_POINTS,
+        new THREE.LineDashedMaterial({ color: HUD_COLOR, dashSize: 0.03, gapSize: 0.05, transparent: true, opacity: 0.8 }),
+    );
+    const tripMaterial = track(ringMaterial(HUD_COLOR));
+    const tripMarker = new THREE.Mesh(goalGeo, tripMaterial);
+    tripMarker.visible = false;
+    group.add(tripMarker);
+
+    let routeRef: [number, number, number][] | null = null;
+    const updateTrip = (time: number, trip: TripState | null | undefined) => {
+        const shown = trip != null && ROUTE_PHASES.has(trip.phase) ? (trip.path ?? null) : null;
+        if (shown !== routeRef) {
+            routeRef = shown;
+            const count = Math.min(shown?.length ?? 0, MAX_PATH_POINTS);
+            for (let i = 0; i < count; i++) {
+                route.positions[i * 3] = shown?.[i]?.[0] ?? 0;
+                route.positions[i * 3 + 1] = ROUTE_LIFT;
+                route.positions[i * 3 + 2] = shown?.[i]?.[1] ?? 0;
+            }
+            route.commit(count);
+        }
+        const target = trip?.target;
+        tripMarker.visible = target != null && target.kind !== 'point' && trip?.phase !== 'idle' && trip?.phase !== 'cancelled';
+        if (target != null) tripMarker.position.set(target.x, 0.01, target.z);
+        tripMaterial.uniforms['uTime']!.value = time;
+    };
+
     const waypointGeo = new THREE.OctahedronGeometry(WAYPOINT_SIZE);
     const waypointMat = track(new THREE.MeshBasicMaterial({ color: AMBER, wireframe: true, transparent: true, opacity: 0.9 }));
     geometries.push(waypointGeo);
@@ -269,6 +300,7 @@ export const createNavFx = (): NavFx => {
             updateContact(nearest, frame.nearest, frame);
             updateContact(ahead, frame.ahead, frame);
             updatePath(frame.nav);
+            updateTrip(frame.time, frame.trip);
 
             const goal = frame.nav?.goal ?? null;
             goalMarker.visible = goal != null || frame.pendingGoal != null;

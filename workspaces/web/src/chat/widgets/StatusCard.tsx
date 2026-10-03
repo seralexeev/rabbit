@@ -3,13 +3,14 @@ import React from 'react';
 
 import { toNumber } from '../charts/plot.ts';
 import { formatValue, summarizeInput } from '../outputs.ts';
-import { type PathSpec, type Point, humanize } from '../results.ts';
+import { type Landmark, type PathSpec, type Point, humanize } from '../results.ts';
 import { PathView } from './PathView.tsx';
 import { Card, Disclosure, Kpi, type Tone } from './kit.tsx';
 
 type Section = Record<string, unknown>;
 
-const SECTIONS = ['pose', 'nav', 'battery', 'obstacle', 'camera'] as const;
+const SECTIONS = ['pose', 'nav', 'battery', 'obstacle', 'objects', 'camera'] as const;
+const MOVING_LABELS = new Set(['person', 'cat', 'dog', 'robot vacuum']);
 const ACTIVE_MODES = new Set(['driving', 'maneuvering']);
 const ALERT_MODES = new Set(['blocked', 'fault']);
 
@@ -29,7 +30,16 @@ const point = (section: Section | null, x: string, z: string): Point | null => {
     return px == null || pz == null ? null : { x: px, z: pz };
 };
 
-const mapOf = (pose: Section | null, nav: Section | null, obstacle: Section | null): PathSpec | null => {
+const landmarksOf = (objects: Section | null): Landmark[] =>
+    (Array.isArray(objects?.['in_view']) ? objects['in_view'] : []).flatMap((item: unknown) => {
+        const object = typeof item === 'object' && item != null ? (item as Section) : null;
+        const at = point(object, 'x', 'z');
+        const label = object?.['label'];
+        if (at == null || typeof label !== 'string') return [];
+        return [{ ...at, label, width: null, length: null, moving: MOVING_LABELS.has(label) }];
+    });
+
+const mapOf = (pose: Section | null, nav: Section | null, obstacle: Section | null, landmarks: Landmark[]): PathSpec | null => {
     const at = point(pose, 'x', 'z');
     if (at == null) return null;
     const goal = point(nav, 'goal_x', 'goal_z');
@@ -39,6 +49,7 @@ const mapOf = (pose: Section | null, nav: Section | null, obstacle: Section | nu
         start: { ...at, heading: toNumber(pose?.['heading_deg']) ?? 0 },
         goal,
         obstacles: [point(obstacle, 'nearest_x', 'nearest_z'), point(obstacle, 'ahead_x', 'ahead_z')].filter((p) => p != null),
+        landmarks,
         facts: [],
     };
 };
@@ -58,17 +69,18 @@ const SectionRows: React.FC<{ values: Section }> = ({ values }) => (
 );
 
 export const StatusCard: React.FC<{ status: Record<string, unknown> }> = ({ status }) => {
-    const [pose = null, nav = null, battery = null, obstacle = null, camera = null] = SECTIONS.map((name) =>
+    const [pose = null, nav = null, battery = null, obstacle = null, objects = null, camera = null] = SECTIONS.map((name) =>
         sectionOf(status, name),
     );
     const mode = typeof nav?.['mode'] === 'string' ? nav['mode'] : null;
     const stepsTotal = toNumber(nav?.['steps_total']) ?? 0;
     const ahead = toNumber(obstacle?.['ahead_distance']);
     const tracking = camera?.['pose_state'];
-    const present = [pose, nav, battery, obstacle, camera].filter((section) => section != null);
+    const present = [pose, nav, battery, obstacle, objects, camera].filter((section) => section != null);
     const recorded = present.filter((section) => section['source'] === 'recorded');
     const oldest = Math.max(0, ...present.map((section) => toNumber(section['age_s']) ?? 0));
-    const map = mapOf(pose, nav, obstacle);
+    const landmarks = landmarksOf(objects);
+    const map = mapOf(pose, nav, obstacle, landmarks);
     const notes = Array.isArray(status['notes'])
         ? status['notes'].filter((note): note is string => typeof note === 'string')
         : [];
@@ -116,6 +128,15 @@ export const StatusCard: React.FC<{ status: Record<string, unknown> }> = ({ stat
                         value={obstacle == null ? '—' : ahead == null ? 'CLEAR' : `${ahead.toFixed(2)} M`}
                         sub={obstacle == null ? undefined : `NEAREST ${fixed(obstacle['nearest_distance'], 2, ' M')}`}
                         tone={obstacle == null ? 'normal' : aheadTone(ahead)}
+                    />
+                    <Kpi
+                        label='In view'
+                        value={objects == null ? '—' : String(landmarks.length)}
+                        sub={
+                            landmarks.length === 0
+                                ? undefined
+                                : [...new Set(landmarks.map((landmark) => landmark.label.toUpperCase()))].join(' · ')
+                        }
                     />
                     <Kpi
                         label='Pose'
