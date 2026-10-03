@@ -147,3 +147,8 @@ workspaces/nats/data/
 # robot runtime data
 workspaces/tunnel.env
 workspaces/rabbit/data
+workspaces/links/
+
+# local data: SVO dumps, parquet exports, maps of the flat
+/data/
+workspaces/rabbit/REVISION

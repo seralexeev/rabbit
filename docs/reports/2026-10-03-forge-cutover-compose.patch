@@ -1,0 +1,112 @@
+--- /tmp/robot-compose.yaml	2026-10-03 01:43:06
++++ data/forge-cutover/compose.yaml.next	2026-10-03 02:19:21
+@@ -15,22 +15,6 @@
+   depends_on:
+     - nats-init
+ 
+-x-forge: &forge
+-  logging: *logging
+-  image: forge
+-  restart: unless-stopped
+-  init: true
+-  env_file: ./forge/.env
+-  environment:
+-    FORGE_CLICKHOUSE_URL: http://forge-clickhouse:8123
+-    FORGE_NATS_URL: nats://nats:4222
+-  volumes:
+-    - &forge-src ./forge/src:/app/src:ro
+-    - &forge-clickhouse-config ./forge/clickhouse:/app/clickhouse:ro
+-    - &forge-slabs ./forge/slabs:/app/slabs:ro
+-    - &forge-graph ./forge/graph:/app/graph:ro
+-  cpus: 1
+-
+ services:
+   nats:
+     logging: *logging
+@@ -153,39 +137,46 @@
+       timeout: 3s
+       retries: 60
+ 
+-  forge-writer:
+-    <<: *forge
++  forge:
++    logging: *logging
+     build: ./forge
+-    container_name: forge-writer
+-    command: ['writer']
++    image: forge
++    container_name: forge
++    restart: unless-stopped
++    init: true
++    command: ['serve', '--writer']
+     stop_grace_period: 45s
++    env_file: ./forge/.env
++    environment:
++      FORGE_NATS_URL: nats://nats:4222
++      FORGE_CHAT_LISTEN_HOST: 0.0.0.0
++      FORGE_DATA_DIR: /app/data
+     volumes:
+-      - *forge-src
+-      - *forge-clickhouse-config
+-      - *forge-slabs
+-      - *forge-graph
++      - ./forge/src:/app/src:ro
++      - ./forge/slabs:/app/slabs:ro
++      - ./forge/graph:/app/graph:ro
++      - forge-data:/app/data
+       - forge-dead-letters:/app/dead_letters
+-    mem_limit: 512m
++    networks:
++      default:
++        aliases: [forge-chat]
++    mem_limit: 768m
++    cpus: 2
++    cpu_shares: 256
++    healthcheck:
++      test:
++        - CMD
++        - node
++        - -e
++        - "fetch('http://127.0.0.1:18080/api/health').then((r) => r.json()).then((h) => process.exit(h.clickhouse ? 0 : 1), () => process.exit(1))"
++      interval: 15s
++      timeout: 5s
++      start_period: 30s
++      retries: 3
+     depends_on:
+-      forge-clickhouse:
+-        condition: service_healthy
+       nats-init:
+         condition: service_started
+ 
+-  forge-chat:
+-    <<: *forge
+-    pull_policy: never
+-    container_name: forge-chat
+-    command: ['serve']
+-    environment:
+-      FORGE_CLICKHOUSE_URL: http://forge-clickhouse:8123
+-      FORGE_NATS_URL: nats://nats:4222
+-      FORGE_CHAT_LISTEN_HOST: 0.0.0.0
+-    mem_limit: 384m
+-    depends_on:
+-      forge-writer:
+-        condition: service_started
+-
+   rabbit-web:
+     logging: *logging
+     image: nginx:1.29-alpine
+@@ -201,7 +192,7 @@
+       - ../cert:/etc/cert:ro
+     mem_limit: 64m
+     depends_on:
+-      - forge-chat
++      - forge
+ 
+   nats-dashboard:
+     logging: *logging
+@@ -226,4 +217,5 @@
+ 
+ volumes:
+   forge-clickhouse:
++  forge-data:
+   forge-dead-letters:
