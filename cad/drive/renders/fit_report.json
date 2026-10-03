@@ -1,0 +1,133 @@
+{
+  "widen_per_side_mm": 10.7,
+  "screws": [
+    {
+      "side": 1,
+      "screw": [
+        48.91,
+        69.63
+      ],
+      "plate_hole": [
+        48.91,
+        69.63,
+        4.3
+      ]
+    },
+    {
+      "side": 1,
+      "screw": [
+        48.91,
+        96.53
+      ],
+      "plate_hole": [
+        48.91,
+        96.53,
+        4.3
+      ]
+    },
+    {
+      "side": -1,
+      "screw": [
+        -43.95,
+        69.63
+      ],
+      "plate_hole": [
+        -43.95,
+        69.63,
+        4.3
+      ]
+    },
+    {
+      "side": -1,
+      "screw": [
+        -43.95,
+        96.53
+      ],
+      "plate_hole": [
+        -43.95,
+        96.53,
+        4.3
+      ]
+    }
+  ],
+  "loads": {
+    "static_wheel_load_N": 12.1,
+    "wheel_centre_from_outer_bearing_mm": 18.3,
+    "bearing_span_mm": 7.0,
+    "static": {
+      "radial_N": 12.1,
+      "lateral_N": 0.0,
+      "outer_bearing_N": 44.0,
+      "inner_bearing_N": 32.0,
+      "static_safety_s0": 23.71
+    },
+    "cornering_0.7g": {
+      "radial_N": 12.1,
+      "lateral_N": 8.5,
+      "outer_bearing_N": 89.0,
+      "inner_bearing_N": 77.0,
+      "static_safety_s0": 11.64
+    },
+    "bump_3g_plus_cornering": {
+      "radial_N": 36.4,
+      "lateral_N": 8.5,
+      "outer_bearing_N": 177.0,
+      "inner_bearing_N": 141.0,
+      "static_safety_s0": 5.87
+    },
+    "bump_5g": {
+      "radial_N": 60.7,
+      "lateral_N": 8.5,
+      "outer_bearing_N": 265.0,
+      "inner_bearing_N": 204.0,
+      "static_safety_s0": 3.93
+    }
+  },
+  "motors": {
+    "maxon": {
+      "label": "maxon ECX FLAT 22 L 18 V (sealed) + GPX 22 LN 16:1 + ENX 22 MILE 1024",
+      "length_behind_flange_mm": 46.3,
+      "rear_end_from_centreline_mm": 11.5,
+      "gaps": {
+        "motor_to_motor_mm": 22.92,
+        "motor_to_deck1_mm": 4.34,
+        "bracket_to_deck1_edge_mm": 0.0,
+        "motor_flange_to_deck1_mm": 0.5,
+        "bracket_top_to_pcb_mm": 7.86,
+        "motor_to_pcb_mm": 12.67,
+        "bracket_to_wheel_mm": 1.0,
+        "lowest_point_above_floor_mm": 11.12
+      },
+      "interference": []
+    },
+    "faulhaber": {
+      "label": "Faulhaber 3216W012BXTH + IEF3-4096 + 22GPT 11:1",
+      "length_behind_flange_mm": 49.2,
+      "rear_end_from_centreline_mm": 8.6,
+      "gaps": {
+        "motor_to_motor_mm": 17.12,
+        "motor_to_deck1_mm": 0.0,
+        "bracket_to_deck1_edge_mm": 0.0,
+        "motor_flange_to_deck1_mm": 0.5,
+        "bracket_top_to_pcb_mm": 7.86,
+        "motor_to_pcb_mm": 8.67,
+        "bracket_to_wheel_mm": 1.0,
+        "lowest_point_above_floor_mm": 11.12
+      },
+      "interference": [
+        {
+          "side": 1,
+          "a": "motor",
+          "b": "s016",
+          "mm3": 32.26
+        },
+        {
+          "side": -1,
+          "a": "motor",
+          "b": "s016",
+          "mm3": 32.26
+        }
+      ]
+    }
+  }
+}

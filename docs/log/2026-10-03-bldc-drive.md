@@ -243,3 +243,7 @@ Report §8 changes:
 DRV8874 (C1855818) is the backup H-bridge. Until rev B, the #4751 runs on the current RoboClaw.
 
 The bench uses TI DRV8316REVM (A$202.16) + NUCLEO-G474RE, not the SimpleFOC Mini.
+
+## Fourth update: BLDC chosen, bracket designed (late evening)
+
+The owner chose BLDC with new brackets (Q39 → C25). The motor is the maxon ECX FLAT 22 L 18 V + GPX 22 LN 16:1 + ENX 22 MILE; the Faulhaber 3216's Ø32 body hits deck 1 by 0.67 mm. The new bracket carries the wheel on its own bearings, with an Oldham coupling inside a hollow stub axle. See [2026-10-03-bldc-drive-mount.md](2026-10-03-bldc-drive-mount.md) and `cad/drive/`.
