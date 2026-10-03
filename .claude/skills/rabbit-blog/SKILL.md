@@ -5,7 +5,7 @@ description: Add a post to the owner's Rabbit build log (rabbit0.dev, source in 
 
 # Posting to the blog
 
-The blog lives in this repo at `workspaces/blog` (imported with its history from `seralexeev/rabbit0` on 2026-10-03). It is served at https://rabbit0.dev (English) and https://rabbit0.dev/ru (Russian). Cloudflare Pages still builds from the `seralexeev/rabbit0` repo, which is now only a deploy mirror: `scripts/blog.sh publish` pushes `workspaces/blog` there with `git subtree push`. Never edit `~/projects/rabbit0` or push to it directly; that breaks the subtree history.
+The blog lives in this repo at `workspaces/blog` (imported with its history from `seralexeev/rabbit0` on 2026-10-03) and is served at https://rabbit0.dev (English) and https://rabbit0.dev/ru (Russian). GitHub Pages deploys it: `.github/workflows/blog.yml` runs on every push to `main` that touches `workspaces/blog/**`, rebuilds the pages (`node src/index.ts`, thumbnails with cwebp/ffmpeg) and publishes `static/`. Until the DNS switch in `docs/open-issues.md` Q16 is done, rabbit0.dev is still served by Cloudflare Pages from the `seralexeev/rabbit0` mirror, so also run `scripts/blog.sh publish` after pushing. Never edit `~/projects/rabbit0` or push to it directly.
 
 **A dictated post is the order to publish.** Write it, build it and push it without asking again. Ask first only if the text names third parties, or looks private (addresses, faces, passwords, family).
 
@@ -79,7 +79,8 @@ B=workspaces/blog
 git add $B/README.md $B/README.ru.md $B/static/index.html $B/static/ru.html $B/static/media/<id>-* $B/static/media/thumbnails/<id>-*
 git commit -m "feat(blog): post <id> on <topic>"
 git push origin main
-scripts/blog.sh publish    # subtree push to the rabbit0 mirror; Cloudflare deploys it
+gh run watch $(gh run list --workflow blog.yml -L 1 --json databaseId --jq '.[0].databaseId') --exit-status   # GitHub Pages deploy, ~2 min
+scripts/blog.sh publish    # only until Q16 (DNS switch) is done: pushes the rabbit0 mirror that Cloudflare still serves
 ```
 
 All paths in this skill below are relative to `workspaces/blog`.

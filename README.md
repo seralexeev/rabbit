@@ -112,7 +112,7 @@ Every piece of significant work leaves two traces, written as part of the work:
 2. **Blog post** at [rabbit0.dev](https://rabbit0.dev), in the author's voice:
    - source in [`workspaces/blog`](workspaces/blog): `README.ru.md` holds the Russian posts, `README.md` the English ones, `static/media/` the media;
    - `scripts/blog.sh build` renders the pages;
-   - `scripts/blog.sh publish` pushes `workspaces/blog` to the [seralexeev/rabbit0](https://github.com/seralexeev/rabbit0) deploy mirror, which Cloudflare Pages serves.
+   - a push to `main` that touches `workspaces/blog` deploys it to GitHub Pages ([`.github/workflows/blog.yml`](.github/workflows/blog.yml)).
 
 ## Access links
 
