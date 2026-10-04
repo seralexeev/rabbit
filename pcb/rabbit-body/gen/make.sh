@@ -19,10 +19,14 @@ fi
 $PY gen/drc_summary.py >/dev/null 2>&1
 $PY gen/cleanup.py 2>&1 | grep -v "traits\|leak"
 gen/fill.sh
-if [ -z "$SES" ] && [ "${PASSES2:-10}" != 0 ]; then   # second Freerouting run from the routed board for the leftovers
+# up to three more router runs from the routed board while connections are left (each starts from the wiring so far)
+for i in 1 2 3; do
+  [ -n "$SES" ] || [ "${PASSES2:-10}" = 0 ] && break
+  $PY gen/drc_summary.py >/dev/null 2>&1
+  [ "$(python3 -c 'import json; print(len(json.load(open("fab/drc.json"))["unconnected_items"]))')" = 0 ] && break
   $PY gen/autoroute.py ${PASSES2:-10} 2>&1 | grep -v "traits\|leak"
   $PY gen/drc_summary.py >/dev/null 2>&1
   $PY gen/cleanup.py 2>&1 | grep -v "traits\|leak"
   gen/fill.sh
-fi
+done
 $PY gen/drc_summary.py 2>&1 | grep -v traits

@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.kicad.org/drc.v1.json",
     "coordinate_units": "mm",
-    "date": "2026-10-03T23:54:03",
+    "date": "2026-10-04T00:22:30",
     "ignored_checks": [
         {
             "description": "Footprint has no courtyard defined",
@@ -37,20 +37,43 @@
             "description": "Missing connection between items",
             "items": [
                 {
-                    "description": "Track [MOT_BUS] on F.Cu, length 1.1215 mm",
+                    "description": "Track [+5V] on F.Cu, length 3.2000 mm",
                     "pos": {
-                        "x": 134.368,
-                        "y": 263.393
+                        "x": 159.6,
+                        "y": 215.2
                     },
-                    "uuid": "1f3cecc6-be1f-4801-b798-c8b2837903e2"
+                    "uuid": "c47f17e7-33bf-437d-b6c2-1d5cd6a8fbf8"
                 },
                 {
-                    "description": "Pad 1 [MOT_BUS] of R55 on F.Cu",
+                    "description": "Track [+5V] on In2.Cu, length 1.3166 mm",
                     "pos": {
-                        "x": 133.575,
-                        "y": 254.2
+                        "x": 168.22,
+                        "y": 265.02
                     },
-                    "uuid": "190b63b9-b30a-4790-9b10-16a871405cbd"
+                    "uuid": "ca4fcdc7-7687-47e8-afcb-d32dfe96ae72"
+                }
+            ],
+            "severity": "error",
+            "type": "unconnected_items"
+        },
+        {
+            "description": "Missing connection between items",
+            "items": [
+                {
+                    "description": "Pad 40 [INHC_R] of U1 on F.Cu",
+                    "pos": {
+                        "x": 152.675,
+                        "y": 224.25
+                    },
+                    "uuid": "42659ce4-4e32-4f8f-b30b-392eaf87bd77"
+                },
+                {
+                    "description": "Pad 31 [INHC_R] of U12 on F.Cu",
+                    "pos": {
+                        "x": 178.4,
+                        "y": 253.75
+                    },
+                    "uuid": "96c1865f-fb45-4fe1-9c34-d05fdcdb6d85"
                 }
             ],
             "severity": "error",
@@ -62,20 +85,20 @@
             "description": "Clearance violation ( clearance 0.1500 mm; actual 0.1380 mm)",
             "items": [
                 {
-                    "description": "Track [INL_L] on F.Cu, length 1.2940 mm",
-                    "pos": {
-                        "x": 149.598,
-                        "y": 229.522
-                    },
-                    "uuid": "80af3a7a-fe9e-4484-b20e-b44a56cf28c4"
-                },
-                {
                     "description": "Pad 29 [+3V3_MCU] of U1 on F.Cu",
                     "pos": {
                         "x": 149.25,
                         "y": 229.675
                     },
-                    "uuid": "f3565dde-65c3-4cfe-9a88-e11425d764e6"
+                    "uuid": "31a659cd-9169-4a17-bda5-6fb8f4da806c"
+                },
+                {
+                    "description": "Track [INL_L] on F.Cu, length 0.2157 mm",
+                    "pos": {
+                        "x": 149.75,
+                        "y": 229.675
+                    },
+                    "uuid": "c99d3560-8d42-4e8c-af69-80768b576772"
                 }
             ],
             "severity": "error",
@@ -85,24 +108,47 @@
             "description": "Clearance violation ( clearance 0.1500 mm; actual 0.1380 mm)",
             "items": [
                 {
-                    "description": "Track [INL_L] on F.Cu, length 0.2157 mm",
-                    "pos": {
-                        "x": 149.75,
-                        "y": 229.675
-                    },
-                    "uuid": "36e577de-153c-4244-a3ac-23079a9e32d1"
-                },
-                {
                     "description": "Pad 29 [+3V3_MCU] of U1 on F.Cu",
                     "pos": {
                         "x": 149.25,
                         "y": 229.675
                     },
-                    "uuid": "f3565dde-65c3-4cfe-9a88-e11425d764e6"
+                    "uuid": "31a659cd-9169-4a17-bda5-6fb8f4da806c"
+                },
+                {
+                    "description": "Track [INL_L] on F.Cu, length 1.2940 mm",
+                    "pos": {
+                        "x": 149.598,
+                        "y": 229.522
+                    },
+                    "uuid": "5379074e-f304-43c4-9d66-c34dee4031f5"
                 }
             ],
             "severity": "error",
             "type": "clearance"
+        },
+        {
+            "description": "Board edge clearance violation (board setup constraints edge clearance 0.3000 mm; actual 0.2890 mm)",
+            "items": [
+                {
+                    "description": "Arc on Edge.Cuts",
+                    "pos": {
+                        "x": 194.3075,
+                        "y": 85.0432
+                    },
+                    "uuid": "ad91fb0e-7da9-47b2-a7d1-19cb3fa650ed"
+                },
+                {
+                    "description": "Track [BUMPER_FRONT] on In2.Cu, length 12.7734 mm",
+                    "pos": {
+                        "x": 198.597,
+                        "y": 77.2983
+                    },
+                    "uuid": "29c0ae8d-f6be-4254-ad54-ea7923e3709f"
+                }
+            ],
+            "severity": "error",
+            "type": "copper_edge_clearance"
         },
         {
             "description": "Silkscreen clipped by board edge",
@@ -113,7 +159,7 @@
                         "x": 92.221499,
                         "y": 129.3612
                     },
-                    "uuid": "1b24612f-5101-4651-90a0-9f0c49282184"
+                    "uuid": "72d886bb-999b-4bed-9bd7-bac2ef31adbf"
                 },
                 {
                     "description": "PCB text 'J48 ROBOCLAW S' on F.Silkscreen",
@@ -121,7 +167,7 @@
                         "x": 94.975,
                         "y": 186.005
                     },
-                    "uuid": "34449ae4-34ab-4304-b54b-8a2005e7f235"
+                    "uuid": "114ed0a1-834d-4054-a4f1-4e76110cd8f5"
                 }
             ],
             "severity": "warning",
@@ -136,7 +182,7 @@
                         "x": 138.35942,
                         "y": 97.89
                     },
-                    "uuid": "ce3818c7-7c1a-4526-8702-2ba5329f47e2"
+                    "uuid": "70c7c9c6-209c-4806-a652-ef6377b8a433"
                 },
                 {
                     "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
@@ -144,7 +190,7 @@
                         "x": 144.0,
                         "y": 98.455
                     },
-                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                    "uuid": "e8d0f2f4-f8cb-4432-ae64-2063713f4129"
                 }
             ],
             "severity": "warning",
@@ -159,7 +205,7 @@
                         "x": 138.35942,
                         "y": 98.91
                     },
-                    "uuid": "dda5cf57-64ba-4f70-9077-0588dfd8c571"
+                    "uuid": "d329a05e-76bf-495e-98f0-910fb1195717"
                 },
                 {
                     "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
@@ -167,7 +213,7 @@
                         "x": 144.0,
                         "y": 98.455
                     },
-                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                    "uuid": "e8d0f2f4-f8cb-4432-ae64-2063713f4129"
                 }
             ],
             "severity": "warning",
@@ -182,7 +228,7 @@
                         "x": 146.338748,
                         "y": 98.135
                     },
-                    "uuid": "f8921ce6-fb88-4267-87c0-e19d9bdbff7a"
+                    "uuid": "6c37b233-6480-4ca7-8ab9-5c7b41522468"
                 },
                 {
                     "description": "PCB text 'U5 JETSON EFUSE' on F.Silkscreen",
@@ -190,76 +236,7 @@
                         "x": 144.0,
                         "y": 98.455
                     },
-                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
-                }
-            ],
-            "severity": "warning",
-            "type": "silk_overlap"
-        },
-        {
-            "description": "Silkscreen clearance",
-            "items": [
-                {
-                    "description": "PCB text 'J45 ENC L A/B/Z or SSI' on F.Silkscreen",
-                    "pos": {
-                        "x": 137.5,
-                        "y": 265.954999
-                    },
-                    "uuid": "0d6ea15d-6826-45ff-8431-18853c3e7bda"
-                },
-                {
-                    "description": "Segment of R451 on F.Silkscreen",
-                    "pos": {
-                        "x": 128.965,
-                        "y": 266.027064
-                    },
-                    "uuid": "f8f32eb7-d23b-4a3a-859f-b8cba4bdd02d"
-                }
-            ],
-            "severity": "warning",
-            "type": "silk_overlap"
-        },
-        {
-            "description": "Silkscreen clearance",
-            "items": [
-                {
-                    "description": "PCB text 'J45 ENC L A/B/Z or SSI' on F.Silkscreen",
-                    "pos": {
-                        "x": 137.5,
-                        "y": 265.954999
-                    },
-                    "uuid": "0d6ea15d-6826-45ff-8431-18853c3e7bda"
-                },
-                {
-                    "description": "Segment of R451 on F.Silkscreen",
-                    "pos": {
-                        "x": 130.435,
-                        "y": 266.027064
-                    },
-                    "uuid": "401e1923-3eaf-4ce2-b4c0-ad6c91578f6f"
-                }
-            ],
-            "severity": "warning",
-            "type": "silk_overlap"
-        },
-        {
-            "description": "Silkscreen clearance",
-            "items": [
-                {
-                    "description": "PCB text 'J46 ENC R A/B/Z or SSI' on F.Silkscreen",
-                    "pos": {
-                        "x": 162.5,
-                        "y": 265.954999
-                    },
-                    "uuid": "47e27e72-a052-412f-8c4e-ce0e7a0c8fe9"
-                },
-                {
-                    "description": "Segment of R461 on F.Silkscreen",
-                    "pos": {
-                        "x": 171.035,
-                        "y": 266.027064
-                    },
-                    "uuid": "f7d2f02e-6f59-47fe-8fa3-2bd118935712"
+                    "uuid": "e8d0f2f4-f8cb-4432-ae64-2063713f4129"
                 }
             ],
             "severity": "warning",
@@ -274,7 +251,7 @@
                         "x": 124.0,
                         "y": 251.005
                     },
-                    "uuid": "1df5ff35-dce0-480c-9b8b-fd16b8d257a6"
+                    "uuid": "0be6424e-f2af-4df9-849a-8eaf7a234768"
                 },
                 {
                     "description": "Segment of RT65 on F.Silkscreen",
@@ -282,7 +259,7 @@
                         "x": 129.4775,
                         "y": 251.737258
                     },
-                    "uuid": "b0d23be9-96b1-4a45-9042-022206fbda19"
+                    "uuid": "0ff5ce51-43f4-4f35-aa35-81f7a65a770c"
                 }
             ],
             "severity": "warning",
@@ -291,21 +268,90 @@
         {
             "description": "Silkscreen clearance",
             "items": [
+                {
+                    "description": "PCB text 'J45 ENC L A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 137.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "16c2fbb0-0751-4df2-a0b0-bac53e2c9809"
+                },
+                {
+                    "description": "Segment of R451 on F.Silkscreen",
+                    "pos": {
+                        "x": 128.965,
+                        "y": 266.027064
+                    },
+                    "uuid": "16c4a032-586e-4538-9a0f-8981cc93f107"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'J45 ENC L A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 137.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "16c2fbb0-0751-4df2-a0b0-bac53e2c9809"
+                },
+                {
+                    "description": "Segment of R451 on F.Silkscreen",
+                    "pos": {
+                        "x": 130.435,
+                        "y": 266.027064
+                    },
+                    "uuid": "8591a05f-f714-4a72-a790-28b199e6bbc4"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'J46 ENC R A/B/Z or SSI' on F.Silkscreen",
+                    "pos": {
+                        "x": 162.5,
+                        "y": 265.954999
+                    },
+                    "uuid": "2c05f0fa-cd1b-444b-b92d-4908d902657a"
+                },
+                {
+                    "description": "Segment of R461 on F.Silkscreen",
+                    "pos": {
+                        "x": 171.035,
+                        "y": 266.027064
+                    },
+                    "uuid": "d410bfb0-8701-4572-b7e3-56eceefa6d59"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_overlap"
+        },
+        {
+            "description": "Silkscreen clearance",
+            "items": [
+                {
+                    "description": "PCB text 'U19 INA JET 0x46' on F.Silkscreen",
+                    "pos": {
+                        "x": 154.0,
+                        "y": 89.205
+                    },
+                    "uuid": "1b1761c9-cbbc-49a6-9625-3c9894fe837f"
+                },
                 {
                     "description": "Segment of C83 on F.Silkscreen",
                     "pos": {
                         "x": 154.85942,
                         "y": 88.91
                     },
-                    "uuid": "87c05672-dc29-4b92-9f2b-ec58d1207f16"
-                },
-                {
-                    "description": "PCB text 'U19 INA JET 0x46' on F.Silkscreen",
-                    "pos": {
-                        "x": 154.0,
-                        "y": 89.205
-                    },
-                    "uuid": "fd9aaf37-ed26-4b95-9bd9-9676ee6d7925"
+                    "uuid": "ab396bfe-e435-4898-b0a4-69a6b6fd1fb1"
                 }
             ],
             "severity": "warning",
@@ -315,20 +361,20 @@
             "description": "Silkscreen clearance",
             "items": [
                 {
-                    "description": "Segment of L6 on F.Silkscreen",
-                    "pos": {
-                        "x": 157.99,
-                        "y": 89.64
-                    },
-                    "uuid": "e0a879ac-70e9-491c-a1e6-c8e29fd24dd5"
-                },
-                {
                     "description": "PCB text 'U19 INA JET 0x46' on F.Silkscreen",
                     "pos": {
                         "x": 154.0,
                         "y": 89.205
                     },
-                    "uuid": "fd9aaf37-ed26-4b95-9bd9-9676ee6d7925"
+                    "uuid": "1b1761c9-cbbc-49a6-9625-3c9894fe837f"
+                },
+                {
+                    "description": "Segment of L6 on F.Silkscreen",
+                    "pos": {
+                        "x": 157.99,
+                        "y": 89.64
+                    },
+                    "uuid": "63126eab-aafe-4229-9420-b5e558477b8f"
                 }
             ],
             "severity": "warning",
@@ -343,7 +389,7 @@
                         "x": 153.0,
                         "y": 114.005
                     },
-                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                    "uuid": "a1801119-3329-45ec-9869-10ebf8e4d356"
                 },
                 {
                     "description": "Segment of R603 on F.Silkscreen",
@@ -351,7 +397,7 @@
                         "x": 161.162742,
                         "y": 113.8225
                     },
-                    "uuid": "c557a81c-83f8-4deb-b654-246799ebe68c"
+                    "uuid": "acbcd08b-9d41-490f-9503-a7ae5960f256"
                 }
             ],
             "severity": "warning",
@@ -366,7 +412,7 @@
                         "x": 153.0,
                         "y": 114.005
                     },
-                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                    "uuid": "a1801119-3329-45ec-9869-10ebf8e4d356"
                 },
                 {
                     "description": "Segment of C608 on F.Silkscreen",
@@ -374,7 +420,7 @@
                         "x": 163.85942,
                         "y": 113.81
                     },
-                    "uuid": "f46dcddb-2006-477b-98ff-38d3d74f8066"
+                    "uuid": "cb9bd906-72fb-43bb-b881-9e9bf1a54d9b"
                 }
             ],
             "severity": "warning",
@@ -384,20 +430,20 @@
             "description": "Silkscreen clearance",
             "items": [
                 {
-                    "description": "Circle of TP1 on F.Silkscreen",
-                    "pos": {
-                        "x": 187.0,
-                        "y": 186.5
-                    },
-                    "uuid": "a1278276-6a5d-402b-97da-1a598dc505bb"
-                },
-                {
                     "description": "PCB text 'U22 INA MOT 0x45' on F.Silkscreen",
                     "pos": {
                         "x": 182.0,
                         "y": 187.205
                     },
-                    "uuid": "bcacd5ab-43d6-453d-90ed-97956e563852"
+                    "uuid": "258ff11e-396c-4536-813d-bd6aa0650240"
+                },
+                {
+                    "description": "Circle of TP1 on F.Silkscreen",
+                    "pos": {
+                        "x": 187.0,
+                        "y": 186.5
+                    },
+                    "uuid": "d4edaf12-9b2c-4bb2-9b87-91093234a16a"
                 }
             ],
             "severity": "warning",
@@ -412,7 +458,7 @@
                         "x": 186.0,
                         "y": 195.605
                     },
-                    "uuid": "3c58cb1d-fcb8-4711-82f7-277842e3719e"
+                    "uuid": "65a6d857-358e-4e74-a95d-31a6ca573b20"
                 },
                 {
                     "description": "Segment of C32 on F.Silkscreen",
@@ -420,7 +466,7 @@
                         "x": 190.24,
                         "y": 195.711252
                     },
-                    "uuid": "7e75b294-ff9d-4c67-871d-40d9f4052b09"
+                    "uuid": "e1052d19-c910-4949-905b-5932dc101f20"
                 }
             ],
             "severity": "warning",
@@ -429,21 +475,21 @@
         {
             "description": "Silkscreen clearance",
             "items": [
-                {
-                    "description": "PCB text 'U21 INA BAT 0x41' on F.Silkscreen",
-                    "pos": {
-                        "x": 192.0,
-                        "y": 203.605
-                    },
-                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
-                },
                 {
                     "description": "Segment of C27 on F.Silkscreen",
                     "pos": {
                         "x": 188.85942,
                         "y": 203.39
                     },
-                    "uuid": "f4eb34a4-0f6e-4b08-82ca-f6988a29b735"
+                    "uuid": "3e4ab91e-fec4-4e5f-978c-4b30332cff52"
+                },
+                {
+                    "description": "PCB text 'U21 INA BAT 0x41' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 203.605
+                    },
+                    "uuid": "75c8308e-9b19-4029-8ebb-977331d23976"
                 }
             ],
             "severity": "warning",
@@ -453,20 +499,20 @@
             "description": "Silkscreen clearance",
             "items": [
                 {
-                    "description": "Segment of C20 on F.Silkscreen",
-                    "pos": {
-                        "x": 195.25942,
-                        "y": 221.11
-                    },
-                    "uuid": "6fb97d35-d839-47a0-8835-5ed5d1e0bd3d"
-                },
-                {
                     "description": "PCB text 'U10 POWER SWITCH' on F.Silkscreen",
                     "pos": {
                         "x": 192.0,
                         "y": 220.705
                     },
-                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                    "uuid": "caf5e68a-7872-450a-b65a-f303532e1b53"
+                },
+                {
+                    "description": "Segment of C20 on F.Silkscreen",
+                    "pos": {
+                        "x": 195.25942,
+                        "y": 221.11
+                    },
+                    "uuid": "df4b6ba6-02eb-49bc-ab2a-a86846d09cd2"
                 }
             ],
             "severity": "warning",
@@ -481,7 +527,7 @@
                         "x": 195.25942,
                         "y": 220.09
                     },
-                    "uuid": "498dd594-2912-468d-a012-29427281ce3d"
+                    "uuid": "865b8891-fb4a-4c32-9aae-13ebb2ca4e16"
                 },
                 {
                     "description": "PCB text 'U10 POWER SWITCH' on F.Silkscreen",
@@ -489,7 +535,7 @@
                         "x": 192.0,
                         "y": 220.705
                     },
-                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                    "uuid": "caf5e68a-7872-450a-b65a-f303532e1b53"
                 }
             ],
             "severity": "warning",
@@ -504,7 +550,7 @@
                         "x": 195.85,
                         "y": 260.75
                     },
-                    "uuid": "05cd29bb-9ec7-4e1d-bc4c-d9a2eb94dfdf"
+                    "uuid": "940dfc3c-694c-4480-91ba-c3fab607dc4b"
                 },
                 {
                     "description": "PCB text 'J11 TOF RR' on F.Silkscreen",
@@ -512,7 +558,7 @@
                         "x": 201.0,
                         "y": 261.255
                     },
-                    "uuid": "68c846b5-29a3-466a-9452-dc5bd809ae33"
+                    "uuid": "fb8fa30b-4260-40a3-9106-8a5ee8940d79"
                 }
             ],
             "severity": "warning",
@@ -522,20 +568,20 @@
             "description": "Silkscreen clearance",
             "items": [
                 {
-                    "description": "PCB text 'J11 TOF RR' on F.Silkscreen",
-                    "pos": {
-                        "x": 201.0,
-                        "y": 261.255
-                    },
-                    "uuid": "68c846b5-29a3-466a-9452-dc5bd809ae33"
-                },
-                {
                     "description": "Segment of J1 on F.Silkscreen",
                     "pos": {
                         "x": 204.15,
                         "y": 260.75
                     },
-                    "uuid": "a7910cae-3f1c-4814-a04c-a6ec36b2811d"
+                    "uuid": "aa1ca795-a06f-4e3c-b28b-e4502d769aa5"
+                },
+                {
+                    "description": "PCB text 'J11 TOF RR' on F.Silkscreen",
+                    "pos": {
+                        "x": 201.0,
+                        "y": 261.255
+                    },
+                    "uuid": "fb8fa30b-4260-40a3-9106-8a5ee8940d79"
                 }
             ],
             "severity": "warning",
@@ -550,7 +596,7 @@
                         "x": 120.0,
                         "y": 101.255
                     },
-                    "uuid": "714add6c-905f-47a1-b760-c2074c5b00c7"
+                    "uuid": "fec18256-ef47-4021-97d1-7f74550df005"
                 },
                 {
                     "description": "Pad 2 [GND] of C401 on F.Cu",
@@ -558,7 +604,7 @@
                         "x": 115.1,
                         "y": 101.875
                     },
-                    "uuid": "0b02220b-85d6-43f7-8c85-d2b5a6f4a0b6"
+                    "uuid": "c2421c7c-3a08-439b-b105-bc9dc9ca70c0"
                 }
             ],
             "severity": "warning",
@@ -573,7 +619,7 @@
                         "x": 117.65,
                         "y": 102.25
                     },
-                    "uuid": "de938f44-fe65-483f-8c2b-744df2bc49e0"
+                    "uuid": "b70a2cb6-9d57-464e-bb25-5b70ceb536d2"
                 },
                 {
                     "description": "Pad 2 [GND] of C403 on F.Cu",
@@ -581,7 +627,7 @@
                         "x": 117.45,
                         "y": 102.575
                     },
-                    "uuid": "fd92a2c7-5c0e-4f5e-bca8-119b81b47b3a"
+                    "uuid": "256b72ea-8df4-41c7-b5a4-1349f08b98aa"
                 }
             ],
             "severity": "warning",
@@ -596,7 +642,7 @@
                         "x": 120.0,
                         "y": 101.255
                     },
-                    "uuid": "714add6c-905f-47a1-b760-c2074c5b00c7"
+                    "uuid": "fec18256-ef47-4021-97d1-7f74550df005"
                 },
                 {
                     "description": "Pad 2 [GND] of C402 on F.Cu",
@@ -604,7 +650,7 @@
                         "x": 124.9,
                         "y": 101.875
                     },
-                    "uuid": "f81ef8ed-9dab-4790-8630-301d770882d7"
+                    "uuid": "dd442212-11f8-4fdd-8c0a-38e0af56b074"
                 }
             ],
             "severity": "warning",
@@ -619,7 +665,7 @@
                         "x": 147.0,
                         "y": 216.255
                     },
-                    "uuid": "d9c583d3-07db-4f0a-ba95-ceca1bd62e05"
+                    "uuid": "5597ea05-4a6a-4534-babd-34f7f09e8e7a"
                 },
                 {
                     "description": "Pad 1 [+3V3_MCU] of C123 on F.Cu",
@@ -627,7 +673,7 @@
                         "x": 142.475,
                         "y": 216.3
                     },
-                    "uuid": "abc3b96f-b6cb-45f0-8d3e-2a442b3fc038"
+                    "uuid": "e8fcd9f0-da22-49df-bd4d-641ffdc6228f"
                 }
             ],
             "severity": "warning",
@@ -642,7 +688,7 @@
                         "x": 147.0,
                         "y": 216.255
                     },
-                    "uuid": "d9c583d3-07db-4f0a-ba95-ceca1bd62e05"
+                    "uuid": "5597ea05-4a6a-4534-babd-34f7f09e8e7a"
                 },
                 {
                     "description": "Pad 2 [GND] of C123 on F.Cu",
@@ -650,7 +696,7 @@
                         "x": 144.025,
                         "y": 216.3
                     },
-                    "uuid": "6f53268a-25f4-41ec-aec3-3f035a6b452e"
+                    "uuid": "450097af-2284-47df-852f-db4eb8401b4e"
                 }
             ],
             "severity": "warning",
@@ -665,7 +711,7 @@
                         "x": 137.5,
                         "y": 265.954999
                     },
-                    "uuid": "0d6ea15d-6826-45ff-8431-18853c3e7bda"
+                    "uuid": "16c2fbb0-0751-4df2-a0b0-bac53e2c9809"
                 },
                 {
                     "description": "Pad 1 [+5V] of R451 on F.Cu",
@@ -673,7 +719,7 @@
                         "x": 129.7,
                         "y": 266.7125
                     },
-                    "uuid": "5d2bb47d-b8b5-4493-87cb-5a49e6a1f372"
+                    "uuid": "ba241d06-6752-4045-9a5f-83954856b2c4"
                 }
             ],
             "severity": "warning",
@@ -688,7 +734,7 @@
                         "x": 137.5,
                         "y": 265.954999
                     },
-                    "uuid": "0d6ea15d-6826-45ff-8431-18853c3e7bda"
+                    "uuid": "16c2fbb0-0751-4df2-a0b0-bac53e2c9809"
                 },
                 {
                     "description": "Pad 2 [5V_HALL_L] of R451 on F.Cu",
@@ -696,7 +742,7 @@
                         "x": 129.7,
                         "y": 264.8875
                     },
-                    "uuid": "b4693251-a199-460f-9ab2-65bcf2d7f4ca"
+                    "uuid": "f158d28e-31ab-421c-a44c-1c5e03331c45"
                 }
             ],
             "severity": "warning",
@@ -711,7 +757,7 @@
                         "x": 162.5,
                         "y": 265.954999
                     },
-                    "uuid": "47e27e72-a052-412f-8c4e-ce0e7a0c8fe9"
+                    "uuid": "2c05f0fa-cd1b-444b-b92d-4908d902657a"
                 },
                 {
                     "description": "Pad 2 [5V_HALL_R] of R461 on F.Cu",
@@ -719,7 +765,7 @@
                         "x": 170.3,
                         "y": 264.8875
                     },
-                    "uuid": "8ef9332d-02cb-48bc-8f95-17628496be07"
+                    "uuid": "331c7e87-d197-45b5-9f35-4d995c67d0e4"
                 }
             ],
             "severity": "warning",
@@ -734,7 +780,7 @@
                         "x": 162.5,
                         "y": 265.954999
                     },
-                    "uuid": "47e27e72-a052-412f-8c4e-ce0e7a0c8fe9"
+                    "uuid": "2c05f0fa-cd1b-444b-b92d-4908d902657a"
                 },
                 {
                     "description": "Pad 1 [+5V] of R461 on F.Cu",
@@ -742,7 +788,7 @@
                         "x": 170.3,
                         "y": 266.7125
                     },
-                    "uuid": "70537020-49f7-4aa4-b407-f3e56ac33967"
+                    "uuid": "74d4ae27-935d-4726-a303-55a351a555aa"
                 }
             ],
             "severity": "warning",
@@ -757,7 +803,7 @@
                         "x": 154.0,
                         "y": 89.205
                     },
-                    "uuid": "fd9aaf37-ed26-4b95-9bd9-9676ee6d7925"
+                    "uuid": "1b1761c9-cbbc-49a6-9625-3c9894fe837f"
                 },
                 {
                     "description": "Pad 1 [+3V3_PI] of C83 on F.Cu",
@@ -765,7 +811,7 @@
                         "x": 154.225,
                         "y": 88.4
                     },
-                    "uuid": "fb82671c-57d7-46de-8d9b-40396b990f88"
+                    "uuid": "77a2992e-8a70-45da-bd39-30518b8f76a5"
                 }
             ],
             "severity": "warning",
@@ -780,7 +826,7 @@
                         "x": 154.0,
                         "y": 89.205
                     },
-                    "uuid": "fd9aaf37-ed26-4b95-9bd9-9676ee6d7925"
+                    "uuid": "1b1761c9-cbbc-49a6-9625-3c9894fe837f"
                 },
                 {
                     "description": "Pad 2 [GND] of C83 on F.Cu",
@@ -788,7 +834,7 @@
                         "x": 155.775,
                         "y": 88.4
                     },
-                    "uuid": "fe9e7b33-dbf8-416c-bfe5-eb1485c218f5"
+                    "uuid": "cb2fb482-7bf9-41c9-875f-b19adf530bb6"
                 }
             ],
             "severity": "warning",
@@ -803,7 +849,7 @@
                         "x": 153.0,
                         "y": 114.005
                     },
-                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                    "uuid": "a1801119-3329-45ec-9869-10ebf8e4d356"
                 },
                 {
                     "description": "Pad 1 [6V_RAW] of R603 on F.Cu",
@@ -811,7 +857,7 @@
                         "x": 160.575,
                         "y": 113.3
                     },
-                    "uuid": "b5339b71-fc1e-4c4f-8c3d-25f80382529b"
+                    "uuid": "6c77b656-39fc-4446-9802-9e8224fd27b2"
                 }
             ],
             "severity": "warning",
@@ -826,7 +872,7 @@
                         "x": 153.0,
                         "y": 114.005
                     },
-                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                    "uuid": "a1801119-3329-45ec-9869-10ebf8e4d356"
                 },
                 {
                     "description": "Pad 2 [FF6] of R603 on F.Cu",
@@ -834,7 +880,7 @@
                         "x": 162.225,
                         "y": 113.3
                     },
-                    "uuid": "b2e48a59-aae7-4a30-93cb-9c09229cf7ad"
+                    "uuid": "b5d1a70f-2ba3-4e30-a8ab-4f927570cb33"
                 }
             ],
             "severity": "warning",
@@ -849,7 +895,7 @@
                         "x": 153.0,
                         "y": 114.005
                     },
-                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                    "uuid": "a1801119-3329-45ec-9869-10ebf8e4d356"
                 },
                 {
                     "description": "Pad 1 [FF6] of C608 on F.Cu",
@@ -857,7 +903,7 @@
                         "x": 163.225,
                         "y": 113.3
                     },
-                    "uuid": "10fc0a34-23ea-496a-8ccc-a5c981838550"
+                    "uuid": "0882917c-3cdf-47d4-a4c0-0655735f735a"
                 }
             ],
             "severity": "warning",
@@ -872,7 +918,7 @@
                         "x": 144.0,
                         "y": 98.455
                     },
-                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                    "uuid": "e8d0f2f4-f8cb-4432-ae64-2063713f4129"
                 },
                 {
                     "description": "Pad 1 [VBUS] of C81 on F.Cu",
@@ -880,7 +926,7 @@
                         "x": 137.725,
                         "y": 98.4
                     },
-                    "uuid": "c21653ee-76d9-4966-9b2e-6929f9d87ab6"
+                    "uuid": "75ca5fe8-ff6c-49b0-ac70-37aef0c9aba3"
                 }
             ],
             "severity": "warning",
@@ -895,7 +941,7 @@
                         "x": 144.0,
                         "y": 98.455
                     },
-                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                    "uuid": "e8d0f2f4-f8cb-4432-ae64-2063713f4129"
                 },
                 {
                     "description": "Pad 2 [GND] of C81 on F.Cu",
@@ -903,7 +949,7 @@
                         "x": 139.275,
                         "y": 98.4
                     },
-                    "uuid": "531e5ab2-5cc3-4ed7-8ae2-916b8db5f31c"
+                    "uuid": "23484679-b26b-4153-8e9a-acd30d005fc6"
                 }
             ],
             "severity": "warning",
@@ -918,7 +964,7 @@
                         "x": 144.0,
                         "y": 98.455
                     },
-                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                    "uuid": "e8d0f2f4-f8cb-4432-ae64-2063713f4129"
                 },
                 {
                     "description": "Pad 1 [JET_OUT] of C82 on F.Cu",
@@ -926,7 +972,7 @@
                         "x": 145.65,
                         "y": 97.4
                     },
-                    "uuid": "7b3abb7b-587f-44a1-adab-380193f4dfa5"
+                    "uuid": "7c111bd8-c41c-4ec1-bf12-14b445dbd94d"
                 }
             ],
             "severity": "warning",
@@ -941,7 +987,7 @@
                         "x": 144.0,
                         "y": 98.455
                     },
-                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                    "uuid": "e8d0f2f4-f8cb-4432-ae64-2063713f4129"
                 },
                 {
                     "description": "Pad 2 [GND] of C82 on F.Cu",
@@ -949,7 +995,7 @@
                         "x": 147.55,
                         "y": 97.4
                     },
-                    "uuid": "bc29de16-b727-4030-a99c-1deb8d44bf89"
+                    "uuid": "4d44338b-e494-49a4-b7c8-5bf7418244d3"
                 }
             ],
             "severity": "warning",
@@ -964,7 +1010,7 @@
                         "x": 144.0,
                         "y": 98.455
                     },
-                    "uuid": "fcd98cce-770a-4fd9-a184-b4018ef388d9"
+                    "uuid": "e8d0f2f4-f8cb-4432-ae64-2063713f4129"
                 },
                 {
                     "description": "Pad 1 [Q7_G] of R87 on F.Cu",
@@ -972,7 +1018,7 @@
                         "x": 150.175,
                         "y": 98.6
                     },
-                    "uuid": "f5917611-0bc3-496e-b956-c55fd4565582"
+                    "uuid": "c72cb171-e4df-4408-9c59-fad9bef2cfbb"
                 }
             ],
             "severity": "warning",
@@ -987,7 +1033,7 @@
                         "x": 153.0,
                         "y": 114.005
                     },
-                    "uuid": "73281317-b12e-4c38-abeb-278eb346318c"
+                    "uuid": "a1801119-3329-45ec-9869-10ebf8e4d356"
                 },
                 {
                     "description": "Pad 2 [FB6] of C608 on F.Cu",
@@ -995,7 +1041,7 @@
                         "x": 164.775,
                         "y": 113.3
                     },
-                    "uuid": "3cc6220a-80b8-49ab-b91b-1ef04f34020c"
+                    "uuid": "8d0a66c3-1efd-4d61-9ec7-ad7edc95cac6"
                 }
             ],
             "severity": "warning",
@@ -1010,7 +1056,7 @@
                         "x": 164.0,
                         "y": 101.255
                     },
-                    "uuid": "adfcda27-22b5-49c5-95d5-0cbc59852d36"
+                    "uuid": "22f77d0c-0b5d-477d-9aef-0d6183d33aa2"
                 },
                 {
                     "description": "Pad 2 [GND] of C601 on F.Cu",
@@ -1018,7 +1064,7 @@
                         "x": 159.1,
                         "y": 101.875
                     },
-                    "uuid": "7022a680-644c-4e01-b97e-147d039077af"
+                    "uuid": "d93fdee0-3a1a-4be1-8cca-27d9e52fead8"
                 }
             ],
             "severity": "warning",
@@ -1033,7 +1079,7 @@
                         "x": 161.65,
                         "y": 102.25
                     },
-                    "uuid": "80f1ad39-e683-48f5-8081-a725ca804ac3"
+                    "uuid": "536c946e-e7af-41d2-bd02-1d3226a6434f"
                 },
                 {
                     "description": "Pad 2 [GND] of C603 on F.Cu",
@@ -1041,7 +1087,7 @@
                         "x": 161.45,
                         "y": 102.575
                     },
-                    "uuid": "d0276ddc-5435-4ace-9c5d-737f7adf5b12"
+                    "uuid": "1502a8a9-5ff6-4d95-a878-e12b9cf465ef"
                 }
             ],
             "severity": "warning",
@@ -1056,7 +1102,7 @@
                         "x": 164.0,
                         "y": 101.255
                     },
-                    "uuid": "adfcda27-22b5-49c5-95d5-0cbc59852d36"
+                    "uuid": "22f77d0c-0b5d-477d-9aef-0d6183d33aa2"
                 },
                 {
                     "description": "Pad 2 [GND] of C602 on F.Cu",
@@ -1064,7 +1110,7 @@
                         "x": 168.9,
                         "y": 101.875
                     },
-                    "uuid": "2f1678a8-1586-4fb1-8b8a-d5b710af8208"
+                    "uuid": "f6579a7e-fa8f-49b6-98c4-8aeb19ea4b44"
                 }
             ],
             "severity": "warning",
@@ -1079,7 +1125,7 @@
                         "x": 182.0,
                         "y": 187.205
                     },
-                    "uuid": "bcacd5ab-43d6-453d-90ed-97956e563852"
+                    "uuid": "258ff11e-396c-4536-813d-bd6aa0650240"
                 },
                 {
                     "description": "PTH pad 1 [VBUS] of TP1",
@@ -1087,7 +1133,7 @@
                         "x": 187.0,
                         "y": 186.5
                     },
-                    "uuid": "b99a8fbe-ee34-469c-8d8d-c76049a2b96d"
+                    "uuid": "b705ea46-308a-46ff-9e38-2029fbdb43c7"
                 }
             ],
             "severity": "warning",
@@ -1102,7 +1148,7 @@
                         "x": 186.0,
                         "y": 195.605
                     },
-                    "uuid": "3c58cb1d-fcb8-4711-82f7-277842e3719e"
+                    "uuid": "65a6d857-358e-4e74-a95d-31a6ca573b20"
                 },
                 {
                     "description": "Pad 1 [VBUS] of C32 on F.Cu",
@@ -1110,7 +1156,7 @@
                         "x": 191.6,
                         "y": 196.475
                     },
-                    "uuid": "b02bdc4a-71b9-44bf-9079-99d90406cb4d"
+                    "uuid": "37e2c12d-a156-4143-8649-47e13db049d8"
                 }
             ],
             "severity": "warning",
@@ -1125,7 +1171,7 @@
                         "x": 192.0,
                         "y": 203.605
                     },
-                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
+                    "uuid": "75c8308e-9b19-4029-8ebb-977331d23976"
                 },
                 {
                     "description": "Pad 2 [GND] of C27 on F.Cu",
@@ -1133,7 +1179,7 @@
                         "x": 189.775,
                         "y": 203.9
                     },
-                    "uuid": "7875a2bd-7d8b-4a23-b0ad-49bbe6813946"
+                    "uuid": "ffd98cff-35da-4216-904c-218b9fc842f4"
                 }
             ],
             "severity": "warning",
@@ -1148,7 +1194,7 @@
                         "x": 192.0,
                         "y": 203.605
                     },
-                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
+                    "uuid": "75c8308e-9b19-4029-8ebb-977331d23976"
                 },
                 {
                     "description": "Pad 1 [SH1_N] of R702 on F.Cu",
@@ -1156,30 +1202,7 @@
                         "x": 193.0,
                         "y": 202.825
                     },
-                    "uuid": "3bd0fcaa-bc71-4a66-bc35-a6364c58d5bf"
-                }
-            ],
-            "severity": "warning",
-            "type": "silk_over_copper"
-        },
-        {
-            "description": "Silkscreen clipped by solder mask",
-            "items": [
-                {
-                    "description": "PCB text 'U21 INA BAT 0x41' on F.Silkscreen",
-                    "pos": {
-                        "x": 192.0,
-                        "y": 203.605
-                    },
-                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
-                },
-                {
-                    "description": "Pad 1 [INA1_P] of C70 on F.Cu",
-                    "pos": {
-                        "x": 194.6,
-                        "y": 202.775
-                    },
-                    "uuid": "56057a7e-0116-40bb-989b-8697c3674f74"
+                    "uuid": "584ed846-a459-40b4-ab6a-92f7df7a3be0"
                 }
             ],
             "severity": "warning",
@@ -1194,7 +1217,7 @@
                         "x": 192.0,
                         "y": 220.705
                     },
-                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                    "uuid": "caf5e68a-7872-450a-b65a-f303532e1b53"
                 },
                 {
                     "description": "Pad 1 [HOLD_Z] of R47 on F.Cu",
@@ -1202,7 +1225,7 @@
                         "x": 186.0,
                         "y": 220.225
                     },
-                    "uuid": "d10bb231-3ad2-477e-9074-10a84344cda3"
+                    "uuid": "c28161b5-8fb5-4d97-8149-00e8c587302e"
                 }
             ],
             "severity": "warning",
@@ -1217,7 +1240,7 @@
                         "x": 192.0,
                         "y": 220.705
                     },
-                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                    "uuid": "caf5e68a-7872-450a-b65a-f303532e1b53"
                 },
                 {
                     "description": "Pad 2 [GND] of C22 on F.Cu",
@@ -1225,7 +1248,7 @@
                         "x": 188.4,
                         "y": 220.225
                     },
-                    "uuid": "52732f19-3bcd-40ef-9ee6-c88424b62fc4"
+                    "uuid": "3bdf3cc3-62cb-4857-ac93-0416f4f12d3c"
                 }
             ],
             "severity": "warning",
@@ -1240,7 +1263,7 @@
                         "x": 192.0,
                         "y": 220.705
                     },
-                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                    "uuid": "caf5e68a-7872-450a-b65a-f303532e1b53"
                 },
                 {
                     "description": "Pad 1 [LM_CAP] of C20 on F.Cu",
@@ -1248,7 +1271,7 @@
                         "x": 194.625,
                         "y": 220.6
                     },
-                    "uuid": "ac0be6f4-d6a7-47f4-b0a3-cf322caa12b7"
+                    "uuid": "8c8bd235-c805-4367-a669-a64b4da10e29"
                 }
             ],
             "severity": "warning",
@@ -1263,7 +1286,7 @@
                         "x": 192.0,
                         "y": 220.705
                     },
-                    "uuid": "7be9d1ce-ef82-4d1a-a769-af87807f6fe3"
+                    "uuid": "caf5e68a-7872-450a-b65a-f303532e1b53"
                 },
                 {
                     "description": "Pad 2 [SW_MID] of C20 on F.Cu",
@@ -1271,7 +1294,7 @@
                         "x": 196.175,
                         "y": 220.6
                     },
-                    "uuid": "292ef4d1-6d9b-46aa-872d-13363e721911"
+                    "uuid": "dcd8a934-a2c5-4f55-99ce-32456a02403a"
                 }
             ],
             "severity": "warning",
@@ -1286,7 +1309,7 @@
                         "x": 191.0,
                         "y": 252.6
                     },
-                    "uuid": "b7a57bb1-cd35-432c-a6a2-62b64991ce8c"
+                    "uuid": "f10f88d7-d14e-4caf-8243-bd494b74ec28"
                 },
                 {
                     "description": "Pad 2 [GND] of NT1 on F.Cu",
@@ -1294,7 +1317,7 @@
                         "x": 192.5,
                         "y": 254.5
                     },
-                    "uuid": "db7d3e8c-0e21-46e2-91fe-44756974096f"
+                    "uuid": "cc9e32ac-84e8-44ed-b08e-b64893f51983"
                 }
             ],
             "severity": "warning",
@@ -1309,7 +1332,7 @@
                         "x": 192.0,
                         "y": 203.605
                     },
-                    "uuid": "c4f75267-b451-4b8f-8e21-c4995741d973"
+                    "uuid": "75c8308e-9b19-4029-8ebb-977331d23976"
                 },
                 {
                     "description": "Pad 1 [+3V3_PI] of C27 on F.Cu",
@@ -1317,7 +1340,30 @@
                         "x": 188.225,
                         "y": 203.9
                     },
-                    "uuid": "80e2621f-f3b2-40a9-918a-07ca792a3e05"
+                    "uuid": "98ebddeb-6a16-4d16-a5ab-d50f678d4cb4"
+                }
+            ],
+            "severity": "warning",
+            "type": "silk_over_copper"
+        },
+        {
+            "description": "Silkscreen clipped by solder mask",
+            "items": [
+                {
+                    "description": "PCB text 'U21 INA BAT 0x41' on F.Silkscreen",
+                    "pos": {
+                        "x": 192.0,
+                        "y": 203.605
+                    },
+                    "uuid": "75c8308e-9b19-4029-8ebb-977331d23976"
+                },
+                {
+                    "description": "Pad 1 [INA1_P] of C70 on F.Cu",
+                    "pos": {
+                        "x": 194.6,
+                        "y": 202.775
+                    },
+                    "uuid": "8b6ddf9d-cbd1-453b-b234-7deb4690d0eb"
                 }
             ],
             "severity": "warning",

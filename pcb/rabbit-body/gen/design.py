@@ -272,7 +272,7 @@ for side, sgn in (("L", -1), ("R", 1)):
     part(f"J{n3}", "Connector_JST:JST_GH_BM07B-GHS-TBT_1x07-1MP_P1.25mm_Vertical", "encoder", (hx, -120.3), 0,
          {"1": f"5V_HALL_{side}", "2": "+3V3_MCU", "3": "GND", "4": f"ENC_{side}_A", "5": f"ENC_{side}_B",
           "6": f"ENC_{side}_Z", "7": "GND"}, "smt", "C378970", "JST BM07B-GHS-TBT", f"ENC {side} A/B/Z or SSI")
-    res(f"R{n3}1", "10", (sgn * 20.3, -115.8), "+5V", f"5V_HALL_{side}", 90, R0805)
+    res(f"R{n3}1", "10", (14.0 if side == "L" else 16.0, -61.0), "+5V", f"5V_HALL_{side}", 90, R0805)
     cap(f"C{n3}1", "1uF", (sgn * 20.3, -119.6), f"5V_HALL_{side}", "GND", 90)
 res("R30", "4.7k", (-4.4, -121.0), "BUMPER_REAR", "+3V3_PI", 90)
 cap("C12", "100nF", (4.4, -121.0), "BUMPER_REAR", "GND", 90)

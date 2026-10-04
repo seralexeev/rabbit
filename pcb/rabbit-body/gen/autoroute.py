@@ -74,7 +74,8 @@ def main():
         ses.unlink()
     t = time.time()
     if os.environ.get("ROUTER", "freerouting") == "fastroute":
-        cmd = [FASTROUTE, "-de", str(dsn), "-do", str(ses), "-mp", passes, "--report", str(WORK / "fastroute.json")]
+        cmd = [FASTROUTE, "-de", str(dsn), "-do", str(ses), "-mp", passes, "--report", str(WORK / "fastroute.json"),
+               "--router.copper_to_edge_clearance_um=350"]
     else:
         cmd = [JAVA, "-jar", str(JAR), "-de", str(dsn), "-do", str(ses), "-mp", passes, "-mt", "1"]
     print(" ".join(cmd), flush=True)
