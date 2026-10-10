@@ -2208,6 +2208,8 @@ How the process works. Everything that can be code is code, and agents run the l
 
 The main rule: one agent does, another checks. Every review writes a report with numbered findings, and the fixes are recorded separately, so you can see what was found and what was done about it.
 
+And it's a great feeling: a program for any task gets written in minutes, right along the way. Needed a 3D renderer, a ray tracer for the sensors, a collision check, a script for the JLCPCB stock, and there it is, made exactly for this project. We don't care what that code looks like, we're not publishing it: these are ad-hoc tools to get to the goal. Basically, nothing holds you back.
+
 I counted from the logs what this costs. From 2 to 11 October: 8 sessions over 6 working days, 3.3 billion tokens, almost all of it the context re-read from cache, and 3.1 million output tokens. Without a subscription, at Opus 5.5 API prices, it would have been ~$1,200-1,500.
 
 ---
