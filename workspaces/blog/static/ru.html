@@ -247,6 +247,92 @@
                     </header>
 
                     <div class="post-list">
+        <article class="post" id="193">
+            <div class="post-header">
+                <a href="#193">#193</a>
+                <div class="post-meta">11-10-2026</div>
+            </div>
+            <div class="post-body"><p>Плата для завода оказалась сложнее, чем думал. Она заменяет RoboClaw, понижайки, драйвер сервоприводов и кучу проводов: STM32, два драйвера моторов, Raspberry Pi прямо на плате, у каждой нагрузки свой электронный предохранитель с измерением тока, рука xArm, 6 ToF датчиков, 3 лидара.</p>
+<p>Две ночи ревью нашли то, чего я бы сам не заметил:</p>
+<ul>
+<li>XT60 и XT30 стояли задом наперед: на шелкографии «+» оказался на минусе</li>
+<li>разъем лидара не подходил к его родному кабелю</li>
+<li>плата могла сама включиться просто от подключения батареи</li>
+<li>застрявшая рука просаживала питание руля через общий преобразователь</li>
+</ul>
+<p>А дальше уперлись в разводку. 760 деталей с двух сторон, 15 A от батареи, и автотрассировщик застревал на 70-250 несоединенных связях. Плата выросла с 4 слоев до 8, я выкинул 92 детали ради простоты, а Fable отдельно заметил, что дорожка 1.2 мм на 10 A просто сгорит, хотя DRC ее пропускает. Сейчас плату расширили до самых колес и переставляем детали.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/193-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/193-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    
+        <a class="media-item" href="media/193-2.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/193-2.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="192">
+            <div class="post-header">
+                <a href="#192">#192</a>
+                <div class="post-meta">11-10-2026</div>
+            </div>
+            <div class="post-body"><p>Как устроен процесс. Все, что можно, это код, а агенты гоняют цикл «поправил, собрал, проверил»:</p>
+<ul>
+<li>механика: build123d поверх OpenCascade, живой просмотрщик на three.js, проверка пересечений через manifold3d за 3 секунды вместо 8 минут на точных булевых операциях, рендеры для меня</li>
+<li>плата: схема и расстановка в design.py, KiCad собирает плату из скрипта, разводит fastroute (порт Freerouting на Rust, раскладка выводов за 25 s вместо 37 минут), DRC и файлы для завода через kicad-cli, склад и цены через API JLCPCB</li>
+<li>модели: Claude делает работу, независимые агенты делают ревью по даташитам, Fable дает второе мнение, Jev от TypeSafe сверял названия деталей шасси</li>
+<li>все даташиты теперь лежат в репозитории, и каждая цифра в схеме ссылается на страницу</li>
+</ul>
+<p>Главное правило: один агент делает, другой проверяет. Каждое ревью пишет отчет с номерами находок, а исправления записываются отдельно, так что видно, что нашли и что с этим сделали.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/192-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/192-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="191">
+            <div class="post-header">
+                <a href="#191">#191</a>
+                <div class="post-meta">11-10-2026</div>
+            </div>
+            <div class="post-body"><p>Теперь дизайн робота меняют агенты. Модель шасси из STEP разобрали на 134 детали с именами, а все свое описано кодом на Python, так что любую правку можно собрать, измерить и проверить на пересечения за пару секунд.</p>
+<p>Самое прикольное это датчики приближения. Я сказал «хочу 8 по кругу», Claude написал трассировщик лучей: из каждой точки края платы пускает 8x8 зон датчика сквозь всю модель, с колесами, повернутыми на ±30°. Борта оказались закрыты колесами, редукторами и тягами на 20-100%, так что осталось 6 датчиков: спереди и сзади по центру и на скосах. Потом я сказал «хочу, чтобы уголки стояли ровно по краю», и плата поменяла форму: скосы развернулись ровно под датчики, нос вытянулся на 21 мм под камеру ZED 2i, а хвост на 23 мм.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/191-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/191-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    
+        <a class="media-item" href="media/191-2.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/191-2.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="190">
+            <div class="post-header">
+                <a href="#190">#190</a>
+                <div class="post-meta">11-10-2026</div>
+            </div>
+            <div class="post-body"><p>Хотел перейти на BLDC моторы, чтобы робот ездил быстрее и тише. Условие одно: drop-in, то есть встать в штатные кронштейны 37D без переделок.</p>
+<ul>
+<li>с Claude прошерстили всех, кто делает 37 мм BLDC. Готовых «как родной» с энкодером A/B нет: китайские JGB37 BLDC идут только с Холлами, Hiwonder их вообще не продает</li>
+<li>из maxon скачали весь каталог на 73 MB и разобрали в JSON все моторы, редукторы и энкодеры, чтобы подобрать комбинацию под 1.25 m/s. Победил ECX FLAT 22 + GPX 22 + ENX 22, но это €430 за штуку плюс переходная пластина, которую надо фрезеровать</li>
+<li>поставили maxon в 3D модель робота и проверили зазоры до палубы: 4.3 мм, влезает</li>
+</ul>
+<p>А потом посчитал, что для квартиры 1.25 m/s и так хватает родным моторам. Вернулся к штатным JGB37 и просто выкинул RoboClaw, моторами теперь управляет своя плата.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/190-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/190-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
         <article class="post" id="189">
             <div class="post-header">
                 <a href="#189">#189</a>

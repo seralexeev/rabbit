@@ -2158,3 +2158,73 @@ On the board: the Raspberry Pi, the RoboClaw, step-downs, a fuse per branch, an 
 The coolest part is that nobody drew it with a mouse. The board is described in Python, KiCad builds it from the script, Freerouting routes the signals, and kicad-cli does the checks and the factory files. Change something in the code, rerun, get a new board. 5 boards with assembly at JLCPCB come to ~$200-260.
 
 The motor section is deliberately kept in one corner: I want to move to BLDC motors and later replace the RoboClaw with a controller right on the board without moving everything else.
+
+---
+
+```yaml
+id: 190
+date: 11-10-2026
+media:
+  - 190-1.jpg
+```
+
+I wanted to move to BLDC motors so the robot would drive faster and quieter. One condition: drop-in, fitting the stock 37D brackets without rework.
+
+-   with Claude I went through everyone who makes 37 mm BLDC motors. Nothing fits "like the original" with an A/B encoder: the Chinese JGB37 BLDC ones come with Hall sensors only, and Hiwonder doesn't sell them at all
+-   from maxon we downloaded the whole 73 MB catalogue and parsed every motor, gearhead and encoder into JSON to find a combination for 1.25 m/s. The winner was ECX FLAT 22 + GPX 22 + ENX 22, but that's €430 each plus an adapter plate that has to be milled
+-   we put the maxon into the robot's 3D model and checked the clearance to the deck: 4.3 mm, it fits
+
+Then I worked out that for a flat the stock motors already do 1.25 m/s. I went back to the stock JGB37 and simply threw out the RoboClaw: the motors are now driven by my own board.
+
+---
+
+```yaml
+id: 191
+date: 11-10-2026
+media:
+  - 191-1.jpg
+  - 191-2.jpg
+```
+
+Now agents change the robot's design. The chassis STEP was split into 134 named parts, and everything of mine is Python code, so any change can be built, measured and checked for collisions in a couple of seconds.
+
+The coolest part is the proximity sensors. I said "I want 8 around the robot", and Claude wrote a ray tracer: from every point of the board edge it casts the sensor's 8x8 zones through the whole model, with the wheels steered ±30°. The sides turned out 20-100% blocked by wheels, gearboxes and steering links, so 6 sensors remained: front and rear centre and on the chamfers. Then I said "I want the brackets to sit square on the edge", and the board changed shape: the chamfers turned to face the sensors, the nose grew 21 mm for the ZED 2i camera and the tail 23 mm.
+
+---
+
+```yaml
+id: 192
+date: 11-10-2026
+media:
+  - 192-1.jpg
+```
+
+How the process works. Everything that can be code is code, and agents run the loop "edit, build, check":
+
+-   mechanics: build123d on OpenCascade, a live three.js viewer, collision checks with manifold3d in 3 seconds instead of 8 minutes of exact booleans, renders for me
+-   the board: schematic and placement in design.py, KiCad builds the board from a script, fastroute (a Rust port of Freerouting: fanout in 25 s instead of 37 minutes) routes it, kicad-cli does DRC and the factory files, the JLCPCB API gives stock and prices
+-   models: Claude does the work, independent agents review against datasheets, Fable gives a second opinion, Jev from TypeSafe cross-checked the chassis part names
+-   all datasheets now live in the repo, and every number in the schematic points to a page
+
+The main rule: one agent does, another checks. Every review writes a report with numbered findings, and the fixes are recorded separately, so you can see what was found and what was done about it.
+
+---
+
+```yaml
+id: 193
+date: 11-10-2026
+media:
+  - 193-1.jpg
+  - 193-2.jpg
+```
+
+The board for the factory turned out harder than I thought. It replaces the RoboClaw, the buck converters, the servo driver and a pile of wires: an STM32, two motor drivers, the Raspberry Pi right on the board, an electronic fuse with current readback on every load, the xArm, 6 ToF sensors, 3 lidars.
+
+Two nights of reviews found things I wouldn't have spotted myself:
+
+-   the XT60 and XT30 were backwards: the "+" on the silkscreen was on the minus
+-   the lidar connector didn't fit its own cable
+-   the board could switch itself on just from plugging in the battery
+-   a stalled arm dragged down the steering supply through the shared converter
+
+Then we hit the routing. 760 parts on both sides, 15 A from the battery, and the autorouter got stuck with 70-250 unconnected links. The board grew from 4 layers to 8, I threw out 92 parts for simplicity, and Fable separately noticed that a 1.2 mm track at 10 A would simply burn, even though DRC passes it. Now the board has been widened right up to the wheels and we're rearranging the parts.

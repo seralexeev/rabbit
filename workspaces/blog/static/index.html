@@ -247,6 +247,92 @@
                     </header>
 
                     <div class="post-list">
+        <article class="post" id="193">
+            <div class="post-header">
+                <a href="#193">#193</a>
+                <div class="post-meta">11-10-2026</div>
+            </div>
+            <div class="post-body"><p>The board for the factory turned out harder than I thought. It replaces the RoboClaw, the buck converters, the servo driver and a pile of wires: an STM32, two motor drivers, the Raspberry Pi right on the board, an electronic fuse with current readback on every load, the xArm, 6 ToF sensors, 3 lidars.</p>
+<p>Two nights of reviews found things I wouldn&#39;t have spotted myself:</p>
+<ul>
+<li>the XT60 and XT30 were backwards: the &quot;+&quot; on the silkscreen was on the minus</li>
+<li>the lidar connector didn&#39;t fit its own cable</li>
+<li>the board could switch itself on just from plugging in the battery</li>
+<li>a stalled arm dragged down the steering supply through the shared converter</li>
+</ul>
+<p>Then we hit the routing. 760 parts on both sides, 15 A from the battery, and the autorouter got stuck with 70-250 unconnected links. The board grew from 4 layers to 8, I threw out 92 parts for simplicity, and Fable separately noticed that a 1.2 mm track at 10 A would simply burn, even though DRC passes it. Now the board has been widened right up to the wheels and we&#39;re rearranging the parts.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/193-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/193-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    
+        <a class="media-item" href="media/193-2.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/193-2.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="192">
+            <div class="post-header">
+                <a href="#192">#192</a>
+                <div class="post-meta">11-10-2026</div>
+            </div>
+            <div class="post-body"><p>How the process works. Everything that can be code is code, and agents run the loop &quot;edit, build, check&quot;:</p>
+<ul>
+<li>mechanics: build123d on OpenCascade, a live three.js viewer, collision checks with manifold3d in 3 seconds instead of 8 minutes of exact booleans, renders for me</li>
+<li>the board: schematic and placement in design.py, KiCad builds the board from a script, fastroute (a Rust port of Freerouting: fanout in 25 s instead of 37 minutes) routes it, kicad-cli does DRC and the factory files, the JLCPCB API gives stock and prices</li>
+<li>models: Claude does the work, independent agents review against datasheets, Fable gives a second opinion, Jev from TypeSafe cross-checked the chassis part names</li>
+<li>all datasheets now live in the repo, and every number in the schematic points to a page</li>
+</ul>
+<p>The main rule: one agent does, another checks. Every review writes a report with numbered findings, and the fixes are recorded separately, so you can see what was found and what was done about it.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/192-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/192-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="191">
+            <div class="post-header">
+                <a href="#191">#191</a>
+                <div class="post-meta">11-10-2026</div>
+            </div>
+            <div class="post-body"><p>Now agents change the robot&#39;s design. The chassis STEP was split into 134 named parts, and everything of mine is Python code, so any change can be built, measured and checked for collisions in a couple of seconds.</p>
+<p>The coolest part is the proximity sensors. I said &quot;I want 8 around the robot&quot;, and Claude wrote a ray tracer: from every point of the board edge it casts the sensor&#39;s 8x8 zones through the whole model, with the wheels steered ±30°. The sides turned out 20-100% blocked by wheels, gearboxes and steering links, so 6 sensors remained: front and rear centre and on the chamfers. Then I said &quot;I want the brackets to sit square on the edge&quot;, and the board changed shape: the chamfers turned to face the sensors, the nose grew 21 mm for the ZED 2i camera and the tail 23 mm.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/191-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/191-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    
+        <a class="media-item" href="media/191-2.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/191-2.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
+        <article class="post" id="190">
+            <div class="post-header">
+                <a href="#190">#190</a>
+                <div class="post-meta">11-10-2026</div>
+            </div>
+            <div class="post-body"><p>I wanted to move to BLDC motors so the robot would drive faster and quieter. One condition: drop-in, fitting the stock 37D brackets without rework.</p>
+<ul>
+<li>with Claude I went through everyone who makes 37 mm BLDC motors. Nothing fits &quot;like the original&quot; with an A/B encoder: the Chinese JGB37 BLDC ones come with Hall sensors only, and Hiwonder doesn&#39;t sell them at all</li>
+<li>from maxon we downloaded the whole 73 MB catalogue and parsed every motor, gearhead and encoder into JSON to find a combination for 1.25 m/s. The winner was ECX FLAT 22 + GPX 22 + ENX 22, but that&#39;s €430 each plus an adapter plate that has to be milled</li>
+<li>we put the maxon into the robot&#39;s 3D model and checked the clearance to the deck: 4.3 mm, it fits</li>
+</ul>
+<p>Then I worked out that for a flat the stock motors already do 1.25 m/s. I went back to the stock JGB37 and simply threw out the RoboClaw: the motors are now driven by my own board.</p>
+</div>
+            <div class="post-media">
+        <a class="media-item" href="media/190-1.jpg" target="_blank" rel="noopener noreferrer">
+            <img src="media/thumbnails/190-1.webp" alt="Preview" loading="lazy" decoding="async" />
+        </a>
+    </div>
+        </article>
+    <div class="divider">...</div>
         <article class="post" id="189">
             <div class="post-header">
                 <a href="#189">#189</a>
