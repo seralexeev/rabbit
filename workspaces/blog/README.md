@@ -2218,19 +2218,22 @@ I counted from the logs what this costs. From 2 to 11 October: 8 sessions over 6
 id: 193
 date: 11-10-2026
 media:
+  - 193-3.jpg
   - 193-1.jpg
   - 193-2.jpg
 ```
 
 The board for the factory turned out harder than I thought. It replaces the RoboClaw, the buck converters, the servo driver and a pile of wires: an STM32, two motor drivers, the Raspberry Pi right on the board, an electronic fuse with current readback on every load, the xArm, 6 ToF sensors, 3 lidars.
 
-Two nights of reviews found things I wouldn't have spotted myself:
+The fun part was the routing. We started with Freerouting: on this board it spent 37 minutes just fanning the pads out to vias. Then we found fastroute, a Rust port of Freerouting: the same stage in 25 seconds. After that we ran experiments and watched how many links stayed unrouted:
 
--   the XT60 and XT30 were backwards: the "+" on the silkscreen was on the minus
--   the lidar connector didn't fit its own cable
--   the board could switch itself on just from plugging in the battery
--   a stalled arm dragged down the steering supply through the shared converter
+-   6 layers, power pours handed to the router as obstacles: 350 unrouted after 4 hours
+-   8 layers and pours after routing: 91
+-   a split power plane, and the 10-15 A nets only on the 2 oz outer copper: 76
+-   threw out 92 of 763 parts, updated fastroute from 0.1.7 to 0.1.13: same plateau, 1.5-2x faster
+-   widened the board up to the wheels and lengthened the tail, +30% area, tuned the router rules: 56
+-   Fable redid the part placement from scratch: the microcontroller block moved to the tail, a 2 mm ring around the fine-pitch QFNs, an empty band between each motor driver and its connector for copper: 27
 
-Then we hit the routing. 760 parts on both sides, 15 A from the battery, and the autorouter got stuck with 70-250 unconnected links. The board grew from 4 layers to 8, I threw out 92 parts for simplicity, and Fable separately noticed that a 1.2 mm track at 10 A would simply burn, even though DRC passes it. Now the board has been widened right up to the wheels and we're rearranging the parts.
+Funny that the new placement gave more than the extra layers and area combined. And Fable separately caught that a 1.2 mm track at 10 A would burn, even though DRC happily passes it. The last 27 links we finish by hand.
 
 We'll make it at JLCPCB in one order: they fabricate the 8-layer board and solder the parts on both sides themselves, buy the missing JST connectors through their Global Sourcing, and JLC3DP prints the sensor brackets in nylon. Roughly ~$1.5-1.8k for two assembled boards, 10 sensor boards and the brackets.
