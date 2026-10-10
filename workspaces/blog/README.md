@@ -2208,6 +2208,8 @@ How the process works. Everything that can be code is code, and agents run the l
 
 The main rule: one agent does, another checks. Every review writes a report with numbered findings, and the fixes are recorded separately, so you can see what was found and what was done about it.
 
+I counted from the logs what this costs. From 2 to 11 October: 8 sessions over 6 working days, 3.3 billion tokens, almost all of it the context re-read from cache, and 3.1 million output tokens. Without a subscription, at Opus 5.5 API prices, it would have been ~$1,200-1,500.
+
 ---
 
 ```yaml
@@ -2228,3 +2230,5 @@ Two nights of reviews found things I wouldn't have spotted myself:
 -   a stalled arm dragged down the steering supply through the shared converter
 
 Then we hit the routing. 760 parts on both sides, 15 A from the battery, and the autorouter got stuck with 70-250 unconnected links. The board grew from 4 layers to 8, I threw out 92 parts for simplicity, and Fable separately noticed that a 1.2 mm track at 10 A would simply burn, even though DRC passes it. Now the board has been widened right up to the wheels and we're rearranging the parts.
+
+We'll make it at JLCPCB in one order: they fabricate the 8-layer board and solder the parts on both sides themselves, buy the missing JST connectors through their Global Sourcing, and JLC3DP prints the sensor brackets in nylon. Roughly ~$1.5-1.8k for two assembled boards, 10 sensor boards and the brackets.
