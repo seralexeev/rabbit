@@ -263,7 +263,7 @@
 <li>Fable redid the part placement from scratch: the microcontroller block moved to the tail, a 2 mm ring around the fine-pitch QFNs, an empty band between each motor driver and its connector for copper: 27</li>
 </ul>
 <p>Funny that the new placement gave more than the extra layers and area combined. And Fable separately caught that a 1.2 mm track at 10 A would burn, even though DRC happily passes it. The last 27 links we finish by hand.</p>
-<p>We&#39;ll make it at JLCPCB in one order: they fabricate the 8-layer board and solder the parts on both sides themselves, buy the missing JST connectors through their Global Sourcing, and JLC3DP prints the sensor brackets in nylon. Roughly ~$1.5-1.8k for two assembled boards, 10 sensor boards and the brackets.</p>
+<p>We&#39;ll make it at JLCPCB in one order, with almost nothing done by hand: a script exports the factory files and checks each of the 166 BOM lines against their stock through the API, and the factory solders everything on both sides. In the same box come 10 sensor boards that an agent designed in an evening (it turned out the VL53L8CX can&#39;t run on 3.3 V alone, it needs its own 1.8 V regulator and a level shifter) and nylon brackets printed there too. Roughly ~$1.5-1.8k.</p>
 </div>
             <div class="post-media">
         <a class="media-item" href="media/193-3.jpg" target="_blank" rel="noopener noreferrer">

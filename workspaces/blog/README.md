@@ -2236,4 +2236,4 @@ The fun part was the routing. We started with Freerouting: on this board it spen
 
 Funny that the new placement gave more than the extra layers and area combined. And Fable separately caught that a 1.2 mm track at 10 A would burn, even though DRC happily passes it. The last 27 links we finish by hand.
 
-We'll make it at JLCPCB in one order: they fabricate the 8-layer board and solder the parts on both sides themselves, buy the missing JST connectors through their Global Sourcing, and JLC3DP prints the sensor brackets in nylon. Roughly ~$1.5-1.8k for two assembled boards, 10 sensor boards and the brackets.
+We'll make it at JLCPCB in one order, with almost nothing done by hand: a script exports the factory files and checks each of the 166 BOM lines against their stock through the API, and the factory solders everything on both sides. In the same box come 10 sensor boards that an agent designed in an evening (it turned out the VL53L8CX can't run on 3.3 V alone, it needs its own 1.8 V regulator and a level shifter) and nylon brackets printed there too. Roughly ~$1.5-1.8k.
