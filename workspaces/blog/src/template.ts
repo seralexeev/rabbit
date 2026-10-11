@@ -1,4 +1,4 @@
-import { AUTHOR, DEFAULT_IMAGE, LOCALES, REPO, SITE, absolute, esc, other_lang, published_at, type Lang, type Locale } from './site.ts';
+import { AUTHOR, CV, DEFAULT_IMAGE, LOCALES, REPO, SITE, absolute, esc, other_lang, published_at, type Lang, type Locale } from './site.ts';
 import type { Preview, Size } from './utils.ts';
 
 export type Media = {
@@ -115,7 +115,7 @@ const Page = ({ head, header, body }: { head: Head; header: string; body: string
             ${header}
             <main>${body}</main>
             <footer>
-                <a href="${AUTHOR.url}" rel="author">${AUTHOR.name}</a> · <a href="${REPO}">GitHub</a> ·
+                <a href="${AUTHOR.url}" rel="author">${AUTHOR.name}</a> · <a href="${CV}" rel="me">CV</a> · <a href="${REPO}">GitHub</a> ·
                 <a href="${locale.feed}" type="application/atom+xml">RSS</a>
             </footer>
         </div>

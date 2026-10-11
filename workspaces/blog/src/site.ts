@@ -4,8 +4,10 @@ export const AUTHOR = {
     '@type': 'Person',
     name: 'Sergey Alekseev',
     url: 'https://www.linkedin.com/in/seralexeev',
-    sameAs: ['https://github.com/seralexeev'],
+    sameAs: ['https://github.com/seralexeev', 'https://cv.bunnyfleet.com/'],
 };
+
+export const CV = 'https://cv.bunnyfleet.com/';
 
 export const REPO = 'https://github.com/seralexeev/rabbit';
 
