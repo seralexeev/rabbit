@@ -2237,3 +2237,34 @@ The fun part was the routing. We started with Freerouting: on this board it spen
 Funny that the new placement gave more than the extra layers and area combined. And Fable separately caught that a 1.2 mm track at 10 A would burn, even though DRC happily passes it. The last 27 links we finish by hand.
 
 We'll make it at JLCPCB in one order, with almost nothing done by hand: a script exports the factory files and checks each of the 166 BOM lines against their stock through the API, and the factory solders everything on both sides. In the same box come 10 sensor boards that an agent designed in an evening (it turned out the VL53L8CX can't run on 3.3 V alone, it needs its own 1.8 V regulator and a level shifter) and nylon brackets printed there too. Roughly ~$1.5-1.8k.
+
+---
+
+```yaml
+id: 194
+date: 12-10-2026
+media:
+  - 194-1.jpg
+  - 194-2.jpg
+  - 194-3.jpg
+  - 194-4.jpg
+```
+
+The board is fully routed: 0 unconnected, 0 DRC errors. Last time fastroute stopped at 24 connections and 5 errors, and I thought the rest would be by hand.
+
+While it was grinding, Claude Code wrote its own router in the next window in one day, deeproute: 14 thousand lines of Rust, 115 commits. The idea differs from Freerouting: all nets are routed at once and may overlap, and every overlap gets more expensive until they move apart. Then the stuck nets are ripped up together with the nets in their way and routed again. On my board it reached 15 unconnected and 0 errors in 4 minutes.
+
+Then the two agents started working with each other. My agent ran DRC and found problems, deeproute changed the router after each one:
+
+-   power tracks may not neck down to 0.15 mm mid-path, only right at the pad: immediately 69 unconnected
+-   controller pins on power nets are sense pins, not the power path, 0.25 mm is enough: 53
+-   reshaped the power layer from its diagnostics (separate copper for the Raspberry Pi, the arm and the spare 5 V): 22
+-   rip up stuck nets together with their neighbours: 10
+
+It also found that KiCad's export cuts the corners of the motor drivers' L-shaped pads, and I found that it put vias 0.04 mm apart, which no fab can make. The funniest one: nobody could route two connections because the keepout around the camera cable cutout covered two resistors. I finished the last 10 by hand and with a small A*.
+
+Then two independent reviews. Power: the router honestly put one via where 15 A goes from a pour into the power plane. Added 3-8 each. Manufacturing: copper reached the unplated cutout, and the inner signal layers had 4% copper against 90% on the planes, so the 2 mm board could bow. Poured ground on them.
+
+deeproute on an open set of 1113 boards: 86.6% routed clean, fastroute 69%, Freerouting 66%, and 5 times faster than Freerouting. They also tried machine learning for the router, on 52 thousand boards from GitHub, but the records above come from the classical core.
+
+Files for JLCPCB are ready: black mask, plated edge, 8 layers, 2 mm.
