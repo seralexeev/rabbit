@@ -175,3 +175,15 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node,macos
+# Built by `node src/index.ts` (scripts/blog.sh build, and the blog workflow on deploy)
+/static/index.html
+/static/ru.html
+/static/bunnyfleet.html
+/static/404.html
+/static/feed.xml
+/static/sitemap.xml
+/static/ru/
+/static/p/
+/static/vendor/
+/static/media/preview/
+/static/media/thumbnails/

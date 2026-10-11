@@ -5,7 +5,7 @@ description: Add a post to the owner's Rabbit build log (rabbit0.dev, source in 
 
 # Posting to the blog
 
-The blog lives in this repo at `workspaces/blog` (imported with its history from `seralexeev/rabbit0` on 2026-10-03) and is served at https://rabbit0.dev (English) and https://rabbit0.dev/ru (Russian). GitHub Pages deploys it: `.github/workflows/blog.yml` runs on every push to `main` that touches `workspaces/blog/**`, rebuilds the pages (`node src/index.ts`, thumbnails with cwebp/ffmpeg) and publishes `static/`. The old `seralexeev/rabbit0` repo is archived; `~/projects/rabbit0` is a stale clone, never edit it.
+The blog lives in this repo at `workspaces/blog` (imported with its history from `seralexeev/rabbit0` on 2026-10-03) and is served at https://rabbit0.dev (English) and https://rabbit0.dev/ru/ (Russian), with a page per post at `/p/<id>/` and `/ru/p/<id>/`. GitHub Pages deploys it: `.github/workflows/blog.yml` runs on every push to `main` that touches `workspaces/blog/**`, type-checks and builds the site (`node src/index.ts`: pages, previews with cwebp/ffmpeg, Atom feeds, sitemap, 404) and publishes `static/`. Built files are gitignored: only the Markdown, the original media and the static icons are committed. The old `seralexeev/rabbit0` repo is archived; `~/projects/rabbit0` is a stale clone, never edit it.
 
 **A dictated post is the order to publish.** Write it, build it and push it without asking again. Ask first only if the text names third parties, or looks private (addresses, faces, passwords, family).
 
@@ -16,8 +16,9 @@ The blog lives in this repo at `workspaces/blog` (imported with its history from
 | `README.ru.md` | Russian posts. The source |
 | `README.md` | English posts, same ids |
 | `README.bunnyfleet.md` | a separate feed; don't touch |
-| `static/media/` | media named `<id>-<n>.jpg` / `.mp4`; thumbnails are generated into `static/media/thumbnails/` |
-| `static/index.html`, `static/ru.html` | built pages, committed |
+| `static/media/` | media named `<id>-<n>.jpg` / `.mp4`; previews (640 and 1280 px WebP) are generated into `static/media/preview/` |
+| `src/` | the generator: `template.ts` (pages, meta tags, JSON-LD, PhotoSwipe lightbox), `feeds.ts` (Atom, sitemap), `site.ts` (locales, titles) |
+| `static/index.html`, `static/ru/`, `static/p/`, feeds, sitemap | built, gitignored; preview with `scripts/blog.sh serve` |
 
 ## Post format
 
@@ -68,15 +69,17 @@ The owner dictates by voice: the message has filler words ("э", "вот", "uh")
 - **Files.**
   - Resize JPEGs to at most 1600 px: `sips -Z 1600 in.jpg --out static/media/187-1.jpg`.
   - A video needs H.264: `./transcode.sh <file>` writes `static/media/<file>.mp4`; rename the result to `<id>-<n>.mp4`.
-  - Thumbnails need `cwebp` and `ffmpeg` (both via Homebrew).
+  - Previews need `cwebp` and `ffmpeg` (both via Homebrew).
+  - The first image of a post becomes its social card (`og:image`), so put the best real photo first.
 
 ## Build and publish
 
 ```sh
 cd ~/projects/rabbit
 scripts/blog.sh build      # npm ci on first use; refuses if a README lost posts vs HEAD; prints the post counts
+scripts/blog.sh serve      # optional: preview the built site on http://127.0.0.1:8765/
 B=workspaces/blog
-git add $B/README.md $B/README.ru.md $B/static/index.html $B/static/ru.html $B/static/media/<id>-* $B/static/media/thumbnails/<id>-*
+git add $B/README.md $B/README.ru.md $B/static/media/<id>-*
 git commit -m "feat(blog): post <id> on <topic>"
 git push origin main
 gh run watch $(gh run list --workflow blog.yml -L 1 --json databaseId --jq '.[0].databaseId') --exit-status   # GitHub Pages deploy, ~2 min
@@ -88,7 +91,7 @@ All paths in this skill below are relative to `workspaces/blog`.
   - `grep -c "^id:" README.ru.md README.md` grew by exactly the number of new posts, and `git diff --numstat README.md README.ru.md` shows 0 deleted lines. On 2026-10-03 an append that opened the file for writing before reading it wiped posts 1–186 from the live blog. Read the whole file first, or append with `>>`;
   - every post starts with a `---` line (the build's own dump of `README.md` drops it before the first post only);
   - the build printed `⚪ <id>` for the new id, not `🟢 … translating`;
-  - `grep -c "<a distinctive word>" static/ru.html static/index.html` finds the new text in both pages.
+  - `grep -c "<a distinctive word>" static/ru/p/<id>/index.html static/p/<id>/index.html` finds the new text in both post pages.
 - **Registry.** The npm registry must be the public one. The default in `~/.npmrc` is a work registry, which fails with 401.
 - **What to stage.** Stage only these paths: the repo holds other uncommitted work.
-- **Reply.** Answer the owner with the post text and the link https://rabbit0.dev/ru. The page updates a minute or two after the GitHub Pages run; check with `curl -sL https://rabbit0.dev/ru | grep -c '<a distinctive word>'` (`/ru.html` redirects, so follow redirects).
+- **Reply.** Answer the owner with the post text and the link https://rabbit0.dev/ru/p/<id>/. The page updates a minute or two after the GitHub Pages run; check with `curl -sL https://rabbit0.dev/ru/p/<id>/ | grep -c '<a distinctive word>'`.

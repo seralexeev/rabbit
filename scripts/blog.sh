@@ -20,8 +20,12 @@ case "${1:-}" in
     (cd "$BLOG" && OPENAI_API_KEY=unused node src/index.ts | grep -v 'already exists' || true)
     echo "posts: ru $(count "$BLOG/README.ru.md"), en $(count "$BLOG/README.md")"
     ;;
+  serve)
+    echo "http://127.0.0.1:${2:-8765}/"
+    exec python3 -m http.server "${2:-8765}" --bind 127.0.0.1 --directory "$BLOG/static"
+    ;;
   *)
-    echo "usage: scripts/blog.sh build" >&2
+    echo "usage: scripts/blog.sh build | serve [port]" >&2
     exit 1
     ;;
 esac

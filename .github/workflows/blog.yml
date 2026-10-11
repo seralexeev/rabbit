@@ -29,10 +29,17 @@ jobs:
           sparse-checkout: workspaces/blog
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
+          cache: npm
+          cache-dependency-path: workspaces/blog/package-lock.json
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq webp ffmpeg
+      - uses: actions/cache@v4
+        with:
+          path: workspaces/blog/static/media/preview
+          key: blog-previews-${{ hashFiles('workspaces/blog/src/utils.ts') }}-${{ hashFiles('workspaces/blog/static/media/*') }}
+          restore-keys: blog-previews-${{ hashFiles('workspaces/blog/src/utils.ts') }}-
       - working-directory: workspaces/blog
-        run: npm ci && node src/index.ts
+        run: npm ci && npm run typecheck && node src/index.ts
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'unused' }}
       - uses: actions/configure-pages@v5

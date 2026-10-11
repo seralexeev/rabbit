@@ -35,6 +35,7 @@
 | Q36 | В предпросмотре JLC проверить повороты и первый вывод U1 (LQFP-64), U4/U6 (RPH), U10 (DRR), U11/U12 (RGF), Q1/Q2/Q6 (DFN5x6), U5 (HTSSOP), J45/J46 | CPL без поправок под библиотеку JLC | body-pcb-rev-b §14 |
 | Q38 | Предохранители rev B — SMD NANO2 2410 (15/10/5/5 А): сгоревший меняется паяльником, не рукой, как ATO. Устраивает, или F1 вернуть в держатель ATO (ручная пайка)? | Обслуживание; бывший Q4 | body-pcb-rev-b §1, §14 |
 | Q40 | Заказываем 2 (+1 запасной) × maxon ECX FLAT 22 L 18 В + GPX 22 LN 16:1 + ENX 22 MILE (код B845D2FFA4A0, €429,78 за шт., maxon Australia), детали ЧПУ из `cad/drive/` (JLCCNC/PCBWay, ~US$200–260), 4 × SKF 61803-2RS1 и стенд DRV8316REVM + NUCLEO-G474RE? Сначала — печатная примерка и замеры M13–M18 | Привод; ~A$2 000–2 200 | `reports/2026-10-03-bldc-drive.md` §13.8, `cad/drive/README.md` |
+| Q51 | Блог: подтвердить rabbit0.dev в Google Search Console и Bing Webmaster Tools (DNS TXT) и отправить `https://rabbit0.dev/sitemap.xml`. И `www.rabbit0.dev` не резолвится: добавить CNAME `www` → `seralexeev.github.io` (GitHub Pages сам редиректит на apex)? | Индексация 389 новых страниц | `log/2026-10-11-blog-seo.md` |
 
 ## Измерить на роботе
 
