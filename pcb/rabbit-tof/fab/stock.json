@@ -1,0 +1,118 @@
+{
+ "date": "2026-10-11",
+ "boards": 10,
+ "parts": {
+  "C124205": {
+   "model": "BAT54WS-7-F",
+   "package": "SOD-323",
+   "stock": 48759,
+   "type": "expand",
+   "price": 0.0628,
+   "describe": "1 Independent 100mA 1V@100mA 2uA@25V 30V 600mA SOD-323 Schottky Diodes ROHS"
+  },
+  "C1525": {
+   "model": "CL05B104KO5NNNC",
+   "package": "0402",
+   "stock": 24111621,
+   "type": "base",
+   "price": 0.0045,
+   "describe": "100nF 16V X7R \u00b110% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C19702": {
+   "model": "CL10A106KP8NNNC",
+   "package": "0603",
+   "stock": 10411929,
+   "type": "base",
+   "price": 0.0305,
+   "describe": "10V 10uF X5R \u00b110% 0603 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C202288": {
+   "model": "LSF0204PWR",
+   "package": "TSSOP-14",
+   "stock": 10106,
+   "type": "expand",
+   "price": 0.6336,
+   "describe": "-40\u2103~+125\u2103 1 1.8V~5.5V 4 800mV~4.5V Auto Direction Detection Bidirectional Push-Pull\u3001Open-drain TTL TSSOP-14 Translators"
+  },
+  "C25741": {
+   "model": "0402WGF1003TCE",
+   "package": "0402",
+   "stock": 8084261,
+   "type": "base",
+   "price": 0.0024,
+   "describe": "-55\u2103~+155\u2103 100k\u03a9 50V 62.5mW Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0402 Chip Resistor - Surface Mount ROHS"
+  },
+  "C25744": {
+   "model": "0402WGF1002TCE",
+   "package": "0402",
+   "stock": 19777407,
+   "type": "base",
+   "price": 0.0034,
+   "describe": "-55\u2103~+155\u2103 10k\u03a9 50V 62.5mW Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0402 Chip Resistor - Surface Mount ROHS"
+  },
+  "C25792": {
+   "model": "0402WGF4702TCE",
+   "package": "0402",
+   "stock": 5262672,
+   "type": "base",
+   "price": 0.0026,
+   "describe": "-55\u2103~+155\u2103 47k\u03a9 50V 62.5mW Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0402 Chip Resistor - Surface Mount ROHS"
+  },
+  "C25879": {
+   "model": "0402WGF2201TCE",
+   "package": "0402",
+   "stock": 1606501,
+   "type": "base",
+   "price": 0.0017,
+   "describe": "-55\u2103~+155\u2103 2.2k\u03a9 50V 62.5mW Thick Film Resistor \u00b11% \u00b1100ppm/\u2103 0402 Chip Resistor - Surface Mount ROHS"
+  },
+  "C3011957": {
+   "model": "HC-GH-6PLT",
+   "package": "SMD,P=1.25mm",
+   "stock": 4820,
+   "type": "expand",
+   "price": 0.1491,
+   "describe": "-25\u2103~+85\u2103 1 1.25mm 1A 1x6P 50V 6 6P Auxiliary Solder Pin GH LCP Phosphor Bronze Surface Mount,Vertical Tin SMD,P=1.25mm "
+  },
+  "C52923": {
+   "model": "CL05A105KA5NQNC",
+   "package": "0402",
+   "stock": 7486378,
+   "type": "base",
+   "price": 0.0087,
+   "describe": "1uF 25V X5R \u00b110% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+  },
+  "C7386355": {
+   "model": "VL53L8CXV0GC/1",
+   "package": "LGA-16",
+   "stock": 2357,
+   "type": "expand",
+   "price": 10.1859,
+   "describe": "Low power mode\u3001Interrupt output ToF Distance Sensor LGA-16 Specialized Sensors ROHS"
+  },
+  "C92498": {
+   "model": "LP5907MFX-1.8/NOPB",
+   "package": "SOT-23-5",
+   "stock": 30782,
+   "type": "expand",
+   "price": 0.1922,
+   "describe": "-40\u2103~+125\u2103@(Tj) 1 1.8V 120mV@(250mA) 12uA 250mA 5.5V 6.5uVrms 82dB@(1kHz) Fixed Positive Under Voltage Lockout\u3001Over Temp"
+  },
+  "C2829264": {
+   "model": "GH1.25-6PLTPZ",
+   "package": "SMD,P=1.25mm",
+   "stock": 3214,
+   "type": "expand",
+   "price": 0.0948,
+   "describe": "-25\u2103~+85\u2103 1 1.25mm 1A 1x6P 50V 6 6P PA6T Phosphor bronze Surface Mount,Vertical Tin UL94V-0 maize-yellow SMD,P=1.25mm Wi"
+  },
+  "C52037399": {
+   "model": "GH1.25-6PLT",
+   "package": "SMD,P=1.25mm",
+   "stock": 2147,
+   "type": "expand",
+   "price": 0.1514,
+   "describe": "-40\u2103~+85\u2103 1 1.25mm 10.75mm 1A 1x6P 4.05mm 4.25mm 50V 6 6P Auxiliary Solder Pin Beige Brass GH LCP Surface Mount,Vertical"
+  }
+ }
+}

@@ -1,0 +1,25 @@
+* I2C1: Pi 1.8k pull-ups, 18 devices + trace + ribbon, and one ToF port behind the TCA9548A (R900 4.7k, D60, cable)
+.include models.lib
+
+.param R900=4.7k
+.param vdd=3.3 r_pi=1.8k c_main=250p mux_on=1 c_down=35p r_od=25 f_scl=100k tedge=10n
+.param t_tof=1
+
+VDD VDD 0 {vdd}
+VTOF TOF1_3V3 0 {vdd}
+Rpi I2C1_SDA VDD {r_pi}
+Cmain I2C1_SDA 0 {c_main}
+Vsq sq 0 PULSE(1 0 0 {tedge} {tedge} {0.5/f_scl-tedge} {1/f_scl})
+Vpi pic 0 PWL(0 1 {t_tof} 1 {t_tof+1n} 0)
+Bpic pidrv 0 V = V(sq)*V(pic)
+Spi I2C1_SDA 0 pidrv 0 SWOD
+.model SWOD SW(VT=0.5 VH=0.01 RON={r_od} ROFF=1e10)
+
+Vmux muxg 0 {vdd*mux_on}
+XMUX I2C1_SDA muxg TOF1_SDA PASSGATE
+R900 TOF1_SDA TOF1_3V3 {R900}
+Cdown TOF1_SDA 0 {c_down}
+Btofc tofc 0 V = V(sq)*(1-V(pic))
+Stof TOF1_SDA 0 tofc 0 SWOD
+
+.end

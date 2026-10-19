@@ -1,0 +1,137 @@
+Get Ackerman chassis' source codes and more information here:
+https://docs.hiwonder.com/projects/Ackermann-Chassis/en/latest/
+.
+Product Description
+Hiwonder Ackermann steering chassis is a standard structure widely used in the new energy vehicle market and is a popular choice in the field of autonomous driving. This Ackerman car chassis is an unmanned metal chassis developed by Hiwonder for educational scenes. Its chassis adopts a forward Ackerman steering structure and the rear wheels travel with electronic differential, which can satisfy users' learning of Ackerman's special structure.
+Ackermann Steering Structure
+The Ackermann steering structure represents a standard configuration in modern vehicles. It ensures that the rear wheels remain parallel. During a turn, the inner wheel experiences a greater turning angle than the outer wheel, a design feature that defines the Ackermann steering structure.
+High-precision Steering Structure
+The steering structure incorporates high-precision components, accurate bearings, and offers exceptional accuracy and robust load-bearing capabilities. Equipped with a 17KG large-torque digital servo, it provides powerful steering, making it an ideal choice for autonomous driving research.
+High-Performance DC Geared Motor
+The chassis is furnished with high-performance DC motors that include a high-accuracy encoder, a rated voltage of 12V, robust power, exceptional precision, and outstanding interference resistance.
+Aluminum Alloy Body, Solid Rubber Tires
+Hiwonder Ackermann chassis adopts an all-metal aluminum alloy structure with anodized surface, which is beautiful and exquisite. The chassis adopts solid rubber tires, which have high friction and prevent slipping.
+Features
+①The Hiwonder chassis is equipped with high-performance DC reduction motor, high-quality rubber tires, LD-1501MG high-torque digital servo and other components.
+②The chassis adopts an all-metal aluminum alloy structure with anodized surface, which is beautiful and exquisite.
+③The metal chassis adopts a forward Ackerman steering structure and the rear wheels travel with electronic differential.
+④The Ackermann steering car chassis can expand electronic systems such as STM32 to achieve more creativity.
+Control Connection Diagram
+Raised-layer Metal Plate Size & Parameters
+Parameters
+Material
+Aluminum alloy
+Dial length
+270mm
+Thickness
+2mm
+Weight
+126g
+Chassis width
+120.5mm
+Chassis color
+Black
+Parameters
+Material
+Aluminum alloy
+Dial length
+270mm
+Thickness
+2mm
+Weight
+126g
+Chassis width
+120.5mm
+Chassis color
+Black
+Encoder Geared Motor
+Rated voltage
+12V
+Rated power
+about 8.3W
+Motor type
+permanent magnet brushed
+Stall current
+3.2A
+Stall torque
+15kg.cm
+Rated current
+0.36A
+Locked torque
+2.6kg.cm
+Gear ratio
+1:90
+No-Load speed
+110rpm
+Rated speed
+85rpm
+Shaft diameter
+6mm (D-shaped shaft)
+Encoder specification
+AB Dual-Phase Encoder
+Number of magnetic poles
+11 poles
+Port type
+PH2.0-6PIN
+LD-1501MG High-precision Servo
+Weight
+61g
+Stal current
+2.4~3A
+Size
+40*20*40.5mm
+Servo precision
+0.3°
+Working voltage
+6-8.4V
+Control method
+PWM pulse width control
+Rotation speed
+0.16sec/60°7.4V
+Gear type
+metal teeth
+Stalling torque
+13kg.cm 6V; 15kg.cm 6.5V; 17kg.cm 7.4V
+PWM pulse width range
+500~2500us, corresponding to 0~180°
+Rotation range
+0~180°
+Line length
+300mm
+No-load current
+100mA
+Apply to
+diverse bionic robot joints
+Specifications
+Item
+Specification
+Material
+Aluminum alloy
+length
+270mm
+Thickness
+2mm
+Package weight
+Single Layer: 0.96kg
+Double Layer: 1.06kg
+width
+197mm
+Chassis color
+Black
+Package weight
+1.4kg
+Package size
+320*250*130mm
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/65a37805a38a4b173d91151f310aefae.jpg?v=1701404227
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/65a37805a38a4b173d91151f310aefae.jpg?v=1701404227
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/1_5d52e475-10d4-4332-9821-79d944511d45.jpg?v=1701404227
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/2_eff82a34-7a01-4045-84b3-4cdc33a94684.jpg?v=1701404227
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/3_068d6517-be68-418c-8384-f2943304ad8b.jpg?v=1701404227
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/4_c6244179-6e7a-4c18-a0bc-1664c97f6b60.jpg?v=1701404228
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/11425300d3bcbc36aa2318f39c77fc9b_b1978dda-242d-4502-91f9-2f62372b80a7.jpg?v=1701402320
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/4dc394adf5828138a79aec1defbb8092.jpg?v=1701404466
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/f4b3da9554de4e60ffd11b8edcb16ff8_9fd2a2b4-d14b-4b69-9d9e-b3078e8aecf5.jpg?v=1702978163
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/2_e2711488-9e51-4871-a616-0242db8fcd34.jpg?v=1703059971
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/4cbd4e8e1017ef8f4706be0093d2e20c_de5764b1-d12a-49d3-9bb7-705281332c28.jpg?v=1701769292
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/bffb8cbd5eb089aa42190226b65cba47_a6ac95e8-bf9d-477c-899c-82c862cd0279.jpg?v=1702976676
+https://cdn.shopifycdn.net/s/files/1/0084/2799/5187/files/99d6425288093e592a407a9b06d6db52_811cd40a-1c12-4f24-b896-cff56672c8a5.jpg?v=1702976676

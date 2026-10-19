@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rabbit CAD</title>
+<style>
+  :root { --bg: #f4f4f2; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #dcdcd8; --accent: #e91e63; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #17181a; --panel: #212226; --text: #ececec; --muted: #9a9aa0; --line: #34353a; } }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.4 -apple-system, system-ui, sans-serif; }
+  #app { display: flex; height: 100%; }
+  #side { width: 300px; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  #side h1 { font-size: 15px; margin: 12px 14px 4px; }
+  #status { color: var(--muted); margin: 0 14px 8px; font-size: 12px; }
+  #search { margin: 0 14px 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+  #groups, #tools { padding: 4px 14px 8px; border-bottom: 1px solid var(--line); }
+  #groups label { display: inline-flex; align-items: center; gap: 4px; margin: 2px 8px 2px 0; }
+  .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  #list { overflow: auto; flex: 1; }
+  #list div { padding: 3px 14px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #list div:hover { background: var(--bg); }
+  #list div.sel { background: var(--accent); color: #fff; }
+  #list div.off { opacity: .4; }
+  #info { padding: 10px 14px; border-top: 1px solid var(--line); min-height: 88px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; white-space: pre-wrap; }
+  #view { flex: 1; position: relative; }
+  #hint { position: absolute; left: 12px; bottom: 10px; color: var(--muted); font-size: 12px; pointer-events: none; }
+  #tools button, #tools select, #tools input { font: inherit; }
+  #tools .row { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  #tools input[type=range] { flex: 1; }
+  button { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app">
+  <div id="side">
+    <h1>Rabbit CAD</h1>
+    <div id="status">loading…</div>
+    <input id="search" placeholder="filter parts (name or group)">
+    <div id="groups"></div>
+    <div id="tools">
+      <div class="row">
+        <button id="fit">Fit</button><button id="showall">Show all</button><button id="hidesel">Hide selected</button>
+      </div>
+      <div class="row">Section
+        <select id="secAxis"><option value="">off</option><option>X</option><option>Y</option><option>Z</option></select>
+        <input id="secPos" type="range" min="0" max="1000" value="500">
+      </div>
+      <div class="row">Views
+        <button data-v="iso">iso</button><button data-v="top">top</button><button data-v="front">front</button><button data-v="rear">rear</button><button data-v="left">side</button>
+      </div>
+    </div>
+    <div id="list"></div>
+    <div id="info">Click a part. Shift-click two points to measure.</div>
+  </div>
+  <div id="view"><div id="hint">drag: orbit · right-drag: pan · wheel: zoom · F: fit selection · H: hide · Esc: clear</div></div>
+</div>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+const view = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.localClippingEnabled = true;
+view.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
+const camera = new THREE.PerspectiveCamera(35, 1, 1, 20000);
+camera.up.set(0, 0, 1);
+camera.position.set(450, -550, 380);
+const controls = new OrbitControls(camera, renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x777777, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(300, -400, 600); scene.add(sun);
+const grid = new THREE.GridHelper(600, 30, 0x888888, 0x555555); grid.rotation.x = Math.PI / 2; grid.position.z = 4.3; scene.add(grid);
+
+let root = null, meta = {}, hidden = new Set(), hiddenGroups = new Set(), selected = null, version = 0, firstLoad = true;
+const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+const measure = { pts: [], objs: [] };
+
+function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+window.addEventListener("resize", resize); resize();
+
+function partOf(obj) { while (obj && !meta[obj.name]) obj = obj.parent; return obj; }
+function eachPart(fn) { root && root.traverse(o => { if (meta[o.name] && o !== root) fn(o); }); }
+
+function applyVisibility() {
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  eachPart(o => { const m = meta[o.name]; o.visible = !hidden.has(o.name) && !hiddenGroups.has(m.group); });
+  document.querySelectorAll("#list div").forEach(d => {
+    const m = meta[d.dataset.name];
+    d.style.display = !q || d.dataset.name.includes(q) || m.group.includes(q) ? "" : "none";
+    d.classList.toggle("off", hidden.has(d.dataset.name) || hiddenGroups.has(m.group));
+    d.classList.toggle("sel", d.dataset.name === selected);
+  });
+}
+
+function setMaterials() {
+  const axis = document.getElementById("secAxis").value;
+  eachPart(o => o.traverse(c => {
+    if (!c.isMesh) return;
+    if (!c.userData.base) c.userData.base = c.material;
+    const mat = c.userData.base.clone();
+    mat.side = THREE.DoubleSide;
+    mat.clippingPlanes = axis ? [plane] : [];
+    if (o.name === selected) { mat.emissive = new THREE.Color(0xe91e63); mat.emissiveIntensity = 0.45; }
+    c.material = mat;
+  }));
+}
+
+function updateSection() {
+  const axis = document.getElementById("secAxis").value;
+  if (axis && root) {
+    const box = new THREE.Box3().setFromObject(root);
+    const t = document.getElementById("secPos").value / 1000;
+    const k = axis.toLowerCase();
+    const pos = box.min[k] + (box.max[k] - box.min[k]) * t;
+    plane.normal.set(axis === "X" ? -1 : 0, axis === "Y" ? -1 : 0, axis === "Z" ? -1 : 0);
+    plane.constant = pos;
+    document.getElementById("status").textContent = `section ${axis} = ${pos.toFixed(1)} mm`;
+  }
+  setMaterials();
+}
+
+function fit(objs) {
+  const box = new THREE.Box3();
+  (objs.length ? objs : [root]).forEach(o => box.expandByObject(o));
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  controls.target.copy(c);
+  camera.position.copy(c).add(dir.multiplyScalar(r / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.05));
+  controls.update();
+}
+
+function setView(v) {
+  const d = { iso: [1, -1.2, 0.9], top: [0, 0.0001, 1], front: [0, -1, 0], rear: [0, 1, 0], left: [1, 0, 0] }[v];
+  const dist = camera.position.distanceTo(controls.target);
+  camera.position.copy(controls.target).add(new THREE.Vector3(...d).normalize().multiplyScalar(dist));
+  controls.update();
+}
+
+function select(name) {
+  selected = name;
+  const m = meta[name];
+  if (m) {
+    const s = m.max.map((v, i) => (v - m.min[i]).toFixed(1));
+    document.getElementById("info").textContent =
+      `${name}\ngroup ${m.group}\nsize  ${s.join(" × ")} mm\nmin   ${m.min.map(v => v.toFixed(1)).join(", ")}\nmax   ${m.max.map(v => v.toFixed(1)).join(", ")}`;
+  }
+  setMaterials(); applyVisibility();
+}
+
+function buildPanel() {
+  const groups = {};
+  Object.values(meta).forEach(m => (groups[m.group] = (groups[m.group] || 0) + 1));
+  const colours = {};
+  Object.values(meta).forEach(m => (colours[m.group] = colours[m.group] || m.colour));
+  document.getElementById("groups").innerHTML = Object.keys(groups).sort().map(g =>
+    `<label><input type="checkbox" data-g="${g}" ${hiddenGroups.has(g) ? "" : "checked"}><span class="sw" style="background:${colours[g]}"></span>${g} ${groups[g]}</label>`).join("");
+  document.querySelectorAll("#groups input").forEach(cb => cb.onchange = () => { cb.checked ? hiddenGroups.delete(cb.dataset.g) : hiddenGroups.add(cb.dataset.g); applyVisibility(); });
+  document.getElementById("list").innerHTML = Object.keys(meta).sort().map(n => `<div data-name="${n}">${n}</div>`).join("");
+  document.querySelectorAll("#list div").forEach(d => {
+    d.onclick = () => select(d.dataset.name);
+    d.ondblclick = () => { const o = root.getObjectByName(d.dataset.name); o && fit([o]); };
+  });
+}
+
+async function load() {
+  const parts = await (await fetch("/data/parts.json")).json();
+  meta = Object.fromEntries(parts.map(p => [p.name, p]));
+  const gltf = await new GLTFLoader().loadAsync(`/data/robot.glb?v=${version}`);
+  if (root) scene.remove(root);
+  root = gltf.scene;
+  scene.add(root);
+  buildPanel(); updateSection(); applyVisibility();
+  if (firstLoad) { fit([]); firstLoad = false; }
+  document.getElementById("status").textContent = `${parts.length} parts · updated ${new Date().toLocaleTimeString()}`;
+}
+
+async function poll() {
+  try {
+    const v = (await (await fetch("/version")).json()).glb;
+    if (v && v !== version) { version = v; await load(); }
+  } catch (e) { document.getElementById("status").textContent = "viewer server not reachable"; }
+  setTimeout(poll, 1000);
+}
+
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+renderer.domElement.addEventListener("pointerdown", e => (renderer.domElement._down = [e.clientX, e.clientY]));
+renderer.domElement.addEventListener("pointerup", e => {
+  const d = renderer.domElement._down; if (!d || Math.hypot(e.clientX - d[0], e.clientY - d[1]) > 4 || !root) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+  const axis = document.getElementById("secAxis").value;
+  const hit = ray.intersectObject(root, true).find(h => h.object.visible && (!axis || plane.distanceToPoint(h.point) >= 0));
+  if (!hit) return;
+  if (e.shiftKey) {
+    measure.pts.push(hit.point.clone());
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(1.5), new THREE.MeshBasicMaterial({ color: 0xe91e63, depthTest: false }));
+    dot.position.copy(hit.point); dot.renderOrder = 9; scene.add(dot); measure.objs.push(dot);
+    if (measure.pts.length === 2) {
+      const [a, b] = measure.pts;
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: 0xe91e63, depthTest: false }));
+      line.renderOrder = 9; scene.add(line); measure.objs.push(line);
+      const dd = b.clone().sub(a);
+      document.getElementById("info").textContent =
+        `distance ${a.distanceTo(b).toFixed(2)} mm\ndx ${dd.x.toFixed(2)}  dy ${dd.y.toFixed(2)}  dz ${dd.z.toFixed(2)}\nA ${a.toArray().map(v => v.toFixed(1)).join(", ")}\nB ${b.toArray().map(v => v.toFixed(1)).join(", ")}`;
+      measure.pts = [];
+    }
+    return;
+  }
+  const p = partOf(hit.object); p && select(p.name);
+});
+
+function clearMeasure() { measure.objs.forEach(o => scene.remove(o)); measure.objs = []; measure.pts = []; }
+window.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "f" || e.key === "F") { const o = selected && root.getObjectByName(selected); fit(o ? [o] : []); }
+  if ((e.key === "h" || e.key === "H") && selected) { hidden.add(selected); applyVisibility(); }
+  if (e.key === "Escape") { clearMeasure(); select(null); document.getElementById("info").textContent = "Click a part. Shift-click two points to measure."; }
+});
+document.getElementById("search").oninput = applyVisibility;
+document.getElementById("fit").onclick = () => fit([]);
+document.getElementById("showall").onclick = () => { hidden.clear(); hiddenGroups.clear(); buildPanel(); applyVisibility(); };
+document.getElementById("hidesel").onclick = () => { if (selected) { hidden.add(selected); applyVisibility(); } };
+document.getElementById("secAxis").onchange = updateSection;
+document.getElementById("secPos").oninput = updateSection;
+document.querySelectorAll("[data-v]").forEach(b => (b.onclick = () => setView(b.dataset.v)));
+
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+poll();
+</script>
+</body>
+</html>

@@ -20,7 +20,7 @@
 
 | | Значение | Откуда |
 |---|---|---|
-| Моторы | 2× Pololu 37D 70:1, 12 В, щёточные, «helical pinion» (первая ступень косозубая с 2019 г.) | [д] [даташит](../../datasheet/pololu-37d-metal-gearmotors-rev-1-2.pdf) |
+| Моторы | 2× Pololu 37D 70:1, 12 В, щёточные, «helical pinion» (первая ступень косозубая с 2019 г.) | [д] [даташит](../../datasheet/Pololu%2037D/pololu-37d-metal-gearmotors-rev-1-2.pdf) |
 | Версия | **Pololu #4754** «70:1 Metal Gearmotor 37Dx70L mm 12V with 64 CPR Encoder (Helical Pinion)» — подтвердил владелец 03.10; 64 × 70 = 4 480 отсчётов на оборот колеса | владелец |
 | Характеристики при 12 В | без нагрузки 150 об/мин и 0,11 А; стопор ~270 кг·мм (2,65 Н·м) и 5,2 А; макс. КПД 52% при 0,31 Н·м; допустимо длительно 100 кг·мм (0,98 Н·м), кратковременно 250 кг·мм | [д] |
 | Контроллер | RoboClaw 2x30A, packet serial, 50 Гц опрос | [д] |
@@ -222,7 +222,7 @@
 
 | Кандидат | Лицо 6 × M3 Ø31, смещение 7 мм, вал 6 мм D | Длина ≤ 70 мм | Встроенный энкодер | Качество и даташит | Итог |
 |---|---|---|---|---|---|
-| **Pololu 37D 12 В, косозубая 1-я ступень, энкодер 64 CPR** (#4751 19:1, #4752 30:1, #4758 10:1) | **да**: тот же корпус, что у нынешнего #4754 | 37Dx68L (19:1, 30:1), 37Dx65L (10:1) | да, 64 CPR на валу мотора | да: полный даташит с графиками на каждое число ([PDF](../../datasheet/pololu-37d-metal-gearmotors-rev-1-2.pdf)), один и тот же производитель с 2019 г. | **проходит** — единственный |
+| **Pololu 37D 12 В, косозубая 1-я ступень, энкодер 64 CPR** (#4751 19:1, #4752 30:1, #4758 10:1) | **да**: тот же корпус, что у нынешнего #4754 | 37Dx68L (19:1, 30:1), 37Dx65L (10:1) | да, 64 CPR на валу мотора | да: полный даташит с графиками на каждое число ([PDF](../../datasheet/Pololu%2037D/pololu-37d-metal-gearmotors-rev-1-2.pdf)), один и тот же производитель с 2019 г. | **проходит** — единственный |
 | BLDC JGB37-3650 / 3625 (PFDE, Chihai CHR-GM37, XYT, NFP) | да, по чертежам продавцов | 3650 ~69–71 мм; 3625 ~45 мм | **нет**: только встроенный драйвер с FG 6 имп./об (ШИМ-скорость, без управления моментом); «голых» с энкодером в продаже нет | шаблонные листинги AliExpress, ±15% | не проходит (энкодер, качество) |
 | maxon (ECX FLAT 22 L, ECX TORQUE 22 L) + GPX 22 + ENX | **нет**: фланец Ø22, M2/M2.5, вал соосный | 45–50 мм (FLAT) | да | высшее | → «нужен переходник» |
 | Faulhaber 3216 BXT H / 2232 BX4 + 22GPT + IEF3 | **нет**: 6 × M2 на ~Ø15, вал соосный | 49–60 мм | да | высшее | → «нужен переходник» |
@@ -713,7 +713,7 @@ Faulhaber (если F1): Micro-Fit 43025-0800 (1 фаза C, 2 B, 3 A, 4 GND, 5 
 
 ## Источники
 
-**Свои данные:** `model/chassis.step` (замеры §3), [даташит Pololu 37D](../../datasheet/pololu-37d-metal-gearmotors-rev-1-2.pdf), [`log/2026-10-03-power-rails.md`](../log/2026-10-03-power-rails.md), [`log/2026-10-03-nav-replay.md`](../log/2026-10-03-nav-replay.md), [`architecture-2.0-wiring.md`](2026-10-03-architecture-2.0-wiring.md), [`body-pcb.md`](2026-10-03-body-pcb.md), блог rabbit0.dev #37, #148, #149.
+**Свои данные:** `model/chassis.step` (замеры §3), [даташит Pololu 37D](../../datasheet/Pololu%2037D/pololu-37d-metal-gearmotors-rev-1-2.pdf), [`log/2026-10-03-power-rails.md`](../log/2026-10-03-power-rails.md), [`log/2026-10-03-nav-replay.md`](../log/2026-10-03-nav-replay.md), [`architecture-2.0-wiring.md`](2026-10-03-architecture-2.0-wiring.md), [`body-pcb.md`](2026-10-03-body-pcb.md), блог rabbit0.dev #37, #148, #149.
 
 **Моторы:**
 - Pololu: [37D](https://www.pololu.com/category/116/37d-metal-gearmotors), [#4751](https://www.pololu.com/product/4751), [#4752](https://www.pololu.com/product/4752), [#4754](https://www.pololu.com/product/4754), [#4692](https://www.pololu.com/product/4692), [чертёж](https://www.pololu.com/file/0J1735/37d-metal-gearmotors-dimension-diagram.pdf), хабы [#1083](https://www.pololu.com/product/1083), [#1999](https://www.pololu.com/product/1999)

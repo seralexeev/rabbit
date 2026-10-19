@@ -1,0 +1,2548 @@
+[
+ {
+  "name": "deck_1",
+  "group": "deck",
+  "jev": "deck",
+  "confidence": 0.97,
+  "probabilities": {
+   "deck": 0.97,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.03,
+   "servo": 0.0,
+   "steering": 0.0,
+   "hub_or_axle": 0.0,
+   "standoff": 0.0,
+   "screw": 0.0,
+   "nut_or_washer": 0.0,
+   "other": 0.0
+  }
+ },
+ {
+  "name": "deck_3",
+  "group": "deck",
+  "jev": "deck",
+  "confidence": 0.71,
+  "probabilities": {
+   "deck": 0.74,
+   "wheel": 0.02,
+   "drive_motor": 0.02,
+   "motor_bracket": 0.05,
+   "servo": 0.09,
+   "steering": 0.04,
+   "hub_or_axle": 0.01,
+   "standoff": 0.01,
+   "screw": 0.0,
+   "nut_or_washer": 0.0,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p10",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.18,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.24000000000000002,
+   "hub_or_axle": 0.25,
+   "standoff": 0.23,
+   "screw": 0.07,
+   "nut_or_washer": 0.14,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p100",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.18,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.07,
+   "servo": 0.0,
+   "steering": 0.17,
+   "hub_or_axle": 0.25,
+   "standoff": 0.09,
+   "screw": 0.15,
+   "nut_or_washer": 0.22,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p101",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.51,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.03,
+   "servo": 0.02,
+   "steering": 0.55,
+   "hub_or_axle": 0.11,
+   "standoff": 0.1,
+   "screw": 0.08,
+   "nut_or_washer": 0.08,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p102",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.31,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.03,
+   "steering": 0.37,
+   "hub_or_axle": 0.12,
+   "standoff": 0.12,
+   "screw": 0.24,
+   "nut_or_washer": 0.04,
+   "other": 0.06
+  }
+ },
+ {
+  "name": "fastener_p103",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.58,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.09,
+   "steering": 0.62,
+   "hub_or_axle": 0.08,
+   "standoff": 0.09,
+   "screw": 0.03,
+   "nut_or_washer": 0.05,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p104",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.41,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.08,
+   "steering": 0.46,
+   "hub_or_axle": 0.16,
+   "standoff": 0.1,
+   "screw": 0.04,
+   "nut_or_washer": 0.08,
+   "other": 0.07
+  }
+ },
+ {
+  "name": "fastener_p105",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.6,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.12,
+   "steering": 0.64,
+   "hub_or_axle": 0.08,
+   "standoff": 0.05,
+   "screw": 0.03,
+   "nut_or_washer": 0.03,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p106",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.52,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.04,
+   "steering": 0.56,
+   "hub_or_axle": 0.11,
+   "standoff": 0.11,
+   "screw": 0.04,
+   "nut_or_washer": 0.08,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p107",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.61,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.03,
+   "steering": 0.65,
+   "hub_or_axle": 0.11,
+   "standoff": 0.08,
+   "screw": 0.03,
+   "nut_or_washer": 0.06,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p108",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.48,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.02,
+   "steering": 0.53,
+   "hub_or_axle": 0.14,
+   "standoff": 0.11,
+   "screw": 0.04,
+   "nut_or_washer": 0.1,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p109",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.52,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.02,
+   "steering": 0.56,
+   "hub_or_axle": 0.14,
+   "standoff": 0.1,
+   "screw": 0.03,
+   "nut_or_washer": 0.08,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p11",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.33,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.04,
+   "steering": 0.39,
+   "hub_or_axle": 0.26,
+   "standoff": 0.15,
+   "screw": 0.03,
+   "nut_or_washer": 0.06,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p110",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.55,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.03,
+   "steering": 0.59,
+   "hub_or_axle": 0.16,
+   "standoff": 0.08,
+   "screw": 0.03,
+   "nut_or_washer": 0.07,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p111",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.38,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.01,
+   "steering": 0.44,
+   "hub_or_axle": 0.19,
+   "standoff": 0.17,
+   "screw": 0.05,
+   "nut_or_washer": 0.1,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p112",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.38,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.03,
+   "servo": 0.02,
+   "steering": 0.44,
+   "hub_or_axle": 0.19,
+   "standoff": 0.14,
+   "screw": 0.04,
+   "nut_or_washer": 0.09,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p113",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.17,
+   "motor_bracket": 0.11,
+   "servo": 0.0,
+   "steering": 0.01,
+   "hub_or_axle": 0.17,
+   "standoff": 0.28,
+   "screw": 0.03,
+   "nut_or_washer": 0.19,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p114",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.2,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.15,
+   "motor_bracket": 0.11,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.2,
+   "standoff": 0.27,
+   "screw": 0.03,
+   "nut_or_washer": 0.19,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p121",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.36,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.02,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.0,
+   "steering": 0.21,
+   "hub_or_axle": 0.42,
+   "standoff": 0.09,
+   "screw": 0.07,
+   "nut_or_washer": 0.15,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p122",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.4,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.0,
+   "steering": 0.13,
+   "hub_or_axle": 0.45,
+   "standoff": 0.13,
+   "screw": 0.09,
+   "nut_or_washer": 0.15,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p123",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.32,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.36,
+   "hub_or_axle": 0.14,
+   "standoff": 0.02,
+   "screw": 0.04,
+   "nut_or_washer": 0.38,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p124",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.33,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.03,
+   "servo": 0.01,
+   "steering": 0.29,
+   "hub_or_axle": 0.17,
+   "standoff": 0.02,
+   "screw": 0.05,
+   "nut_or_washer": 0.39,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p126",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.27,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.1,
+   "motor_bracket": 0.1,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.34,
+   "standoff": 0.23,
+   "screw": 0.04,
+   "nut_or_washer": 0.13,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p131",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.41,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.04,
+   "motor_bracket": 0.04,
+   "servo": 0.01,
+   "steering": 0.05,
+   "hub_or_axle": 0.13,
+   "standoff": 0.46,
+   "screw": 0.06,
+   "nut_or_washer": 0.13,
+   "other": 0.08
+  }
+ },
+ {
+  "name": "fastener_p132",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.27,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.08,
+   "steering": 0.34,
+   "hub_or_axle": 0.12,
+   "standoff": 0.18,
+   "screw": 0.07,
+   "nut_or_washer": 0.11,
+   "other": 0.07
+  }
+ },
+ {
+  "name": "fastener_p133",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.2,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.03,
+   "servo": 0.06,
+   "steering": 0.18,
+   "hub_or_axle": 0.16,
+   "standoff": 0.27,
+   "screw": 0.07,
+   "nut_or_washer": 0.14,
+   "other": 0.07
+  }
+ },
+ {
+  "name": "fastener_p134",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.33,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.06,
+   "motor_bracket": 0.05,
+   "servo": 0.02,
+   "steering": 0.05,
+   "hub_or_axle": 0.15,
+   "standoff": 0.39,
+   "screw": 0.06,
+   "nut_or_washer": 0.13,
+   "other": 0.09
+  }
+ },
+ {
+  "name": "fastener_p31",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.41,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.46,
+   "hub_or_axle": 0.28,
+   "standoff": 0.08,
+   "screw": 0.04,
+   "nut_or_washer": 0.07,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p32",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.38,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.02,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.04,
+   "servo": 0.01,
+   "steering": 0.44,
+   "hub_or_axle": 0.31,
+   "standoff": 0.07,
+   "screw": 0.03,
+   "nut_or_washer": 0.06,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p33",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.2,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.14,
+   "motor_bracket": 0.16,
+   "servo": 0.0,
+   "steering": 0.01,
+   "hub_or_axle": 0.27,
+   "standoff": 0.2,
+   "screw": 0.03,
+   "nut_or_washer": 0.14,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p35",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.24,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.03,
+   "servo": 0.02,
+   "steering": 0.22999999999999998,
+   "hub_or_axle": 0.31,
+   "standoff": 0.12,
+   "screw": 0.11,
+   "nut_or_washer": 0.13,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p36",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.27,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.03,
+   "servo": 0.01,
+   "steering": 0.19,
+   "hub_or_axle": 0.33999999999999997,
+   "standoff": 0.12,
+   "screw": 0.11,
+   "nut_or_washer": 0.14,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p37",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.27,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.22,
+   "hub_or_axle": 0.34,
+   "standoff": 0.11,
+   "screw": 0.13,
+   "nut_or_washer": 0.13,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p38",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.28,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.03,
+   "servo": 0.03,
+   "steering": 0.35,
+   "hub_or_axle": 0.26,
+   "standoff": 0.09,
+   "screw": 0.09,
+   "nut_or_washer": 0.1,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p41",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.51,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.04,
+   "servo": 0.09,
+   "steering": 0.55,
+   "hub_or_axle": 0.1,
+   "standoff": 0.05,
+   "screw": 0.05,
+   "nut_or_washer": 0.03,
+   "other": 0.08
+  }
+ },
+ {
+  "name": "fastener_p43",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.24,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.02,
+   "steering": 0.31,
+   "hub_or_axle": 0.3,
+   "standoff": 0.12,
+   "screw": 0.05,
+   "nut_or_washer": 0.12,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p44",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.29,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.03,
+   "servo": 0.01,
+   "steering": 0.35000000000000003,
+   "hub_or_axle": 0.3,
+   "standoff": 0.09,
+   "screw": 0.08,
+   "nut_or_washer": 0.09,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p45",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.3,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.36,
+   "hub_or_axle": 0.32,
+   "standoff": 0.09,
+   "screw": 0.05,
+   "nut_or_washer": 0.09,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p46",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.32,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.04,
+   "servo": 0.02,
+   "steering": 0.38,
+   "hub_or_axle": 0.27,
+   "standoff": 0.1,
+   "screw": 0.07,
+   "nut_or_washer": 0.07,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p47",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.27,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.02,
+   "steering": 0.3,
+   "hub_or_axle": 0.34,
+   "standoff": 0.12,
+   "screw": 0.05,
+   "nut_or_washer": 0.1,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p48",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.27,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.04,
+   "servo": 0.01,
+   "steering": 0.33999999999999997,
+   "hub_or_axle": 0.32,
+   "standoff": 0.09,
+   "screw": 0.08,
+   "nut_or_washer": 0.07,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p49",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.3,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.02,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.02,
+   "servo": 0.02,
+   "steering": 0.23,
+   "hub_or_axle": 0.36,
+   "standoff": 0.13,
+   "screw": 0.04,
+   "nut_or_washer": 0.12,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p50",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.33,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.03,
+   "servo": 0.02,
+   "steering": 0.39,
+   "hub_or_axle": 0.3,
+   "standoff": 0.09,
+   "screw": 0.06,
+   "nut_or_washer": 0.07,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p53",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.54,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.03,
+   "steering": 0.58,
+   "hub_or_axle": 0.1,
+   "standoff": 0.04,
+   "screw": 0.04,
+   "nut_or_washer": 0.16,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p54",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.44,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.05,
+   "steering": 0.49,
+   "hub_or_axle": 0.18,
+   "standoff": 0.15,
+   "screw": 0.03,
+   "nut_or_washer": 0.06,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p55",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.52,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.05,
+   "steering": 0.56,
+   "hub_or_axle": 0.1,
+   "standoff": 0.04,
+   "screw": 0.03,
+   "nut_or_washer": 0.15,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p56",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.3,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.02,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.04,
+   "steering": 0.36,
+   "hub_or_axle": 0.25,
+   "standoff": 0.17,
+   "screw": 0.04,
+   "nut_or_washer": 0.08,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p58",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.04,
+   "motor_bracket": 0.05,
+   "servo": 0.0,
+   "steering": 0.04,
+   "hub_or_axle": 0.2,
+   "standoff": 0.26,
+   "screw": 0.08,
+   "nut_or_washer": 0.28,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p59",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.28,
+   "hub_or_axle": 0.23,
+   "standoff": 0.15,
+   "screw": 0.11,
+   "nut_or_washer": 0.16,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p60",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.18,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.04,
+   "servo": 0.01,
+   "steering": 0.14,
+   "hub_or_axle": 0.25,
+   "standoff": 0.19,
+   "screw": 0.12,
+   "nut_or_washer": 0.2,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p61",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.22,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.03,
+   "motor_bracket": 0.06,
+   "servo": 0.0,
+   "steering": 0.04,
+   "hub_or_axle": 0.19,
+   "standoff": 0.25,
+   "screw": 0.09,
+   "nut_or_washer": 0.29000000000000004,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p62",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.04,
+   "servo": 0.01,
+   "steering": 0.28,
+   "hub_or_axle": 0.15,
+   "standoff": 0.08,
+   "screw": 0.18,
+   "nut_or_washer": 0.21,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p63",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.19,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.04,
+   "servo": 0.01,
+   "steering": 0.26,
+   "hub_or_axle": 0.18,
+   "standoff": 0.12,
+   "screw": 0.15,
+   "nut_or_washer": 0.21,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p64",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.22,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.03,
+   "servo": 0.01,
+   "steering": 0.12,
+   "hub_or_axle": 0.18,
+   "standoff": 0.13,
+   "screw": 0.2,
+   "nut_or_washer": 0.29,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p65",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.31,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.05,
+   "motor_bracket": 0.1,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.11,
+   "standoff": 0.19,
+   "screw": 0.14,
+   "nut_or_washer": 0.37,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p66",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.18,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.08,
+   "motor_bracket": 0.13,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.19,
+   "standoff": 0.18,
+   "screw": 0.12,
+   "nut_or_washer": 0.25,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p67",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.18,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.07,
+   "motor_bracket": 0.14,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.18,
+   "standoff": 0.19,
+   "screw": 0.12,
+   "nut_or_washer": 0.25,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p68",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.33,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.02,
+   "motor_bracket": 0.09,
+   "servo": 0.0,
+   "steering": 0.05,
+   "hub_or_axle": 0.13,
+   "standoff": 0.16,
+   "screw": 0.13,
+   "nut_or_washer": 0.39,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p69",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.18,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.05,
+   "motor_bracket": 0.15,
+   "servo": 0.0,
+   "steering": 0.05,
+   "hub_or_axle": 0.19,
+   "standoff": 0.17,
+   "screw": 0.12,
+   "nut_or_washer": 0.25,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p7",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.28,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.35,
+   "hub_or_axle": 0.29,
+   "standoff": 0.13,
+   "screw": 0.05,
+   "nut_or_washer": 0.1,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p70",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.18,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.05,
+   "motor_bracket": 0.12,
+   "servo": 0.0,
+   "steering": 0.03,
+   "hub_or_axle": 0.2,
+   "standoff": 0.19,
+   "screw": 0.13,
+   "nut_or_washer": 0.25,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p71",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.28,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.04,
+   "motor_bracket": 0.11,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.13,
+   "standoff": 0.17,
+   "screw": 0.16,
+   "nut_or_washer": 0.35,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p72",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.16,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.09,
+   "motor_bracket": 0.15,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.18,
+   "standoff": 0.19,
+   "screw": 0.1,
+   "nut_or_washer": 0.24000000000000002,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p73",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.25,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.05,
+   "motor_bracket": 0.09,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.16,
+   "standoff": 0.17,
+   "screw": 0.15,
+   "nut_or_washer": 0.32,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p74",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.34,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.03,
+   "motor_bracket": 0.09,
+   "servo": 0.0,
+   "steering": 0.03,
+   "hub_or_axle": 0.14,
+   "standoff": 0.16,
+   "screw": 0.12,
+   "nut_or_washer": 0.4,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p75",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.18,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.05,
+   "motor_bracket": 0.12,
+   "servo": 0.0,
+   "steering": 0.04,
+   "hub_or_axle": 0.19,
+   "standoff": 0.21,
+   "screw": 0.12,
+   "nut_or_washer": 0.25,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "fastener_p76",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.16,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.06,
+   "motor_bracket": 0.12,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.21,
+   "standoff": 0.19,
+   "screw": 0.13,
+   "nut_or_washer": 0.24000000000000002,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p77",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.08,
+   "motor_bracket": 0.1,
+   "servo": 0.01,
+   "steering": 0.09,
+   "hub_or_axle": 0.17,
+   "standoff": 0.28,
+   "screw": 0.07,
+   "nut_or_washer": 0.15,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p78",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.2,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.1,
+   "motor_bracket": 0.1,
+   "servo": 0.0,
+   "steering": 0.05,
+   "hub_or_axle": 0.17,
+   "standoff": 0.27,
+   "screw": 0.09,
+   "nut_or_washer": 0.17,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p79",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.26,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.06,
+   "motor_bracket": 0.1,
+   "servo": 0.0,
+   "steering": 0.05,
+   "hub_or_axle": 0.14,
+   "standoff": 0.33,
+   "screw": 0.08,
+   "nut_or_washer": 0.19,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p80",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.14,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.07,
+   "motor_bracket": 0.12,
+   "servo": 0.01,
+   "steering": 0.11,
+   "hub_or_axle": 0.22,
+   "standoff": 0.22,
+   "screw": 0.05,
+   "nut_or_washer": 0.15,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p81",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.19,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.08,
+   "motor_bracket": 0.12,
+   "servo": 0.0,
+   "steering": 0.04,
+   "hub_or_axle": 0.18,
+   "standoff": 0.26,
+   "screw": 0.07,
+   "nut_or_washer": 0.2,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p82",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.22,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.06,
+   "motor_bracket": 0.1,
+   "servo": 0.0,
+   "steering": 0.08,
+   "hub_or_axle": 0.19,
+   "standoff": 0.29000000000000004,
+   "screw": 0.07,
+   "nut_or_washer": 0.16,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p83",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.23,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.08,
+   "motor_bracket": 0.08,
+   "servo": 0.01,
+   "steering": 0.1,
+   "hub_or_axle": 0.2,
+   "standoff": 0.3,
+   "screw": 0.05,
+   "nut_or_washer": 0.12,
+   "other": 0.06
+  }
+ },
+ {
+  "name": "fastener_p84",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.22,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.12,
+   "motor_bracket": 0.12,
+   "servo": 0.01,
+   "steering": 0.06,
+   "hub_or_axle": 0.18,
+   "standoff": 0.29,
+   "screw": 0.05,
+   "nut_or_washer": 0.13,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p85",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.28,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.04,
+   "motor_bracket": 0.08,
+   "servo": 0.0,
+   "steering": 0.07,
+   "hub_or_axle": 0.19,
+   "standoff": 0.35,
+   "screw": 0.07,
+   "nut_or_washer": 0.15,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p86",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.32,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.05,
+   "motor_bracket": 0.1,
+   "servo": 0.0,
+   "steering": 0.07,
+   "hub_or_axle": 0.2,
+   "standoff": 0.38,
+   "screw": 0.04,
+   "nut_or_washer": 0.12,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p87",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.07,
+   "motor_bracket": 0.1,
+   "servo": 0.0,
+   "steering": 0.05,
+   "hub_or_axle": 0.21,
+   "standoff": 0.28,
+   "screw": 0.06,
+   "nut_or_washer": 0.19,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p88",
+  "group": "fastener",
+  "jev": "standoff",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.06,
+   "motor_bracket": 0.1,
+   "servo": 0.0,
+   "steering": 0.07,
+   "hub_or_axle": 0.2,
+   "standoff": 0.28,
+   "screw": 0.06,
+   "nut_or_washer": 0.18,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "fastener_p9",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.28,
+   "hub_or_axle": 0.26,
+   "standoff": 0.22,
+   "screw": 0.06,
+   "nut_or_washer": 0.1,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p92",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.19,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.04,
+   "servo": 0.02,
+   "steering": 0.26,
+   "hub_or_axle": 0.18,
+   "standoff": 0.08,
+   "screw": 0.14,
+   "nut_or_washer": 0.18,
+   "other": 0.09
+  }
+ },
+ {
+  "name": "fastener_p93",
+  "group": "fastener",
+  "jev": "hub_or_axle",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.06,
+   "servo": 0.0,
+   "steering": 0.16,
+   "hub_or_axle": 0.28,
+   "standoff": 0.09,
+   "screw": 0.15,
+   "nut_or_washer": 0.22,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p94",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.24,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.07,
+   "servo": 0.0,
+   "steering": 0.12,
+   "hub_or_axle": 0.19,
+   "standoff": 0.06,
+   "screw": 0.19,
+   "nut_or_washer": 0.31,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p95",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.04,
+   "servo": 0.0,
+   "steering": 0.2,
+   "hub_or_axle": 0.15,
+   "standoff": 0.08,
+   "screw": 0.22,
+   "nut_or_washer": 0.28,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p96",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.21,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.06,
+   "servo": 0.01,
+   "steering": 0.28,
+   "hub_or_axle": 0.2,
+   "standoff": 0.09,
+   "screw": 0.15,
+   "nut_or_washer": 0.17,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p97",
+  "group": "fastener",
+  "jev": "steering",
+  "confidence": 0.16,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.05,
+   "servo": 0.01,
+   "steering": 0.24,
+   "hub_or_axle": 0.23,
+   "standoff": 0.08,
+   "screw": 0.15,
+   "nut_or_washer": 0.2,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "fastener_p98",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.22,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.04,
+   "servo": 0.01,
+   "steering": 0.22,
+   "hub_or_axle": 0.18,
+   "standoff": 0.05,
+   "screw": 0.16,
+   "nut_or_washer": 0.29,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "fastener_p99",
+  "group": "fastener",
+  "jev": "nut_or_washer",
+  "confidence": 0.27,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.04,
+   "servo": 0.0,
+   "steering": 0.11,
+   "hub_or_axle": 0.15,
+   "standoff": 0.08,
+   "screw": 0.24,
+   "nut_or_washer": 0.34,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "front_stub_axle_left",
+  "group": "hub",
+  "jev": "steering",
+  "confidence": 0.77,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.03,
+   "steering": 0.79,
+   "hub_or_axle": 0.1,
+   "standoff": 0.02,
+   "screw": 0.01,
+   "nut_or_washer": 0.02,
+   "other": 0.01
+  }
+ },
+ {
+  "name": "front_stub_axle_right",
+  "group": "hub",
+  "jev": "steering",
+  "confidence": 0.58,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.05,
+   "servo": 0.05,
+   "steering": 0.62,
+   "hub_or_axle": 0.13,
+   "standoff": 0.05,
+   "screw": 0.03,
+   "nut_or_washer": 0.03,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "motor_can_left",
+  "group": "motor",
+  "jev": "drive_motor",
+  "confidence": 0.75,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.77,
+   "motor_bracket": 0.16,
+   "servo": 0.0,
+   "steering": 0.0,
+   "hub_or_axle": 0.03,
+   "standoff": 0.03,
+   "screw": 0.0,
+   "nut_or_washer": 0.0,
+   "other": 0.01
+  }
+ },
+ {
+  "name": "motor_can_right",
+  "group": "motor",
+  "jev": "drive_motor",
+  "confidence": 0.74,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.76,
+   "motor_bracket": 0.17,
+   "servo": 0.0,
+   "steering": 0.0,
+   "hub_or_axle": 0.03,
+   "standoff": 0.03,
+   "screw": 0.0,
+   "nut_or_washer": 0.0,
+   "other": 0.01
+  }
+ },
+ {
+  "name": "motor_connector_left",
+  "group": "motor",
+  "jev": "motor_bracket",
+  "confidence": 0.14,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.19,
+   "motor_bracket": 0.22,
+   "servo": 0.0,
+   "steering": 0.04,
+   "hub_or_axle": 0.17,
+   "standoff": 0.18,
+   "screw": 0.08,
+   "nut_or_washer": 0.09,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "motor_connector_right",
+  "group": "motor",
+  "jev": "hub_or_axle",
+  "confidence": 0.14,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.13,
+   "motor_bracket": 0.19,
+   "servo": 0.0,
+   "steering": 0.06,
+   "hub_or_axle": 0.22,
+   "standoff": 0.17,
+   "screw": 0.09,
+   "nut_or_washer": 0.1,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "motor_encoder_cap_left",
+  "group": "motor",
+  "jev": "drive_motor",
+  "confidence": 0.47,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.52,
+   "motor_bracket": 0.26,
+   "servo": 0.0,
+   "steering": 0.01,
+   "hub_or_axle": 0.08,
+   "standoff": 0.09,
+   "screw": 0.0,
+   "nut_or_washer": 0.02,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "motor_encoder_cap_right",
+  "group": "motor",
+  "jev": "drive_motor",
+  "confidence": 0.42,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.47000000000000003,
+   "motor_bracket": 0.35,
+   "servo": 0.0,
+   "steering": 0.01,
+   "hub_or_axle": 0.06,
+   "standoff": 0.08,
+   "screw": 0.0,
+   "nut_or_washer": 0.01,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "motor_encoder_pcb_left",
+  "group": "motor",
+  "jev": "motor_bracket",
+  "confidence": 0.34,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.21,
+   "motor_bracket": 0.4,
+   "servo": 0.0,
+   "steering": 0.02,
+   "hub_or_axle": 0.13,
+   "standoff": 0.1,
+   "screw": 0.07,
+   "nut_or_washer": 0.05,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "motor_encoder_pcb_right",
+  "group": "motor",
+  "jev": "motor_bracket",
+  "confidence": 0.43,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.18,
+   "motor_bracket": 0.48,
+   "servo": 0.0,
+   "steering": 0.01,
+   "hub_or_axle": 0.1,
+   "standoff": 0.08,
+   "screw": 0.09,
+   "nut_or_washer": 0.04,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "motor_gearbox_left",
+  "group": "motor",
+  "jev": "drive_motor",
+  "confidence": 0.47,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.52,
+   "motor_bracket": 0.35,
+   "servo": 0.01,
+   "steering": 0.02,
+   "hub_or_axle": 0.02,
+   "standoff": 0.05,
+   "screw": 0.0,
+   "nut_or_washer": 0.01,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "motor_gearbox_right",
+  "group": "motor",
+  "jev": "drive_motor",
+  "confidence": 0.49,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.54,
+   "motor_bracket": 0.36,
+   "servo": 0.01,
+   "steering": 0.01,
+   "hub_or_axle": 0.02,
+   "standoff": 0.04,
+   "screw": 0.0,
+   "nut_or_washer": 0.0,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "servo",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.36,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.05,
+   "motor_bracket": 0.06,
+   "servo": 0.24,
+   "steering": 0.42,
+   "hub_or_axle": 0.1,
+   "standoff": 0.04,
+   "screw": 0.01,
+   "nut_or_washer": 0.01,
+   "other": 0.06
+  }
+ },
+ {
+  "name": "standoff_front_left",
+  "group": "standoff",
+  "jev": "steering",
+  "confidence": 0.25,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.06,
+   "servo": 0.02,
+   "steering": 0.32,
+   "hub_or_axle": 0.1,
+   "standoff": 0.3,
+   "screw": 0.16,
+   "nut_or_washer": 0.01,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "standoff_front_right",
+  "group": "standoff",
+  "jev": "standoff",
+  "confidence": 0.28,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.07,
+   "servo": 0.01,
+   "steering": 0.21,
+   "hub_or_axle": 0.11,
+   "standoff": 0.35,
+   "screw": 0.19,
+   "nut_or_washer": 0.02,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "standoff_rear_left",
+  "group": "standoff",
+  "jev": "standoff",
+  "confidence": 0.56,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.12,
+   "servo": 0.0,
+   "steering": 0.05,
+   "hub_or_axle": 0.07,
+   "standoff": 0.6,
+   "screw": 0.13,
+   "nut_or_washer": 0.01,
+   "other": 0.01
+  }
+ },
+ {
+  "name": "standoff_rear_right",
+  "group": "standoff",
+  "jev": "standoff",
+  "confidence": 0.61,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.11,
+   "servo": 0.0,
+   "steering": 0.04,
+   "hub_or_axle": 0.05,
+   "standoff": 0.65,
+   "screw": 0.12,
+   "nut_or_washer": 0.01,
+   "other": 0.01
+  }
+ },
+ {
+  "name": "steering_p12",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.63,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.08,
+   "steering": 0.66,
+   "hub_or_axle": 0.1,
+   "standoff": 0.05,
+   "screw": 0.03,
+   "nut_or_washer": 0.03,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "steering_p13",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.55,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.06,
+   "servo": 0.09,
+   "steering": 0.59,
+   "hub_or_axle": 0.09,
+   "standoff": 0.06,
+   "screw": 0.02,
+   "nut_or_washer": 0.03,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "steering_p14",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.68,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.06,
+   "steering": 0.71,
+   "hub_or_axle": 0.08,
+   "standoff": 0.04,
+   "screw": 0.03,
+   "nut_or_washer": 0.03,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "steering_p15",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.7,
+  "probabilities": {
+   "deck": 0.01,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.03,
+   "servo": 0.07,
+   "steering": 0.73,
+   "hub_or_axle": 0.06,
+   "standoff": 0.04,
+   "screw": 0.04,
+   "nut_or_washer": 0.0,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "steering_p17",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.7,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.04,
+   "servo": 0.06,
+   "steering": 0.73,
+   "hub_or_axle": 0.08,
+   "standoff": 0.04,
+   "screw": 0.01,
+   "nut_or_washer": 0.01,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "steering_p2",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.57,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.07,
+   "servo": 0.09,
+   "steering": 0.61,
+   "hub_or_axle": 0.09000000000000001,
+   "standoff": 0.06,
+   "screw": 0.01,
+   "nut_or_washer": 0.02,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "steering_p24",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.41,
+  "probabilities": {
+   "deck": 0.24,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.05,
+   "servo": 0.11,
+   "steering": 0.46,
+   "hub_or_axle": 0.04,
+   "standoff": 0.03,
+   "screw": 0.01,
+   "nut_or_washer": 0.01,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "steering_p3",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.29,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.02,
+   "drive_motor": 0.09,
+   "motor_bracket": 0.1,
+   "servo": 0.27,
+   "steering": 0.35000000000000003,
+   "hub_or_axle": 0.05,
+   "standoff": 0.03,
+   "screw": 0.01,
+   "nut_or_washer": 0.01,
+   "other": 0.06
+  }
+ },
+ {
+  "name": "steering_p39",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.54,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.02,
+   "motor_bracket": 0.05,
+   "servo": 0.17,
+   "steering": 0.58,
+   "hub_or_axle": 0.1,
+   "standoff": 0.03,
+   "screw": 0.01,
+   "nut_or_washer": 0.0,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "steering_p4",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.57,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.07,
+   "steering": 0.61,
+   "hub_or_axle": 0.16,
+   "standoff": 0.07,
+   "screw": 0.01,
+   "nut_or_washer": 0.02,
+   "other": 0.04
+  }
+ },
+ {
+  "name": "steering_p40",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.44,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.02,
+   "servo": 0.08,
+   "steering": 0.49,
+   "hub_or_axle": 0.15,
+   "standoff": 0.11,
+   "screw": 0.02,
+   "nut_or_washer": 0.06,
+   "other": 0.05
+  }
+ },
+ {
+  "name": "steering_p5",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.41,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.0,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.03,
+   "servo": 0.08,
+   "steering": 0.46,
+   "hub_or_axle": 0.14,
+   "standoff": 0.1,
+   "screw": 0.08,
+   "nut_or_washer": 0.05,
+   "other": 0.06
+  }
+ },
+ {
+  "name": "steering_p6",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.58,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.06,
+   "servo": 0.05,
+   "steering": 0.62,
+   "hub_or_axle": 0.1,
+   "standoff": 0.05,
+   "screw": 0.03,
+   "nut_or_washer": 0.05,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "steering_p8",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.54,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.08,
+   "servo": 0.05,
+   "steering": 0.58,
+   "hub_or_axle": 0.14,
+   "standoff": 0.04,
+   "screw": 0.02,
+   "nut_or_washer": 0.05,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "steering_post_left",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.66,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.08,
+   "steering": 0.69,
+   "hub_or_axle": 0.08,
+   "standoff": 0.06,
+   "screw": 0.05,
+   "nut_or_washer": 0.01,
+   "other": 0.01
+  }
+ },
+ {
+  "name": "steering_post_right",
+  "group": "steering",
+  "jev": "steering",
+  "confidence": 0.52,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.08,
+   "steering": 0.56,
+   "hub_or_axle": 0.1,
+   "standoff": 0.11,
+   "screw": 0.08,
+   "nut_or_washer": 0.01,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "wheel_bearing_p116",
+  "group": "hub",
+  "jev": "steering",
+  "confidence": 0.37,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.02,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.43,
+   "hub_or_axle": 0.3,
+   "standoff": 0.07,
+   "screw": 0.05,
+   "nut_or_washer": 0.07,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "wheel_bearing_p117",
+  "group": "hub",
+  "jev": "steering",
+  "confidence": 0.35,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.01,
+   "steering": 0.41,
+   "hub_or_axle": 0.31,
+   "standoff": 0.08,
+   "screw": 0.06,
+   "nut_or_washer": 0.08,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "wheel_bearing_p119",
+  "group": "hub",
+  "jev": "steering",
+  "confidence": 0.3,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.02,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.03,
+   "servo": 0.02,
+   "steering": 0.36,
+   "hub_or_axle": 0.29,
+   "standoff": 0.11,
+   "screw": 0.06,
+   "nut_or_washer": 0.07,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "wheel_bearing_p120",
+  "group": "hub",
+  "jev": "steering",
+  "confidence": 0.29,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.02,
+   "servo": 0.01,
+   "steering": 0.35000000000000003,
+   "hub_or_axle": 0.33,
+   "standoff": 0.12,
+   "screw": 0.06,
+   "nut_or_washer": 0.07,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "wheel_front_left",
+  "group": "wheel",
+  "jev": "wheel",
+  "confidence": 0.71,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.74,
+   "drive_motor": 0.0,
+   "motor_bracket": 0.01,
+   "servo": 0.01,
+   "steering": 0.18,
+   "hub_or_axle": 0.04,
+   "standoff": 0.01,
+   "screw": 0.0,
+   "nut_or_washer": 0.0,
+   "other": 0.01
+  }
+ },
+ {
+  "name": "wheel_front_right",
+  "group": "wheel",
+  "jev": "wheel",
+  "confidence": 0.7,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.73,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.01,
+   "servo": 0.01,
+   "steering": 0.17,
+   "hub_or_axle": 0.05,
+   "standoff": 0.01,
+   "screw": 0.0,
+   "nut_or_washer": 0.0,
+   "other": 0.01
+  }
+ },
+ {
+  "name": "wheel_hub_front_left",
+  "group": "hub",
+  "jev": "steering",
+  "confidence": 0.49,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.04,
+   "drive_motor": 0.01,
+   "motor_bracket": 0.05,
+   "servo": 0.02,
+   "steering": 0.54,
+   "hub_or_axle": 0.21,
+   "standoff": 0.07,
+   "screw": 0.02,
+   "nut_or_washer": 0.02,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "wheel_hub_front_right",
+  "group": "hub",
+  "jev": "steering",
+  "confidence": 0.43,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.05,
+   "drive_motor": 0.02,
+   "motor_bracket": 0.04,
+   "servo": 0.04,
+   "steering": 0.48,
+   "hub_or_axle": 0.23,
+   "standoff": 0.08,
+   "screw": 0.01,
+   "nut_or_washer": 0.02,
+   "other": 0.03
+  }
+ },
+ {
+  "name": "wheel_hub_rear_left",
+  "group": "hub",
+  "jev": "drive_motor",
+  "confidence": 0.31,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.37,
+   "motor_bracket": 0.23,
+   "servo": 0.0,
+   "steering": 0.01,
+   "hub_or_axle": 0.13,
+   "standoff": 0.17,
+   "screw": 0.01,
+   "nut_or_washer": 0.05,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "wheel_hub_rear_right",
+  "group": "hub",
+  "jev": "drive_motor",
+  "confidence": 0.37,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.01,
+   "drive_motor": 0.43,
+   "motor_bracket": 0.24,
+   "servo": 0.0,
+   "steering": 0.01,
+   "hub_or_axle": 0.1,
+   "standoff": 0.13,
+   "screw": 0.01,
+   "nut_or_washer": 0.05,
+   "other": 0.02
+  }
+ },
+ {
+  "name": "wheel_rear_left",
+  "group": "wheel",
+  "jev": "wheel",
+  "confidence": 0.53,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.57,
+   "drive_motor": 0.24,
+   "motor_bracket": 0.11,
+   "servo": 0.0,
+   "steering": 0.01,
+   "hub_or_axle": 0.03,
+   "standoff": 0.02,
+   "screw": 0.0,
+   "nut_or_washer": 0.01,
+   "other": 0.01
+  }
+ },
+ {
+  "name": "wheel_rear_right",
+  "group": "wheel",
+  "jev": "wheel",
+  "confidence": 0.47,
+  "probabilities": {
+   "deck": 0.0,
+   "wheel": 0.52,
+   "drive_motor": 0.32,
+   "motor_bracket": 0.1,
+   "servo": 0.0,
+   "steering": 0.01,
+   "hub_or_axle": 0.02,
+   "standoff": 0.02,
+   "screw": 0.0,
+   "nut_or_washer": 0.0,
+   "other": 0.01
+  }
+ }
+]

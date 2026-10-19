@@ -1,0 +1,131 @@
+* Round 4: battery entry and power-up as built. Battery + lead -> XT60 J1 -> F1 -> BAT_F (C22, D7 SMBJ20CA) -> LM74800 U10
+* (Q1 ideal diode, Q2 switch, HGATE -> R42 100 R -> C23 47 nF) -> R1 2 mOhm -> VBUS bulk (C30, C33 220 uF, C31, C32 and the buck
+* input ceramics) -> Jetson eFuse U5, 5 V buck U4 -> TPS2121 U32 -> TLV75533 U15 -> +3V3_MCU -> RN6 -> Q31 -> LM5069 UVLO;
+* LM5069 U30 insertion timer (C302 22 nF) and gate start (C303 / D30 / Q32 / R306) into MOT_BUS (C1103, C1203, C1102, C1202).
+* Model sources:
+*   LM74800: datasheet/TI/lm74800.pdf (SNOSDD8) p.5 EN 1.195/1.231/1.267 V, OV 1.231 V; p.6 HGATE source 55 uA
+*     (39-75 uA used as corners) clamped at OUT + 11.1 V, sink 260 mA; t_EN(dly) ~0.18 ms (p.6, DGATE; HGATE assumed the
+*     same); ideal diode Q1 as a low-drop diode (as round 1 latch.cir).
+*   BSC010N04LS: datasheet/Infineon/bsc010n04ls.pdf p.5 V_GS(th) 1.2-2.0 V, C_iss 6.8 nF, C_rss 0.16 nF; level-1 model
+*     (models.lib). SOA is checked in the runner against Diagram 3 p.7.
+*   SMBJ20CA: Littelfuse SMBJ series (V_BR 22.2-24.5 V at 1 mA, V_C 32.4 V at 18.5 A) [catalogue values from memory;
+*     no PDF in datasheet/Littelfuse]: piecewise diode model.
+*   LM61495 U4: SNVSBZ4A p.5 EN 1.161/1.263/1.365 V, p.8 t_EN 0.82-1.2 ms, t_SS 1.7-2.7 ms; output as a ramp source, input
+*     power = load / 0.9.
+*   TPS16630 U5: datasheet/TI/tps1663.pdf (SLVSET9G) p.8 UVLO 1.2 V (R80/R81 -> 9.36 V), p.9 dVdT 2 uA x 25 / C80;
+*     the Jetson load (input capacitance and boot power) is an assumption: 220 uF and 6 W above 9 V.
+*   TPS2121 U32: datasheet/TI/tps2121.pdf (SLVSEA3F) p.7 UV 2.65 V, p.13 table 9-1 slew 0.78 V/ms at C_SS 100 nF; the
+*     settling time t_SET is not specified in the datasheet: parameter t_set (assumed 1-5 ms).
+*   LM5069-1 U30: datasheet/TI/lm5069.pdf (SNVS452G) p.5 PORIT 7.6/8 V, POREN 8.4/9 V, UVLO 2.45/2.5/2.55 V with 12/21/30 uA
+*     hysteresis, gate source 10/16/22 uA, sink 2 mA; p.6 insertion current 3/5.5/8 uA, V_TMRH 3.76/4/4.16 V; p.13 insertion
+*     time sequence. 2N7002K Q31: datasheet/Diodes/2n7002k.pdf V_GS(th) 1.0-2.5 V (switch at vth_q31).
+.include models.lib
+.func us(x, w) {0.5*(1+tanh(x/w))}
+
+.param C22=100n C21=100n C23=47n R42=100 C30=220u C33=220u C31=10u C32=10u C401=10u C601=10u C80=47n
+.param C302=22n C303=100n R306=1k C1103=220u C1203=220u C1102=10u C1202=10u R301=47.5k R302=14.7k
+.param vbat=16.8 r_bat=40m l_lead=0.6u t_plug=0.2m t_rise=2u press=1 t_press=1m t_en=0.18m
+.param i_hgate=55u v_hgate=11.1 k_cer=0.6 r_f1=3m
+.param uvlo_j=9.36 sr_j=1064 ilim_j=3.53 c_jet=220u p_jet=6
+.param v_en4=7.0 t_en4=1.0m t_ss4=2.2m p5=6 eta=0.9
+.param t_set=2m sr_mux=780 vth_q31=1.6 i_ins=5.5u v_tmrh=4.0 i_gate=16u
+.param porit=7.6 poren=8.4 uvlo_th=2.5 i_uvh=21u
+
+Vbat bat0 0 PWL(0 0 {t_plug} 0 {t_plug+t_rise} {vbat})
+Rbat bat0 batl {r_bat}
+Lbat batl lb2 {l_lead}
+Vlb lb2 BAT_IN 0
+Rf1 BAT_IN BAT_F {r_f1}
+C22 BAT_F 0 {C22}
+* SMBJ20CA, bidirectional, modelled for positive polarity: knee 23 V, 0.5 Ohm dynamic resistance
+Vtv BAT_F tvk 0
+Dtvs 0 tvk DTVS20
+.model DTVS20 D(Is=1e-12 N=1 Rs=0.5 Bv=23 Ibv=1m Cjo=1.5n)
+Dq1 BAT_F SW_MID DIDEAL
+C21 SW_MID 0 {C21}
+
+* LM74800 HGATE: enabled t_en after the press (EN high), sources i_hgate, clamped at VBUS_RAW + v_hgate
+Vone one 0 1
+Bge ge 0 V = {press}*u(time-{t_press}-{t_en})
+Bhg 0 HG I = {i_hgate}*V(ge)
+Vclp clp VBUS_RAW DC {v_hgate}
+Dclp HG clp DFAST
+Bsink HG VBUS_RAW I = (1-V(ge))*0.26*tanh((V(HG)-V(VBUS_RAW))/0.3)
+R42 HG HG_DV {R42}
+C23 HG_DV 0 {C23}
+XQ2 SW_MID HG VBUS_RAW BSC010N04LS
+Vq2 VBUS_RAW vr1 0
+R1 vr1 VBUS 2m
+
+* VBUS bulk: two 220 uF hybrid polymers (ESR 27 mOhm) + ceramics at k_cer of nominal (DC bias at 12-17 V)
+C30 VBUS c30e {C30}
+R30e c30e 0 27m
+C33 VBUS c33e {C33}
+R33e c33e 0 27m
+Ccer VBUS 0 {k_cer*(C31+C32+2*C401+2*C601)+4*470n*0.5}
+R39 VBUS 0 12k
+
+* Jetson eFuse U5 (TPS16630): UVLO 9.36 V, output slew sr_j, limit ilim_j, Jetson load c_jet + p_jet above 9 V
+Brj 0 rampj I = {sr_j}*us(V(VBUS)-{uvlo_j}, 0.05)*us(V(VBUS)-V(rampj), 0.05)
+Crj rampj 0 1
+Bj VBUS JET I = us(V(VBUS)-{uvlo_j}, 0.05)*min({ilim_j}, max(0, 30*(min(V(rampj),V(VBUS))-V(JET))))
+Cjet JET 0 {c_jet}
+Bjl JET 0 I = {p_jet}*us(V(JET)-9, 0.05)/max(V(JET),9)
+Rjl JET 0 10k
+
+* 5 V buck U4: EN at BODY_IN > v_en4 (R404/R405), t_EN delay, t_SS ramp to 5.167 V; input power p5 / eta while > 4.5 V
+Bt4 0 t4 I = us(V(VBUS)-{v_en4}, 0.05)
+Ct4 t4 0 1
+Br5 0 r5 I = (5.167/{t_ss4})*us(V(t4)-{t_en4}, 20u)*us(5.167-V(r5), 0.05)*us(V(VBUS)-5.5, 0.05)
+Cr5 r5 0 1
+Rr5 r5 0 1Meg
+Bp5 VBUS 0 I = ({p5}*us(V(r5)-4.5, 0.05) + 0.25*us(V(r5)-0.1, 0.05)*us(5.1-V(r5), 0.05))/{eta}/max(V(VBUS),5)
+
+* TPS2121 IN1 = +5V: valid at 2.65 V, settles t_set, then slews sr_mux; +5V_MCU <= +5V; TLV75533 -> +3V3_MCU
+Btm 0 tmux I = us(V(r5)-2.65, 0.05)
+Ctm tmux 0 1
+Brm 0 rmux I = {sr_mux}*us(V(tmux)-{t_set}, 20u)*us(V(r5)-V(rmux), 0.05)
+Crm rmux 0 1
+Rrm rmux 0 1Meg
+B5m P5V_MCU 0 V = min(V(rmux), V(r5))
+B33 P3V3_MCU 0 V = min(3.3, max(0, V(P5V_MCU)-0.15))
+* Q31 (2N7002K) pulls MOT_UVLO low once MOT_BUS_OFF (100k to +3V3_MCU) exceeds its threshold
+Sq31 MOT_UVLO 0 P3V3_MCU 0 SWQ31
+.model SWQ31 SW(VT={vth_q31} VH=0.05 RON=20 ROFF=1e13)
+
+* LM5069-1: VIN = MOT_F (F2 from VBUS); UVLO divider with 21 uA hysteresis current while below threshold
+Rf2 VBUS MOT_F 6m
+C301 MOT_F 0 100n
+R301 MOT_F MOT_UVLO {R301}
+R302 MOT_UVLO 0 {R302}
+Buvh MOT_UVLO 0 I = {i_uvh}*(1-V(uvok))
+Suv one uvok MOT_UVLO 0 SWUV
+.model SWUV SW(VT={uvlo_th} VH=1m RON=1 ROFF=1e13)
+Ruvok uvok 0 1Meg
+Cuvok uvok 0 1p
+* insertion timer: starts at PORIT, C302 charged by i_ins to v_tmrh, then the gate is allowed (POREN, UVLO)
+Bins 0 MOT_TMR I = {i_ins}*us(V(MOT_F)-{porit}, 0.05)*(1-V(insd))
+C302 MOT_TMR 0 {C302}
+Sins one insd MOT_TMR 0 SWINS
+.model SWINS SW(VT={v_tmrh} VH=1m RON=1 ROFF=1e13)
+Rinsd insd 0 1Meg
+Cinsd insd 0 1p
+* latch the "insertion done" flag
+Sinsl one insd insd 0 SWL
+.model SWL SW(VT=0.5 VH=0.05 RON=1 ROFF=1e13)
+Bgen gen 0 V = V(insd)*V(uvok)*us(V(MOT_F)-{poren}, 0.05)
+Bgate 0 MOT_GATE I = {i_gate}*V(gen)*0.5*(1+tanh((V(MOT_BUS)+12-V(MOT_GATE))/0.05)) - (1-V(gen))*2m*tanh(V(MOT_GATE)/0.2)
+D30 MOT_GATE MOT_DVC D1N4148
+C303 MOT_DVC 0 {C303}
+Q32 0 MOT_DVB MOT_DVC MMBT3906
+R306 MOT_GATE MOT_DVB {R306}
+XQ30 MOT_F MOT_GATE MOT_BUS BSC010N04LS
+C1103 MOT_BUS c1103e {C1103}
+R1103e c1103e 0 27m
+C1203 MOT_BUS c1203e {C1203}
+R1203e c1203e 0 27m
+Cmc MOT_BUS 0 {k_cer*(C1102+C1202)}
+Rmload MOT_BUS 0 40k
+
+.ic V(MOT_TMR)=0 V(HG)=0 V(HG_DV)=0
+.end

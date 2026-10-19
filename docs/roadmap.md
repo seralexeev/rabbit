@@ -32,6 +32,8 @@ Run these with `scripts/bringup.py` (`check`, `deploy`, `diet`, `forge-cutover`,
 
 ## Hardware and environment
 
+- **Body board rev C (2026-10-12):** routed, reviewed (rounds 1–4, `data/pcb-revc/review/`), fab files in `pcb/rabbit-body-c/fab/`, order sheet `reports/2026-10-11-jlc-order.md` (the owner places it). While it is made: port the Pi software to rev C from `reports/2026-10-12-body-rev-c-firmware-map.md` (`scripts/body-setup.sh` overlays and I2C1 100 kHz, `lib/hardware.py` GPIO18/19/17, PCA9685 now 0x60 with 0x40 = battery INA238, tof/ina/roboclaw/lidar nodes → mux, INA238/ADS7128, STM32 link, 3 lidars), write the STM32 firmware, then bring-up by `reports/2026-10-11-body-pcb-rev-c-bringup.md`.
+
 - **Rabbit 2.0 proposal** (`reports/2026-10-03-architecture-2.0.md`): Raspberry Pi 4 as the body (motors, servo, power, independent safety loop, lidar/ToF, rear camera, Forge, HUD, H.264 video), Jetson as the brain (perception, localization, planning), a direct Jetson–Pi cable and home Wi-Fi via a USB adapter with an external antenna (4G via the Teltonika TRB246 postponed by the owner), 2D lidar + ToF + bumpers, the existing wheel encoders wired to the RoboClaw, separate DC-DC and a soft power button.
 - **Rabbit 2.0, buildable** (2026-10-03; BOM, wiring, body software and a per-phase plan with acceptance checks in `reports/2026-10-03-architecture-2.0*.md`, diagrams `reports/media/wiring-2.0-*.svg`). Next steps, in order:
   1. Phase 0, no purchases (procedure: rabbit-robot skill, "Phase 0 on the robot"; tools and checks: `log/2026-10-03-phase-0-tools.md`):

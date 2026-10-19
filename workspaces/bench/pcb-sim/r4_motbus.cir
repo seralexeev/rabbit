@@ -1,0 +1,80 @@
+* Round 4: motor bus as built. VBUS -> F2 10 A -> R3 5 mOhm (Kelvin MOT_SNS_P/N) -> Q30 BSC010N04LS -> MOT_BUS
+* (C1103, C1203 220 uF polymers, C1102, C1202 10 uF, C1101, C1201 100 nF, D10, D31, brake divider). LM5069-1 U30: R305 8.45k
+* power limit, C302 22 nF timer, dv/dt start network C303 100 nF / D30 / Q32 / R306 1k.
+* Model sources:
+*   LM5069-1: datasheet/TI/lm5069.pdf (SNVS452G) p.5 gate source 10/16/22 uA, sink 2 mA, 110 mA (VIN-SENSE 150 mV), clamp
+*     12 V over OUT; p.6 V_CL 48.5/55/61.5 mV, t_CL 45 us, V_CB 80/105/130 mV, t_CB 0.44-1.2 us, fault timer 51/85/120 uA to
+*     V_TMRH 3.76/4/4.16 V, latch-off (-1); p.12 current limit, circuit breaker (230 mA pull-down) and power limit; power
+*     limit P = R_PWR / (1.3e5 x R_S) + 1.18 mV x V_DS / R_S (eq. 9 p.20, image; = 13.0 + 0.236 x V_DS W), +-24 % from
+*     PWRLIM 19/25/31 mV (p.5). Behavioural: the GATE current is a limited transconductance error of the current and
+*     power loops.
+*   BSC010N04LS: datasheet/Infineon/bsc010n04ls.pdf p.5 (level-1 model in models.lib); SOA in the runner (Diagram 3 p.7).
+*   MMBT3906, 1N4148WS, B540C: models.lib (Nexperia / Diodes datasheets, round 1 README).
+*   SMBJ20A D10: knee 23 V, 0.5 Ohm [Littelfuse catalogue, from memory].
+.include models.lib
+
+.param C302=22n C303=100n R306=1k C1103=220u C1203=220u C1102=10u C1202=10u R305=8.45k R3=5m
+.param vbus=16.8 r_src=30m t_en=1m i_gate=16u vcl=55m vcb=105m i_tmr=85u v_tmrh=4.0 kp_lim=1 k_cer=0.6
+.param t_short=1 r_short=10m l_short=0.2u r_load=40k t_load=1 i_load=0.001
+.param plim0={R305/(1.3e5*R3)} plim1={1.18m/R3}
+
+Vone one 0 1
+Vb vb0 0 {vbus}
+Rsrc vb0 VBUS {r_src}
+Cvbus VBUS 0 470u
+Rf2 VBUS mf0 6m
+Viq mf0 MOT_F 0
+C301 MOT_F 0 100n
+R3 MOT_F MOT_SNS_D {R3}
+XQ30 MOT_SNS_D MOT_GATE MOT_BUS BSC010N04LS
+
+* LM5069 control: en after t_en (MOT_BUS_OFF released), latch on timer expiry
+Ben en 0 V = min(1, max(0, (time-{t_en})/2u))*(1-V(flt))
+Bvs vsns 0 V = V(MOT_F)-V(MOT_SNS_D)
+Bvds vds 0 V = max(0, V(MOT_SNS_D)-V(MOT_BUS))
+Bpw pw 0 V = V(vsns)/{R3}*V(vds)
+Bpl pl 0 V = {kp_lim}*({plim0}+{plim1}*V(vds))
+* limit error (>0 when over the current or power limit); the gate source falls to a sink as the error grows
+Ble lerr 0 V = max(V(vsns)-{vcl}, (V(pw)-V(pl))*{R3}/max(V(vds),1))
+Bgate 0 MOT_GATE I = V(en)*min({i_gate}, {i_gate}-0.2*V(lerr))*0.5*(1+tanh((V(MOT_BUS)+12-V(MOT_GATE))/0.05))
++ - (1-V(en))*2m*tanh(V(MOT_GATE)/0.2) - 0.5*(1+tanh((V(cb)-0.5)/0.05))*0.23*tanh(V(MOT_GATE)/0.5)
+Scb one cb vsns 0 SWCB
+.model SWCB SW(VT={vcb} VH=1m RON=1 ROFF=1e13)
+Rcb cb 0 1Meg
+Ccb cb 0 0.5n
+* fault timer: charges at i_tmr while limiting (or breaker), discharges at 2.5 uA; latch-off at v_tmrh
+Blim limf 0 V = 0.5*(1+tanh((V(lerr)+0.3m)/0.1m))
+Btm 0 MOT_TMR I = V(en)*(max(V(limf),V(cb))*{i_tmr} - (1-max(V(limf),V(cb)))*2.5u*tanh(max(V(MOT_TMR),0)/10m))
+C302 MOT_TMR 0 {C302}
+Sflt one flt MOT_TMR 0 SWFLT
+.model SWFLT SW(VT={v_tmrh} VH=1m RON=1 ROFF=1e13)
+Sfltl one flt flt 0 SWL
+.model SWL SW(VT=0.5 VH=0.05 RON=1 ROFF=1e13)
+Rflt flt 0 1Meg
+Cflt flt 0 1p
+
+D30 MOT_GATE MOT_DVC D1N4148
+C303 MOT_DVC 0 {C303}
+Q32 0 MOT_DVB MOT_DVC MMBT3906
+R306 MOT_GATE MOT_DVB {R306}
+
+C1103 MOT_BUS c1103e {C1103}
+R1103e c1103e 0 27m
+C1203 MOT_BUS c1203e {C1203}
+R1203e c1203e 0 27m
+Cmc MOT_BUS 0 {k_cer*(C1102+C1202)+200n}
+Rml MOT_BUS 0 {r_load}
+D31 0 MOT_BUS B540C
+D10 0 MOT_BUS DTVS20
+.model DTVS20 D(Is=1e-12 N=1 Rs=0.5 Bv=23 Ibv=1m Cjo=1.5n)
+* motor load step (drivers running) and a hard short
+Vld ldc 0 PWL(0 0 {t_load} 0 {t_load+10u} 1)
+Bld MOT_BUS 0 I = V(ldc)*{i_load}*u(V(MOT_BUS)-1)
+Vsh shc 0 PWL(0 0 {t_short} 0 {t_short+0.1u} 1)
+Ssh MOT_BUS shn shc 0 SWSH
+.model SWSH SW(VT=0.5 VH=0.01 RON=1m ROFF=1e13)
+Lsh shn shr {l_short}
+Rsh shr 0 {r_short}
+
+.ic V(MOT_TMR)=0 V(MOT_GATE)=0 V(MOT_BUS)=0 V(VBUS)={vbus} V(MOT_F)={vbus}
+.end

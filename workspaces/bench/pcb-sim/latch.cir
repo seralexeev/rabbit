@@ -1,0 +1,82 @@
+* Soft-latch power switch: button, Q4, D8, Q5 and the LM74800 EN/OV pins (design.py "power input" block)
+.include models.lib
+
+.param R40=150k R41=10k R42=100 C23=47n C24=10n C25=1u C26=100n
+.param R43=100k R44=22k R45=47k R46=220k R47=47k R48=1k R49=1Meg
+.param vbat=16.8 r_bat=30m t_rise=10u c26_to_bat=0
+.param t_press=50m t_len=150m
+.param t_sag=10 t_sag_fall=1m t_sag_len=1 v_sag=16.8
+.param t_off=1.5 p_on=10 p_off=1 r_static=2k c_bus=470u
+.param i_hgate=55u v_hgate=11.1 bv_d8=8.2 nbv_d8=4
+.param en_r=1.231 en_f=1.132 ov_r=1.231 ov_f=1.13 bk_r=1.263 bk_f=0.888 pi_min=5.4
+
+Vbat bat0 0 PWL(0 0 {t_rise} {vbat} {t_sag} {vbat} {t_sag+t_sag_fall} {v_sag} {t_sag+t_sag_fall+t_sag_len} {v_sag}
++ {t_sag+2*t_sag_fall+t_sag_len} {vbat})
+Rbat bat0 BAT_F {r_bat}
+C22 BAT_F 0 100n
+
+Q4 LATCH_C LATCH_B BAT_F MMBT3906
+R43 BAT_F LATCH_B {R43}
+R44 LATCH_B BTN_ON {R44}
+C26 BTN_ON 0 {C26*(1-c26_to_bat)+1f}
+C26b BTN_ON BAT_F {C26*c26_to_bat+1f}
+Vbtn btnc 0 PWL(0 0 {t_press} 0 {t_press+1u} 1 {t_press+t_len} 1 {t_press+t_len+1u} 0)
+Sbtn BTN_ON 0 btnc 0 SWBTN
+.model SWBTN SW(VT=0.5 VH=0.1 RON=0.1 ROFF=1e10)
+R45 LATCH_C LM_EN {R45}
+R46 LM_EN 0 {R46}
+C24 LM_EN 0 {C24}
+D8 HOLD_Z VBUS_RAW DZ8V2
+.model DZ8V2 D(Is=1e-14 N=1 Rs=10 Bv={bv_d8} Ibv=5m Nbv={nbv_d8} Cjo=60p)
+R47 HOLD_Z LM_EN {R47}
+XQ5 LM_EN OFF_G 0 AO3400A
+R48 GPIO17 OFF_A {R48}
+D9 OFF_A OFF_G D1N4148
+C25 OFF_G 0 {C25}
+R49 OFF_G 0 {R49}
+
+Vone one 0 1
+Sen one en_ok LM_EN 0 SWEN
+.model SWEN SW(VT={(en_r+en_f)/2} VH={(en_r-en_f)/2} RON=1 ROFF=1e10)
+Ren en_ok 0 1k
+Cen en_ok 0 4.7n
+Rcp en_ok en_d 1k
+Dcp en_d en_ok DFAST
+Ccp en_d 0 250n
+Rsw SW_MID LM_SW 19.5
+R40 LM_SW LM_OV {R40}
+R41 LM_OV 0 {R41}
+Sov one ovf LM_OV 0 SWOV
+.model SWOV SW(VT={(ov_r+ov_f)/2} VH={(ov_r-ov_f)/2} RON=1 ROFF=1e10)
+Rovf ovf 0 1k
+Covf ovf 0 4.7n
+Bge ge 0 V = u(V(en_d)-0.632)*(1-V(ovf))
+Bhg 0 HG I = {i_hgate}*V(ge)
+Vclp clp VBUS_RAW DC {v_hgate}
+Dclp HG clp DFAST
+Bsink HG VBUS_RAW I = (1-V(ge))*0.26*tanh((V(HG)-V(VBUS_RAW))/0.3)
+R42 HG HG_DV {R42}
+C23 HG_DV 0 {C23}
+
+Dq1 BAT_F SW_MID DIDEAL
+C21 SW_MID 0 100n
+XQ2 SW_MID HG VBUS_RAW BSC010N04LS
+
+Cbus VBUS_RAW bus_esr {c_bus}
+Rbus_esr bus_esr 0 20m
+Rstatic VBUS_RAW 0 {r_static}
+R404 VBUS_RAW BK_EN 100k
+R405 BK_EN 0 22k
+Sbk one bken BK_EN 0 SWBK
+.model SWBK SW(VT={(bk_r+bk_f)/2} VH={(bk_r-bk_f)/2} RON=1 ROFF=1e10)
+Rbken bken 0 1Meg
+Spi bken pi VBUS_RAW 0 SWPI
+.model SWPI SW(VT={pi_min} VH=0.05 RON=1 ROFF=1e10)
+Rpi pi 0 1Meg
+Cpi pi 0 10p
+Vgo goff 0 PWL(0 0 {t_off} 0 {t_off+10u} 1)
+Bload VBUS_RAW 0 I = V(pi)*({p_on}*(1-V(goff))+{p_off}*V(goff))/max(V(VBUS_RAW),3)
+BG gpio_src 0 V = 3.3*V(goff)*V(pi)
+RG gpio_src GPIO17 50
+
+.end

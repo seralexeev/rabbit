@@ -1,0 +1,2146 @@
+[
+ {
+  "name": "deck_1",
+  "group": "deck",
+  "kit_id": "Part_28",
+  "volume_mm3": 47233.4,
+  "min": [
+   -57.78,
+   -138.4,
+   27.12
+  ],
+  "max": [
+   62.74,
+   131.54,
+   29.12
+  ]
+ },
+ {
+  "name": "deck_2",
+  "group": "deck",
+  "kit_id": "Part_34",
+  "volume_mm3": 47233.4,
+  "min": [
+   -57.78,
+   -138.4,
+   79.12
+  ],
+  "max": [
+   62.74,
+   131.54,
+   81.12
+  ]
+ },
+ {
+  "name": "fastener_p10",
+  "group": "fastener",
+  "kit_id": "Part_10",
+  "volume_mm3": 70.1,
+  "min": [
+   -47.82,
+   -62.58,
+   48.56
+  ],
+  "max": [
+   -41.82,
+   -56.58,
+   53.56
+  ]
+ },
+ {
+  "name": "fastener_p100",
+  "group": "fastener",
+  "kit_id": "Part_100",
+  "volume_mm3": 28.7,
+  "min": [
+   -24.47,
+   -104.8,
+   25.22
+  ],
+  "max": [
+   -19.18,
+   -100.21,
+   27.12
+  ]
+ },
+ {
+  "name": "fastener_p101",
+  "group": "fastener",
+  "kit_id": "Part_101",
+  "volume_mm3": 68.4,
+  "min": [
+   47.28,
+   -62.09,
+   37.81
+  ],
+  "max": [
+   52.3,
+   -57.06,
+   50.41
+  ]
+ },
+ {
+  "name": "fastener_p102",
+  "group": "fastener",
+  "kit_id": "Part_102",
+  "volume_mm3": 91.4,
+  "min": [
+   -47.35,
+   -62.1,
+   37.65
+  ],
+  "max": [
+   -42.3,
+   -57.06,
+   55.66
+  ]
+ },
+ {
+  "name": "fastener_p103",
+  "group": "fastener",
+  "kit_id": "Part_103",
+  "volume_mm3": 68.4,
+  "min": [
+   10.49,
+   -76.03,
+   61.15
+  ],
+  "max": [
+   15.51,
+   -63.42,
+   66.18
+  ]
+ },
+ {
+  "name": "fastener_p104",
+  "group": "fastener",
+  "kit_id": "Part_104",
+  "volume_mm3": 20.6,
+  "min": [
+   10.25,
+   -75.84,
+   60.9
+  ],
+  "max": [
+   15.78,
+   -74.22,
+   66.43
+  ]
+ },
+ {
+  "name": "fastener_p105",
+  "group": "fastener",
+  "kit_id": "Part_105",
+  "volume_mm3": 53.2,
+  "min": [
+   9.76,
+   -74.8,
+   60.84
+  ],
+  "max": [
+   16.25,
+   -72.47,
+   66.49
+  ]
+ },
+ {
+  "name": "fastener_p106",
+  "group": "fastener",
+  "kit_id": "Part_106",
+  "volume_mm3": 46.9,
+  "min": [
+   10.48,
+   -75.72,
+   47.7
+  ],
+  "max": [
+   15.51,
+   -68.22,
+   52.73
+  ]
+ },
+ {
+  "name": "fastener_p107",
+  "group": "fastener",
+  "kit_id": "Part_107",
+  "volume_mm3": 46.8,
+  "min": [
+   10.48,
+   -75.72,
+   33.71
+  ],
+  "max": [
+   15.51,
+   -68.22,
+   38.74
+  ]
+ },
+ {
+  "name": "fastener_p108",
+  "group": "fastener",
+  "kit_id": "Part_108",
+  "volume_mm3": 46.8,
+  "min": [
+   3.49,
+   -75.73,
+   40.7
+  ],
+  "max": [
+   8.51,
+   -68.24,
+   45.73
+  ]
+ },
+ {
+  "name": "fastener_p109",
+  "group": "fastener",
+  "kit_id": "Part_109",
+  "volume_mm3": 46.9,
+  "min": [
+   17.48,
+   -75.73,
+   40.7
+  ],
+  "max": [
+   22.51,
+   -68.24,
+   45.73
+  ]
+ },
+ {
+  "name": "fastener_p11",
+  "group": "fastener",
+  "kit_id": "Part_11",
+  "volume_mm3": 70.1,
+  "min": [
+   10.0,
+   -70.17,
+   60.67
+  ],
+  "max": [
+   16.0,
+   -65.17,
+   66.67
+  ]
+ },
+ {
+  "name": "fastener_p110",
+  "group": "fastener",
+  "kit_id": "Part_110",
+  "volume_mm3": 46.8,
+  "min": [
+   10.48,
+   -77.57,
+   40.71
+  ],
+  "max": [
+   15.51,
+   -70.07,
+   45.74
+  ]
+ },
+ {
+  "name": "fastener_p111",
+  "group": "fastener",
+  "kit_id": "Part_111",
+  "volume_mm3": 106.4,
+  "min": [
+   71.89,
+   -91.89,
+   44.22
+  ],
+  "max": [
+   78.88,
+   -84.9,
+   52.25
+  ]
+ },
+ {
+  "name": "fastener_p112",
+  "group": "fastener",
+  "kit_id": "Part_112",
+  "volume_mm3": 106.3,
+  "min": [
+   -73.92,
+   -91.89,
+   44.22
+  ],
+  "max": [
+   -66.92,
+   -84.9,
+   52.25
+  ]
+ },
+ {
+  "name": "fastener_p113",
+  "group": "fastener",
+  "kit_id": "Part_113",
+  "volume_mm3": 106.4,
+  "min": [
+   -72.23,
+   79.66,
+   46.88
+  ],
+  "max": [
+   -65.23,
+   86.65,
+   54.9
+  ]
+ },
+ {
+  "name": "fastener_p114",
+  "group": "fastener",
+  "kit_id": "Part_114",
+  "volume_mm3": 106.3,
+  "min": [
+   70.2,
+   79.66,
+   46.88
+  ],
+  "max": [
+   77.19,
+   86.65,
+   54.9
+  ]
+ },
+ {
+  "name": "fastener_p121",
+  "group": "fastener",
+  "kit_id": "Part_121",
+  "volume_mm3": 37.3,
+  "min": [
+   55.27,
+   -90.84,
+   25.07
+  ],
+  "max": [
+   60.2,
+   -85.91,
+   30.73
+  ]
+ },
+ {
+  "name": "fastener_p122",
+  "group": "fastener",
+  "kit_id": "Part_122",
+  "volume_mm3": 37.3,
+  "min": [
+   -55.24,
+   -90.84,
+   25.07
+  ],
+  "max": [
+   -50.31,
+   -85.91,
+   30.73
+  ]
+ },
+ {
+  "name": "fastener_p123",
+  "group": "fastener",
+  "kit_id": "Part_123",
+  "volume_mm3": 7.4,
+  "min": [
+   54.74,
+   -91.38,
+   26.6
+  ],
+  "max": [
+   60.74,
+   -85.38,
+   27.1
+  ]
+ },
+ {
+  "name": "fastener_p124",
+  "group": "fastener",
+  "kit_id": "Part_124",
+  "volume_mm3": 7.4,
+  "min": [
+   -55.78,
+   -91.38,
+   26.6
+  ],
+  "max": [
+   -49.78,
+   -85.38,
+   27.1
+  ]
+ },
+ {
+  "name": "fastener_p126",
+  "group": "fastener",
+  "kit_id": "Part_126",
+  "volume_mm3": 122.1,
+  "min": [
+   82.78,
+   79.66,
+   40.96
+  ],
+  "max": [
+   92.81,
+   86.65,
+   47.95
+  ]
+ },
+ {
+  "name": "fastener_p131",
+  "group": "fastener",
+  "kit_id": "Part_131",
+  "volume_mm3": 106.3,
+  "min": [
+   37.08,
+   114.97,
+   75.12
+  ],
+  "max": [
+   44.07,
+   121.96,
+   83.14
+  ]
+ },
+ {
+  "name": "fastener_p132",
+  "group": "fastener",
+  "kit_id": "Part_132",
+  "volume_mm3": 106.4,
+  "min": [
+   37.07,
+   -114.56,
+   75.3
+  ],
+  "max": [
+   44.06,
+   -107.57,
+   83.33
+  ]
+ },
+ {
+  "name": "fastener_p133",
+  "group": "fastener",
+  "kit_id": "Part_133",
+  "volume_mm3": 106.3,
+  "min": [
+   -39.1,
+   -114.56,
+   75.3
+  ],
+  "max": [
+   -32.11,
+   -107.57,
+   83.33
+  ]
+ },
+ {
+  "name": "fastener_p134",
+  "group": "fastener",
+  "kit_id": "Part_134",
+  "volume_mm3": 106.4,
+  "min": [
+   -39.11,
+   114.97,
+   75.12
+  ],
+  "max": [
+   -32.11,
+   121.96,
+   83.14
+  ]
+ },
+ {
+  "name": "fastener_p31",
+  "group": "fastener",
+  "kit_id": "Part_31",
+  "volume_mm3": 121.9,
+  "min": [
+   82.72,
+   -91.88,
+   38.32
+  ],
+  "max": [
+   92.74,
+   -84.89,
+   45.32
+  ]
+ },
+ {
+  "name": "fastener_p32",
+  "group": "fastener",
+  "kit_id": "Part_32",
+  "volume_mm3": 122.1,
+  "min": [
+   -87.77,
+   -91.88,
+   38.32
+  ],
+  "max": [
+   -77.75,
+   -84.89,
+   45.32
+  ]
+ },
+ {
+  "name": "fastener_p33",
+  "group": "fastener",
+  "kit_id": "Part_33",
+  "volume_mm3": 121.9,
+  "min": [
+   -87.84,
+   79.66,
+   40.96
+  ],
+  "max": [
+   -77.82,
+   86.65,
+   47.95
+  ]
+ },
+ {
+  "name": "fastener_p35",
+  "group": "fastener",
+  "kit_id": "Part_35",
+  "volume_mm3": 33.7,
+  "min": [
+   -17.01,
+   -118.78,
+   48.7
+  ],
+  "max": [
+   -12.97,
+   -109.28,
+   52.74
+  ]
+ },
+ {
+  "name": "fastener_p36",
+  "group": "fastener",
+  "kit_id": "Part_36",
+  "volume_mm3": 33.7,
+  "min": [
+   -17.01,
+   -118.78,
+   33.7
+  ],
+  "max": [
+   -12.97,
+   -109.28,
+   37.74
+  ]
+ },
+ {
+  "name": "fastener_p37",
+  "group": "fastener",
+  "kit_id": "Part_37",
+  "volume_mm3": 33.7,
+  "min": [
+   17.99,
+   -118.78,
+   33.7
+  ],
+  "max": [
+   22.03,
+   -109.28,
+   37.74
+  ]
+ },
+ {
+  "name": "fastener_p38",
+  "group": "fastener",
+  "kit_id": "Part_38",
+  "volume_mm3": 33.7,
+  "min": [
+   17.99,
+   -118.78,
+   48.7
+  ],
+  "max": [
+   22.03,
+   -109.28,
+   52.74
+  ]
+ },
+ {
+  "name": "fastener_p41",
+  "group": "fastener",
+  "kit_id": "Part_41",
+  "volume_mm3": 128.5,
+  "min": [
+   19.21,
+   -112.81,
+   39.72
+  ],
+  "max": [
+   27.91,
+   -108.31,
+   46.52
+  ]
+ },
+ {
+  "name": "fastener_p43",
+  "group": "fastener",
+  "kit_id": "Part_43",
+  "volume_mm3": 122.7,
+  "min": [
+   23.31,
+   -95.74,
+   34.72
+  ],
+  "max": [
+   30.3,
+   -85.71,
+   41.72
+  ]
+ },
+ {
+  "name": "fastener_p44",
+  "group": "fastener",
+  "kit_id": "Part_44",
+  "volume_mm3": 102.9,
+  "min": [
+   22.76,
+   -95.71,
+   34.71
+  ],
+  "max": [
+   30.85,
+   -92.81,
+   41.73
+  ]
+ },
+ {
+  "name": "fastener_p45",
+  "group": "fastener",
+  "kit_id": "Part_45",
+  "volume_mm3": 122.7,
+  "min": [
+   23.31,
+   -95.74,
+   44.72
+  ],
+  "max": [
+   30.3,
+   -85.71,
+   51.71
+  ]
+ },
+ {
+  "name": "fastener_p46",
+  "group": "fastener",
+  "kit_id": "Part_46",
+  "volume_mm3": 102.9,
+  "min": [
+   22.76,
+   -95.71,
+   44.7
+  ],
+  "max": [
+   30.85,
+   -92.81,
+   51.73
+  ]
+ },
+ {
+  "name": "fastener_p47",
+  "group": "fastener",
+  "kit_id": "Part_47",
+  "volume_mm3": 122.9,
+  "min": [
+   -25.34,
+   -95.74,
+   34.72
+  ],
+  "max": [
+   -18.34,
+   -85.71,
+   41.72
+  ]
+ },
+ {
+  "name": "fastener_p48",
+  "group": "fastener",
+  "kit_id": "Part_48",
+  "volume_mm3": 102.9,
+  "min": [
+   -25.88,
+   -95.71,
+   34.71
+  ],
+  "max": [
+   -17.8,
+   -92.81,
+   41.73
+  ]
+ },
+ {
+  "name": "fastener_p49",
+  "group": "fastener",
+  "kit_id": "Part_49",
+  "volume_mm3": 122.9,
+  "min": [
+   -25.34,
+   -95.74,
+   44.72
+  ],
+  "max": [
+   -18.34,
+   -85.71,
+   51.71
+  ]
+ },
+ {
+  "name": "fastener_p50",
+  "group": "fastener",
+  "kit_id": "Part_50",
+  "volume_mm3": 102.9,
+  "min": [
+   -25.88,
+   -95.71,
+   44.7
+  ],
+  "max": [
+   -17.8,
+   -92.81,
+   51.73
+  ]
+ },
+ {
+  "name": "fastener_p53",
+  "group": "fastener",
+  "kit_id": "Part_53",
+  "volume_mm3": 7.4,
+  "min": [
+   54.74,
+   -91.38,
+   81.13
+  ],
+  "max": [
+   60.74,
+   -85.38,
+   81.64
+  ]
+ },
+ {
+  "name": "fastener_p54",
+  "group": "fastener",
+  "kit_id": "Part_54",
+  "volume_mm3": 37.3,
+  "min": [
+   55.27,
+   -90.84,
+   77.51
+  ],
+  "max": [
+   60.2,
+   -85.91,
+   83.16
+  ]
+ },
+ {
+  "name": "fastener_p55",
+  "group": "fastener",
+  "kit_id": "Part_55",
+  "volume_mm3": 7.4,
+  "min": [
+   -55.78,
+   -91.38,
+   81.13
+  ],
+  "max": [
+   -49.78,
+   -85.38,
+   81.64
+  ]
+ },
+ {
+  "name": "fastener_p56",
+  "group": "fastener",
+  "kit_id": "Part_56",
+  "volume_mm3": 37.3,
+  "min": [
+   -55.24,
+   -90.84,
+   77.51
+  ],
+  "max": [
+   -50.31,
+   -85.91,
+   83.16
+  ]
+ },
+ {
+  "name": "fastener_p58",
+  "group": "fastener",
+  "kit_id": "Part_58",
+  "volume_mm3": 106.4,
+  "min": [
+   37.08,
+   114.97,
+   24.74
+  ],
+  "max": [
+   44.07,
+   121.96,
+   32.76
+  ]
+ },
+ {
+  "name": "fastener_p59",
+  "group": "fastener",
+  "kit_id": "Part_59",
+  "volume_mm3": 106.3,
+  "min": [
+   37.07,
+   -114.56,
+   24.56
+  ],
+  "max": [
+   44.06,
+   -107.57,
+   32.58
+  ]
+ },
+ {
+  "name": "fastener_p60",
+  "group": "fastener",
+  "kit_id": "Part_60",
+  "volume_mm3": 106.4,
+  "min": [
+   -39.1,
+   -114.56,
+   24.56
+  ],
+  "max": [
+   -32.11,
+   -107.57,
+   32.58
+  ]
+ },
+ {
+  "name": "fastener_p61",
+  "group": "fastener",
+  "kit_id": "Part_61",
+  "volume_mm3": 106.3,
+  "min": [
+   -39.11,
+   114.97,
+   24.74
+  ],
+  "max": [
+   -32.11,
+   121.96,
+   32.76
+  ]
+ },
+ {
+  "name": "fastener_p62",
+  "group": "fastener",
+  "kit_id": "Part_62",
+  "volume_mm3": 46.6,
+  "min": [
+   24.29,
+   -114.79,
+   25.02
+  ],
+  "max": [
+   29.32,
+   -109.76,
+   32.46
+  ]
+ },
+ {
+  "name": "fastener_p63",
+  "group": "fastener",
+  "kit_id": "Part_63",
+  "volume_mm3": 46.7,
+  "min": [
+   24.29,
+   -104.99,
+   25.01
+  ],
+  "max": [
+   29.32,
+   -99.96,
+   32.46
+  ]
+ },
+ {
+  "name": "fastener_p64",
+  "group": "fastener",
+  "kit_id": "Part_64",
+  "volume_mm3": 46.6,
+  "min": [
+   -24.35,
+   -114.79,
+   25.02
+  ],
+  "max": [
+   -19.32,
+   -109.76,
+   32.46
+  ]
+ },
+ {
+  "name": "fastener_p65",
+  "group": "fastener",
+  "kit_id": "Part_65",
+  "volume_mm3": 11.1,
+  "min": [
+   46.64,
+   94.25,
+   21.17
+  ],
+  "max": [
+   51.14,
+   98.75,
+   22.48
+  ]
+ },
+ {
+  "name": "fastener_p66",
+  "group": "fastener",
+  "kit_id": "Part_66",
+  "volume_mm3": 28.7,
+  "min": [
+   46.26,
+   94.21,
+   22.01
+  ],
+  "max": [
+   51.55,
+   98.8,
+   23.91
+  ]
+ },
+ {
+  "name": "fastener_p67",
+  "group": "fastener",
+  "kit_id": "Part_67",
+  "volume_mm3": 57.8,
+  "min": [
+   46.4,
+   94.01,
+   20.72
+  ],
+  "max": [
+   51.43,
+   99.04,
+   30.83
+  ]
+ },
+ {
+  "name": "fastener_p68",
+  "group": "fastener",
+  "kit_id": "Part_68",
+  "volume_mm3": 11.1,
+  "min": [
+   46.64,
+   67.4,
+   21.17
+  ],
+  "max": [
+   51.14,
+   71.9,
+   22.48
+  ]
+ },
+ {
+  "name": "fastener_p69",
+  "group": "fastener",
+  "kit_id": "Part_69",
+  "volume_mm3": 28.7,
+  "min": [
+   46.26,
+   67.36,
+   22.01
+  ],
+  "max": [
+   51.55,
+   71.95,
+   23.91
+  ]
+ },
+ {
+  "name": "fastener_p7",
+  "group": "fastener",
+  "kit_id": "Part_7",
+  "volume_mm3": 70.1,
+  "min": [
+   46.79,
+   -62.58,
+   43.56
+  ],
+  "max": [
+   52.79,
+   -56.58,
+   48.56
+  ]
+ },
+ {
+  "name": "fastener_p70",
+  "group": "fastener",
+  "kit_id": "Part_70",
+  "volume_mm3": 57.8,
+  "min": [
+   46.4,
+   67.11,
+   20.72
+  ],
+  "max": [
+   51.43,
+   72.14,
+   30.83
+  ]
+ },
+ {
+  "name": "fastener_p71",
+  "group": "fastener",
+  "kit_id": "Part_71",
+  "volume_mm3": 11.1,
+  "min": [
+   -46.17,
+   94.25,
+   21.17
+  ],
+  "max": [
+   -41.68,
+   98.75,
+   22.48
+  ]
+ },
+ {
+  "name": "fastener_p72",
+  "group": "fastener",
+  "kit_id": "Part_72",
+  "volume_mm3": 28.7,
+  "min": [
+   -46.58,
+   94.21,
+   22.01
+  ],
+  "max": [
+   -41.3,
+   98.8,
+   23.91
+  ]
+ },
+ {
+  "name": "fastener_p73",
+  "group": "fastener",
+  "kit_id": "Part_73",
+  "volume_mm3": 57.8,
+  "min": [
+   -46.47,
+   94.01,
+   20.72
+  ],
+  "max": [
+   -41.44,
+   99.04,
+   30.83
+  ]
+ },
+ {
+  "name": "fastener_p74",
+  "group": "fastener",
+  "kit_id": "Part_74",
+  "volume_mm3": 11.1,
+  "min": [
+   -46.17,
+   67.4,
+   21.17
+  ],
+  "max": [
+   -41.68,
+   71.9,
+   22.48
+  ]
+ },
+ {
+  "name": "fastener_p75",
+  "group": "fastener",
+  "kit_id": "Part_75",
+  "volume_mm3": 28.7,
+  "min": [
+   -46.58,
+   67.36,
+   22.01
+  ],
+  "max": [
+   -41.3,
+   71.95,
+   23.91
+  ]
+ },
+ {
+  "name": "fastener_p76",
+  "group": "fastener",
+  "kit_id": "Part_76",
+  "volume_mm3": 57.8,
+  "min": [
+   -46.47,
+   67.11,
+   20.72
+  ],
+  "max": [
+   -41.44,
+   72.14,
+   30.83
+  ]
+ },
+ {
+  "name": "fastener_p77",
+  "group": "fastener",
+  "kit_id": "Part_77",
+  "volume_mm3": 46.6,
+  "min": [
+   -62.69,
+   72.8,
+   62.39
+  ],
+  "max": [
+   -55.2,
+   77.83,
+   67.42
+  ]
+ },
+ {
+  "name": "fastener_p78",
+  "group": "fastener",
+  "kit_id": "Part_78",
+  "volume_mm3": 46.6,
+  "min": [
+   -62.69,
+   88.3,
+   62.39
+  ],
+  "max": [
+   -55.2,
+   93.33,
+   67.42
+  ]
+ },
+ {
+  "name": "fastener_p79",
+  "group": "fastener",
+  "kit_id": "Part_79",
+  "volume_mm3": 46.6,
+  "min": [
+   -62.69,
+   96.05,
+   48.97
+  ],
+  "max": [
+   -55.2,
+   101.08,
+   54.0
+  ]
+ },
+ {
+  "name": "fastener_p80",
+  "group": "fastener",
+  "kit_id": "Part_80",
+  "volume_mm3": 46.6,
+  "min": [
+   -62.69,
+   65.05,
+   48.97
+  ],
+  "max": [
+   -55.2,
+   70.08,
+   54.0
+  ]
+ },
+ {
+  "name": "fastener_p81",
+  "group": "fastener",
+  "kit_id": "Part_81",
+  "volume_mm3": 46.6,
+  "min": [
+   -62.69,
+   88.3,
+   35.55
+  ],
+  "max": [
+   -55.2,
+   93.33,
+   40.58
+  ]
+ },
+ {
+  "name": "fastener_p82",
+  "group": "fastener",
+  "kit_id": "Part_82",
+  "volume_mm3": 46.6,
+  "min": [
+   -62.69,
+   72.8,
+   35.55
+  ],
+  "max": [
+   -55.2,
+   77.83,
+   40.58
+  ]
+ },
+ {
+  "name": "fastener_p83",
+  "group": "fastener",
+  "kit_id": "Part_83",
+  "volume_mm3": 46.5,
+  "min": [
+   60.16,
+   72.8,
+   62.39
+  ],
+  "max": [
+   67.66,
+   77.83,
+   67.42
+  ]
+ },
+ {
+  "name": "fastener_p84",
+  "group": "fastener",
+  "kit_id": "Part_84",
+  "volume_mm3": 46.5,
+  "min": [
+   60.16,
+   88.3,
+   62.39
+  ],
+  "max": [
+   67.66,
+   93.33,
+   67.42
+  ]
+ },
+ {
+  "name": "fastener_p85",
+  "group": "fastener",
+  "kit_id": "Part_85",
+  "volume_mm3": 46.5,
+  "min": [
+   60.16,
+   96.05,
+   48.97
+  ],
+  "max": [
+   67.66,
+   101.08,
+   54.0
+  ]
+ },
+ {
+  "name": "fastener_p86",
+  "group": "fastener",
+  "kit_id": "Part_86",
+  "volume_mm3": 46.5,
+  "min": [
+   60.16,
+   65.05,
+   48.97
+  ],
+  "max": [
+   67.66,
+   70.08,
+   54.0
+  ]
+ },
+ {
+  "name": "fastener_p87",
+  "group": "fastener",
+  "kit_id": "Part_87",
+  "volume_mm3": 46.5,
+  "min": [
+   60.16,
+   88.3,
+   35.55
+  ],
+  "max": [
+   67.66,
+   93.33,
+   40.58
+  ]
+ },
+ {
+  "name": "fastener_p88",
+  "group": "fastener",
+  "kit_id": "Part_88",
+  "volume_mm3": 46.5,
+  "min": [
+   60.16,
+   72.8,
+   35.55
+  ],
+  "max": [
+   67.66,
+   77.83,
+   40.58
+  ]
+ },
+ {
+  "name": "fastener_p9",
+  "group": "fastener",
+  "kit_id": "Part_9",
+  "volume_mm3": 70.1,
+  "min": [
+   -47.82,
+   -62.58,
+   43.56
+  ],
+  "max": [
+   -41.82,
+   -56.58,
+   48.56
+  ]
+ },
+ {
+  "name": "fastener_p92",
+  "group": "fastener",
+  "kit_id": "Part_92",
+  "volume_mm3": 46.5,
+  "min": [
+   -24.35,
+   -104.99,
+   25.01
+  ],
+  "max": [
+   -19.32,
+   -99.96,
+   32.46
+  ]
+ },
+ {
+  "name": "fastener_p93",
+  "group": "fastener",
+  "kit_id": "Part_93",
+  "volume_mm3": 28.7,
+  "min": [
+   -24.47,
+   -114.54,
+   25.22
+  ],
+  "max": [
+   -19.18,
+   -109.95,
+   27.12
+  ]
+ },
+ {
+  "name": "fastener_p94",
+  "group": "fastener",
+  "kit_id": "Part_94",
+  "volume_mm3": 11.1,
+  "min": [
+   -24.06,
+   -114.5,
+   24.38
+  ],
+  "max": [
+   -19.56,
+   -109.99,
+   25.69
+  ]
+ },
+ {
+  "name": "fastener_p95",
+  "group": "fastener",
+  "kit_id": "Part_95",
+  "volume_mm3": 11.1,
+  "min": [
+   24.53,
+   -104.75,
+   24.38
+  ],
+  "max": [
+   29.03,
+   -100.25,
+   25.69
+  ]
+ },
+ {
+  "name": "fastener_p96",
+  "group": "fastener",
+  "kit_id": "Part_96",
+  "volume_mm3": 28.7,
+  "min": [
+   24.15,
+   -104.8,
+   25.22
+  ],
+  "max": [
+   29.43,
+   -100.21,
+   27.12
+  ]
+ },
+ {
+  "name": "fastener_p97",
+  "group": "fastener",
+  "kit_id": "Part_97",
+  "volume_mm3": 28.7,
+  "min": [
+   24.15,
+   -114.54,
+   25.22
+  ],
+  "max": [
+   29.43,
+   -109.95,
+   27.12
+  ]
+ },
+ {
+  "name": "fastener_p98",
+  "group": "fastener",
+  "kit_id": "Part_98",
+  "volume_mm3": 11.1,
+  "min": [
+   24.53,
+   -114.5,
+   24.38
+  ],
+  "max": [
+   29.03,
+   -109.99,
+   25.69
+  ]
+ },
+ {
+  "name": "fastener_p99",
+  "group": "fastener",
+  "kit_id": "Part_99",
+  "volume_mm3": 11.1,
+  "min": [
+   -24.06,
+   -104.75,
+   24.38
+  ],
+  "max": [
+   -19.56,
+   -100.25,
+   25.69
+  ]
+ },
+ {
+  "name": "front_stub_axle_left",
+  "group": "hub",
+  "kit_id": "Part_115",
+  "volume_mm3": 407.8,
+  "min": [
+   57.54,
+   -92.88,
+   37.31
+  ],
+  "max": [
+   78.74,
+   -83.88,
+   46.31
+  ]
+ },
+ {
+  "name": "front_stub_axle_right",
+  "group": "hub",
+  "kit_id": "Part_118",
+  "volume_mm3": 407.8,
+  "min": [
+   -73.77,
+   -92.88,
+   37.31
+  ],
+  "max": [
+   -52.57,
+   -83.88,
+   46.31
+  ]
+ },
+ {
+  "name": "motor_can_left",
+  "group": "motor",
+  "kit_id": "Part_130",
+  "volume_mm3": 19513.3,
+  "min": [
+   11.88,
+   66.79,
+   35.0
+  ],
+  "max": [
+   41.28,
+   99.69,
+   67.9
+  ]
+ },
+ {
+  "name": "motor_can_right",
+  "group": "motor",
+  "kit_id": "Part_19",
+  "volume_mm3": 19513.3,
+  "min": [
+   -36.33,
+   66.79,
+   35.0
+  ],
+  "max": [
+   -6.93,
+   99.69,
+   67.9
+  ]
+ },
+ {
+  "name": "motor_connector_left",
+  "group": "motor",
+  "kit_id": "Part_127",
+  "volume_mm3": 187.4,
+  "min": [
+   9.88,
+   87.83,
+   43.49
+  ],
+  "max": [
+   15.48,
+   96.89,
+   59.49
+  ]
+ },
+ {
+  "name": "motor_connector_right",
+  "group": "motor",
+  "kit_id": "Part_22",
+  "volume_mm3": 187.4,
+  "min": [
+   -10.53,
+   69.59,
+   43.49
+  ],
+  "max": [
+   -4.93,
+   78.64,
+   59.49
+  ]
+ },
+ {
+  "name": "motor_encoder_cap_left",
+  "group": "motor",
+  "kit_id": "Part_129",
+  "volume_mm3": 2548.5,
+  "min": [
+   6.08,
+   66.24,
+   34.45
+  ],
+  "max": [
+   18.48,
+   100.24,
+   68.45
+  ]
+ },
+ {
+  "name": "motor_encoder_cap_right",
+  "group": "motor",
+  "kit_id": "Part_20",
+  "volume_mm3": 2550.3,
+  "min": [
+   -13.53,
+   66.24,
+   34.45
+  ],
+  "max": [
+   -1.13,
+   100.24,
+   68.45
+  ]
+ },
+ {
+  "name": "motor_encoder_pcb_left",
+  "group": "motor",
+  "kit_id": "Part_128",
+  "volume_mm3": 1158.1,
+  "min": [
+   15.48,
+   67.98,
+   35.45
+  ],
+  "max": [
+   17.08,
+   98.49,
+   67.45
+  ]
+ },
+ {
+  "name": "motor_encoder_pcb_right",
+  "group": "motor",
+  "kit_id": "Part_21",
+  "volume_mm3": 1158.1,
+  "min": [
+   -12.13,
+   67.98,
+   35.45
+  ],
+  "max": [
+   -10.53,
+   98.49,
+   67.45
+  ]
+ },
+ {
+  "name": "motor_bracket_left",
+  "group": "motor",
+  "kit_id": "Part_18",
+  "volume_mm3": 5825.0,
+  "min": [
+   43.91,
+   64.63,
+   24.12
+  ],
+  "max": [
+   65.78,
+   101.53,
+   69.9
+  ]
+ },
+ {
+  "name": "motor_bracket_right",
+  "group": "motor",
+  "kit_id": "Part_57",
+  "volume_mm3": 5370.9,
+  "min": [
+   -60.82,
+   64.63,
+   24.12
+  ],
+  "max": [
+   -38.95,
+   101.53,
+   69.9
+  ]
+ },
+ {
+  "name": "servo",
+  "group": "steering",
+  "kit_id": "Part_42",
+  "volume_mm3": 14084.6,
+  "min": [
+   -17.46,
+   -109.31,
+   33.2
+  ],
+  "max": [
+   22.47,
+   -90.31,
+   53.24
+  ]
+ },
+ {
+  "name": "standoff_front_left",
+  "group": "standoff",
+  "kit_id": "Part_26",
+  "volume_mm3": 832.8,
+  "min": [
+   37.57,
+   -114.53,
+   29.12
+  ],
+  "max": [
+   43.57,
+   -107.6,
+   79.12
+  ]
+ },
+ {
+  "name": "standoff_front_right",
+  "group": "standoff",
+  "kit_id": "Part_27",
+  "volume_mm3": 832.8,
+  "min": [
+   -38.61,
+   -114.53,
+   29.12
+  ],
+  "max": [
+   -32.61,
+   -107.6,
+   79.12
+  ]
+ },
+ {
+  "name": "standoff_rear_left",
+  "group": "standoff",
+  "kit_id": "Part_23",
+  "volume_mm3": 832.8,
+  "min": [
+   37.57,
+   115.0,
+   29.12
+  ],
+  "max": [
+   43.57,
+   121.92,
+   79.12
+  ]
+ },
+ {
+  "name": "standoff_rear_right",
+  "group": "standoff",
+  "kit_id": "Part_25",
+  "volume_mm3": 832.8,
+  "min": [
+   -38.61,
+   115.0,
+   29.12
+  ],
+  "max": [
+   -32.61,
+   121.92,
+   79.12
+  ]
+ },
+ {
+  "name": "steering_p12",
+  "group": "steering",
+  "kit_id": "Part_12",
+  "volume_mm3": 721.0,
+  "min": [
+   -9.81,
+   -69.75,
+   56.07
+  ],
+  "max": [
+   19.74,
+   -61.71,
+   70.38
+  ]
+ },
+ {
+  "name": "steering_p13",
+  "group": "steering",
+  "kit_id": "Part_13",
+  "volume_mm3": 721.0,
+  "min": [
+   -51.54,
+   -66.31,
+   48.55
+  ],
+  "max": [
+   -22.02,
+   -52.86,
+   58.67
+  ]
+ },
+ {
+  "name": "steering_p14",
+  "group": "steering",
+  "kit_id": "Part_14",
+  "volume_mm3": 172.4,
+  "min": [
+   -23.05,
+   -66.53,
+   53.96
+  ],
+  "max": [
+   -8.77,
+   -60.71,
+   60.77
+  ]
+ },
+ {
+  "name": "steering_p15",
+  "group": "steering",
+  "kit_id": "Part_15",
+  "volume_mm3": 780.9,
+  "min": [
+   3.0,
+   -72.17,
+   33.22
+  ],
+  "max": [
+   23.0,
+   -70.17,
+   67.67
+  ]
+ },
+ {
+  "name": "steering_p17",
+  "group": "steering",
+  "kit_id": "Part_17",
+  "volume_mm3": 2202.3,
+  "min": [
+   46.29,
+   -97.48,
+   29.71
+  ],
+  "max": [
+   70.39,
+   -56.08,
+   53.91
+  ]
+ },
+ {
+  "name": "steering_p2",
+  "group": "steering",
+  "kit_id": "Part_2",
+  "volume_mm3": 2202.3,
+  "min": [
+   -65.43,
+   -97.48,
+   29.71
+  ],
+  "max": [
+   -41.32,
+   -56.08,
+   53.91
+  ]
+ },
+ {
+  "name": "steering_p24",
+  "group": "steering",
+  "kit_id": "Part_24",
+  "volume_mm3": 2059.7,
+  "min": [
+   -57.53,
+   -93.13,
+   53.91
+  ],
+  "max": [
+   62.49,
+   -72.0,
+   55.91
+  ]
+ },
+ {
+  "name": "steering_p3",
+  "group": "steering",
+  "kit_id": "Part_3",
+  "volume_mm3": 4329.1,
+  "min": [
+   -26.67,
+   -124.47,
+   29.22
+  ],
+  "max": [
+   31.63,
+   -87.47,
+   54.72
+  ]
+ },
+ {
+  "name": "steering_p39",
+  "group": "steering",
+  "kit_id": "Part_39",
+  "volume_mm3": 10262.2,
+  "min": [
+   -24.68,
+   -91.52,
+   33.27
+  ],
+  "max": [
+   29.7,
+   -77.61,
+   53.17
+  ]
+ },
+ {
+  "name": "steering_p4",
+  "group": "steering",
+  "kit_id": "Part_4",
+  "volume_mm3": 947.1,
+  "min": [
+   3.5,
+   -77.67,
+   33.72
+  ],
+  "max": [
+   22.5,
+   -72.17,
+   52.72
+  ]
+ },
+ {
+  "name": "steering_p40",
+  "group": "steering",
+  "kit_id": "Part_40",
+  "volume_mm3": 825.8,
+  "min": [
+   3.71,
+   -92.41,
+   34.43
+  ],
+  "max": [
+   21.31,
+   -74.11,
+   52.01
+  ]
+ },
+ {
+  "name": "steering_p5",
+  "group": "steering",
+  "kit_id": "Part_5",
+  "volume_mm3": 610.7,
+  "min": [
+   -21.82,
+   -61.58,
+   44.06
+  ],
+  "max": [
+   26.78,
+   -57.58,
+   48.06
+  ]
+ },
+ {
+  "name": "steering_p6",
+  "group": "steering",
+  "kit_id": "Part_6",
+  "volume_mm3": 721.0,
+  "min": [
+   26.78,
+   -66.29,
+   43.06
+  ],
+  "max": [
+   56.49,
+   -52.87,
+   49.06
+  ]
+ },
+ {
+  "name": "steering_p8",
+  "group": "steering",
+  "kit_id": "Part_8",
+  "volume_mm3": 721.0,
+  "min": [
+   -51.53,
+   -66.29,
+   43.06
+  ],
+  "max": [
+   -21.82,
+   -52.87,
+   49.06
+  ]
+ },
+ {
+  "name": "steering_post_left",
+  "group": "steering",
+  "kit_id": "Part_51",
+  "volume_mm3": 360.5,
+  "min": [
+   54.74,
+   -91.38,
+   55.97
+  ],
+  "max": [
+   60.74,
+   -85.38,
+   78.93
+  ]
+ },
+ {
+  "name": "steering_post_right",
+  "group": "steering",
+  "kit_id": "Part_52",
+  "volume_mm3": 360.5,
+  "min": [
+   -55.78,
+   -91.38,
+   55.97
+  ],
+  "max": [
+   -49.78,
+   -85.38,
+   78.93
+  ]
+ },
+ {
+  "name": "wheel_bearing_p116",
+  "group": "hub",
+  "kit_id": "Part_116",
+  "volume_mm3": 199.0,
+  "min": [
+   60.86,
+   -93.38,
+   36.81
+  ],
+  "max": [
+   64.86,
+   -83.38,
+   46.81
+  ]
+ },
+ {
+  "name": "wheel_bearing_p117",
+  "group": "hub",
+  "kit_id": "Part_117",
+  "volume_mm3": 199.0,
+  "min": [
+   66.36,
+   -93.38,
+   36.81
+  ],
+  "max": [
+   70.36,
+   -83.38,
+   46.81
+  ]
+ },
+ {
+  "name": "wheel_bearing_p119",
+  "group": "hub",
+  "kit_id": "Part_119",
+  "volume_mm3": 199.0,
+  "min": [
+   -65.4,
+   -93.38,
+   36.81
+  ],
+  "max": [
+   -61.4,
+   -83.38,
+   46.81
+  ]
+ },
+ {
+  "name": "wheel_bearing_p120",
+  "group": "hub",
+  "kit_id": "Part_120",
+  "volume_mm3": 199.0,
+  "min": [
+   -59.9,
+   -93.38,
+   36.81
+  ],
+  "max": [
+   -55.9,
+   -83.38,
+   46.81
+  ]
+ },
+ {
+  "name": "wheel_front_left",
+  "group": "wheel",
+  "kit_id": "Part_91",
+  "volume_mm3": 21988.6,
+  "min": [
+   72.42,
+   -125.84,
+   4.36
+  ],
+  "max": [
+   101.6,
+   -50.92,
+   79.27
+  ]
+ },
+ {
+  "name": "wheel_front_right",
+  "group": "wheel",
+  "kit_id": "Part_90",
+  "volume_mm3": 21986.2,
+  "min": [
+   -96.64,
+   -125.84,
+   4.36
+  ],
+  "max": [
+   -67.46,
+   -50.92,
+   79.27
+  ]
+ },
+ {
+  "name": "wheel_hub_front_left",
+  "group": "hub",
+  "kit_id": "Part_16",
+  "volume_mm3": 1820.6,
+  "min": [
+   70.39,
+   -95.31,
+   35.81
+  ],
+  "max": [
+   88.39,
+   -81.45,
+   47.81
+  ]
+ },
+ {
+  "name": "wheel_hub_front_right",
+  "group": "hub",
+  "kit_id": "Part_1",
+  "volume_mm3": 1820.6,
+  "min": [
+   -83.43,
+   -95.31,
+   35.81
+  ],
+  "max": [
+   -65.43,
+   -81.45,
+   47.81
+  ]
+ },
+ {
+  "name": "wheel_hub_rear_left",
+  "group": "hub",
+  "kit_id": "Part_29",
+  "volume_mm3": 1820.6,
+  "min": [
+   68.68,
+   76.23,
+   38.5
+  ],
+  "max": [
+   86.68,
+   90.08,
+   50.5
+  ]
+ },
+ {
+  "name": "wheel_hub_rear_right",
+  "group": "hub",
+  "kit_id": "Part_30",
+  "volume_mm3": 1820.6,
+  "min": [
+   -81.72,
+   76.23,
+   38.5
+  ],
+  "max": [
+   -63.72,
+   90.08,
+   50.5
+  ]
+ },
+ {
+  "name": "wheel_rear_left",
+  "group": "wheel",
+  "kit_id": "Part_125",
+  "volume_mm3": 21986.2,
+  "min": [
+   71.58,
+   45.7,
+   7.0
+  ],
+  "max": [
+   100.76,
+   120.62,
+   81.91
+  ]
+ },
+ {
+  "name": "wheel_rear_right",
+  "group": "wheel",
+  "kit_id": "Part_89",
+  "volume_mm3": 21988.6,
+  "min": [
+   -95.79,
+   45.7,
+   7.0
+  ],
+  "max": [
+   -66.62,
+   120.62,
+   81.91
+  ]
+ }
+]

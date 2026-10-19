@@ -1,0 +1,47 @@
+* DRVOFF watchdog: MCU_ALIVE charge pump (C14A, D12, C14B, R14B) and ESTOP delay (R17, R18, C18) into the
+* SN74LVC1G132 Schmitt NAND U16 -> DRVOFF (design.py "E-stop logic" block)
+.include models.lib
+
+.param C14A=100n C14B=100n R14B=100k R16=1k R17=10k R18=100k C18=2.2u C19=100n R19=10k
+.param vdd=3.3 v_alive=3.3 r_mcu=40 f_alive=1k t_start=1m t_stop=1 stop_level=0
+.param t_estop_open=10 vdly0=3.0 vt_p=1.83 vt_n=1.10 i_leak=0
+
+VDD VDD 0 {vdd}
+Vsq sq 0 PULSE(0 {v_alive} {t_start} 5n 5n {0.5/f_alive-5n} {1/f_alive})
+Vrun run 0 PWL(0 1 {t_stop} 1 {t_stop+5n} 0)
+Bmcu mcu 0 V = V(sq)*V(run) + {stop_level*v_alive}*(1-V(run))
+Rmcu mcu MCU_ALIVE {r_mcu}
+C14A MCU_ALIVE ALIVE_AC {C14A}
+D12a 0 ALIVE_AC BAT54
+D12b ALIVE_AC ALIVE_DET BAT54
+C14B ALIVE_DET 0 {C14B}
+R14B ALIVE_DET 0 {R14B}
+Ileak ALIVE_DET 0 {i_leak}
+Cin_b ALIVE_DET 0 5p
+
+VG16 GPIO16 0 3.3
+R16 GPIO16 ESTOP_A {R16}
+Vest estc 0 PWL(0 1 {t_estop_open} 1 {t_estop_open+1u} 0)
+Sest ESTOP_A ESTOP estc 0 SWEST
+.model SWEST SW(VT=0.5 VH=0.1 RON=0.05 ROFF=1e10)
+R17 ESTOP 0 {R17}
+R18 ESTOP ESTOP_DLY {R18}
+C18 ESTOP_DLY 0 {C18}
+Cin_a ESTOP_DLY 0 5p
+
+Vone one 0 1
+Sa one na ESTOP_DLY 0 SWSCH
+Sb one nb ALIVE_DET 0 SWSCH
+.model SWSCH SW(VT={(vt_p+vt_n)/2} VH={(vt_p-vt_n)/2} RON=1 ROFF=1e10)
+Rna na 0 1k
+Cna na 0 10p
+Rnb nb 0 1k
+Cnb nb 0 10p
+By yint 0 V = {vdd}*(1-V(na)*V(nb))
+Ry yint DRVOFF 30
+Cy DRVOFF 0 30p
+R19 DRVOFF DRVOFF_MON {R19}
+Cmon DRVOFF_MON 0 5p
+
+.ic V(ESTOP_DLY)={vdly0} V(ALIVE_DET)=0 V(ALIVE_AC)=0
+.end

@@ -1,0 +1,67 @@
+{
+ "note": "ToF sensor poses under deck 2, board frame (X right, Y front, mm); yaw from the front, + to the right; checked by cad/robot/tof_fov.py with the front wheels steered -30..+30 deg; port = the board's GH-6 (bottom, vertical), cable 100 mm",
+ "z": 67.6,
+ "tilt": 10.0,
+ "sensors": [
+  {
+   "name": "front",
+   "X": 0.0,
+   "Y": 156.2,
+   "yaw": 0.0,
+   "port": [
+    0,
+    110
+   ]
+  },
+  {
+   "name": "front_l",
+   "X": -42.933,
+   "Y": 145.732,
+   "yaw": -50.0,
+   "port": [
+    -19,
+    106
+   ]
+  },
+  {
+   "name": "front_r",
+   "X": 42.933,
+   "Y": 145.732,
+   "yaw": 50.0,
+   "port": [
+    21,
+    109
+   ]
+  },
+  {
+   "name": "rear",
+   "X": 0.0,
+   "Y": -158.0,
+   "yaw": 180.0,
+   "port": [
+    0.0,
+    -112
+   ]
+  },
+  {
+   "name": "rear_l",
+   "X": -59.393,
+   "Y": -147.393,
+   "yaw": -135.0,
+   "port": [
+    -44,
+    -110
+   ]
+  },
+  {
+   "name": "rear_r",
+   "X": 59.393,
+   "Y": -147.393,
+   "yaw": 135.0,
+   "port": [
+    30,
+    -110
+   ]
+  }
+ ]
+}

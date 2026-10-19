@@ -1,0 +1,4 @@
+#!/bin/sh
+# Refill all zones with kicad-cli (the pcbnew Python filler ignores hole and edge clearances) and save.
+cd "$(dirname "$0")/.."
+/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli pcb drc --refill-zones --save-board -o /tmp/rabbit-tof-fill.rpt rabbit-tof.kicad_pcb >/dev/null

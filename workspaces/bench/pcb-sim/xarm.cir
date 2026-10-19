@@ -1,0 +1,59 @@
+* xArm bus level shifter: PB9 open drain + R887 -> BSS138 Q88 -> ARM_SIG_B + R888 -> R889 -> D89 -> cable + servos
+* (design.py "xArm 1S bus servos" block)
+.include models.lib
+
+.param R887=4.7k R888=2.2k R889=47 C896=1u
+.param vdd=3.3 v5=5.0 v_armpwr=7.4 r_pb9=40 c_pb9=5p tbit=8.68u tedge=5n
+.param t_m0=5u t_m1=100u t_s0=120u t_s1=215u servo_pp=1 r_srv=50 r_srv_od=30 v_srv=5.0
+.param c_line=150p l_line=0.9u t_mis=1 v_mis=8.4 r_mis=0.5 r_line=0.3 tdrv=15n
+
+V33 +3V3_MCU 0 {vdd}
+Vldo ldo_i 0 {v5}
+Dldo ldo_i ARM_5V DIDEAL
+Rldo_q ARM_5V 0 500k
+Varmpwr ARM_PWR 0 {v_armpwr}
+Dldo_body ARM_5V ARM_PWR D1N4148
+C896 ARM_5V 0 {C896}
+
+Vsq sq 0 PULSE(0 1 0 {tedge} {tedge} {tbit-tedge} {2*tbit})
+Vwm wm 0 PWL(0 0 {t_m0} 0 {t_m0+1n} 1 {t_m1} 1 {t_m1+1n} 0)
+Vws ws 0 PWL(0 0 {t_s0} 0 {t_s0+1n} 1 {t_s1} 1 {t_s1+1n} 0)
+Bmc mcuc 0 V = V(sq)*V(wm)
+Rmcf mcuc mcuf 1k
+Cmcf mcuf 0 {tdrv/1k}
+Bpb ARM_UART_M 0 I = V(ARM_UART_M)*V(mcuf)/{r_pb9}
+Cpb ARM_UART_M 0 {c_pb9}
+Vinj ARM_UART_M pbcl 0
+Dpb9 0 pbcl D1N4148
+R887 ARM_UART_M +3V3_MCU {R887}
+XQ88 ARM_SIG_B +3V3_MCU ARM_UART_M BSS138
+R888 ARM_SIG_B ARM_5V {R888}
+R889 ARM_SIG_B ARM_SIG {R889}
+XD89 ARM_SIG 0 TPD1E10B09
+
+L1 ARM_SIG l1 {l_line/3}
+R1l l1 n1 {r_line/3}
+C1 n1 0 {c_line/3}
+L2 n1 l2 {l_line/3}
+R2l l2 n2 {r_line/3}
+C2 n2 0 {c_line/3}
+L3 n2 l3 {l_line/3}
+R3l l3 SRV {r_line/3}
+C3 SRV 0 {c_line/3}
+
+Bsc ssc 0 V = V(sq)*V(ws)
+Rssf ssc ssf 1k
+Cssf ssf 0 {tdrv/1k}
+Bwsf wsc 0 V = V(ws)
+Rwsf wsc wsf 1k
+Cwsf wsf 0 {tdrv/1k}
+Bspp SRV 0 I = {servo_pp}*V(wsf)*(V(SRV)-{v_srv}*(1-V(ssf)))/{r_srv}
+Bsod SRV 0 I = (1-{servo_pp})*V(SRV)*V(ssf)/{r_srv_od}
+
+Vmis mis 0 {v_mis}
+Vwmis wmis 0 PWL(0 0 {t_mis} 0 {t_mis+1u} 1)
+Cmis_dummy wmis 0 1p
+Smis mis ARM_SIG wmis 0 SWMIS
+.model SWMIS SW(VT=0.5 VH=0.01 RON={r_mis} ROFF=1e10)
+
+.end

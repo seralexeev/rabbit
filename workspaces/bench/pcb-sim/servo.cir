@@ -1,0 +1,90 @@
+* Servo rail: LM61495 U6 (averaged current-mode model) -> R2 -> SERVO_RAW -> TPS25982 U88 (arm, circuit breaker) and
+* TPS259470L U83 (steering, active limit, reverse blocking, OVLO R166/R167) (design.py "servo rail" and "xArm" blocks)
+.include models.lib
+
+.param L6=3.3u C610=22u C881=10u C885=22u C886=22u C887=220u C835=470u C836=470u
+.param R881=300 C883=100n R831=549 C834=22n R166=61.9k R167=10k
+.param vin=16.8 vset=7.4 ilim_b=12.7 ineg=5.3 kp=15 ki=4.1e5 kc=5 k_dc22=0.55 k_dc10=0.8
+.param arm_ilim={1480/R881} k_arm=1 arm_ft=2.1 ron_arm=2.7m i_itmr_arm=2.1u dv_itmr_arm=0.98 arm_limiter=0
+.param st_ilim={3334/R831} ron_st=28m ovlo_r=1.2 ovlo_f=1.09
+.param i_arm0=0.5 i_steer=2.0 i_stall=15 t_stall=5m
+.param i0={i_arm0+i_steer}
+
+Vone one 0 1
+Vin VBUS 0 {vin}
+Rf4 VBUS STEER_IN 15m
+Cin STEER_IN 0 20u
+Bin STEER_IN 0 I = V(swa)*I(VL)/max(V(STEER_IN),1)
+Bsw swa 0 V = max(0, min(V(STEER_IN), V(SERVO_BUCK)+{kc}*(V(icmd)-I(VL))))
+VL swa swl 0
+L6 swl SERVO_BUCK {L6} IC={i0}
+Berr err 0 V = {vset}-V(SERVO_BUCK)
+Bint 0 integ I = {ki}*V(err)*(1-u(V(integ)-{ilim_b})*u(V(err)))*(1-u(-{ineg}-V(integ))*u(-V(err)))
+Cint integ 0 1
+Bic icmd 0 V = max(-{ineg}, min({ilim_b}, {kp}*V(err)+V(integ)))
+Cout SERVO_BUCK cesr {5*C610*k_dc22}
+Resr cesr 0 0.5m
+C607 SERVO_BUCK 0 100n
+R2 SERVO_BUCK SERVO_RAW 5m
+C881 SERVO_RAW c881e {C881*k_dc10}
+R881e c881e 0 3m
+Craw SERVO_RAW 0 200n
+
+Varm SERVO_RAW arm_in 0
+Barm arm_in ARM_PWR I = (1-V(atrip))*max(-1e3, min(V(alim), (V(arm_in)-V(ARM_PWR))/{ron_arm}))
+Balim alim 0 V = 1e3*(1-V(alimit))+{arm_ilim*k_arm}*V(alimit)
+Bais ais 0 V = I(Varm)
+Saov one aov ais 0 SWAOV
+.model SWAOV SW(VT={arm_ilim*k_arm} VH=0.02 RON=1 ROFF=1e10)
+Raov aov 0 1Meg
+Caov aov 0 1p
+Saft one aft ais 0 SWAFT
+.model SWAFT SW(VT={arm_ilim*k_arm*arm_ft} VH=0.02 RON=1 ROFF=1e10)
+Raft aft 0 1Meg
+Caft aft 0 1p
+Baovr aovr 0 V = max(V(aov), V(alimit))
+CITMR ARM_ITMR 0 {C883}
+Bitm ARM_ITMR 0 I = V(aovr)*{i_itmr_arm}-(1-V(aovr))*(2.5-V(ARM_ITMR))/23k
+Bexp expc 0 V = u((2.5-{dv_itmr_arm})-V(ARM_ITMR))
+Balc alc 0 V = max(max(V(aft), V(expc)*{arm_limiter}), V(alimit))
+Salim one alimit alc 0 SWL
+Ralim alimit 0 1Meg
+Calim alimit 0 1p
+Batc atc 0 V = max(V(expc)*(1-{arm_limiter}), V(atrip))
+Satrip one atrip atc 0 SWL
+Ratrip atrip 0 1Meg
+Catrip atrip 0 1p
+.model SWL SW(VT=0.5 VH=0.05 RON=1 ROFF=1e10)
+
+Carm ARM_PWR carme {(C885+C886)*k_dc22}
+Rcarme carme 0 2m
+C887 ARM_PWR c887e {C887}
+R887e c887e 0 20m
+C895 ARM_PWR 0 1u
+D88 0 ARM_PWR B340A
+Rarm_idle ARM_PWR 0 {vset/i_arm0}
+Lcab ARM_PWR cab 0.5u
+Rcab cab cab2 30m
+Vstc stc 0 PWL(0 0 {t_stall} 0 {t_stall+1u} 1)
+Sstall cab2 stl stc 0 SWLD
+.model SWLD SW(VT=0.5 VH=0.01 RON=1m ROFF=1e10)
+Rstall stl 0 {vset/i_stall}
+
+R166 SERVO_RAW OVLO_SERVO {R166}
+R167 OVLO_SERVO 0 {R167}
+Sovl one sov OVLO_SERVO 0 SWOVL
+.model SWOVL SW(VT={(ovlo_r+ovlo_f)/2} VH={(ovlo_r-ovlo_f)/2} RON=1 ROFF=1e10)
+Rsov sov 0 1Meg
+Csov sov 0 1p
+Vst SERVO_RAW st_in 0
+Bst st_in SERVO_PWR I = (1-V(sov))*max(0, min({2.01*st_ilim}, (V(st_in)-V(SERVO_PWR))/{ron_st}))
+Cservo SERVO_PWR cse {C835+C836}
+Rcse cse 0 8m
+C832 SERVO_PWR 0 1u
+D831 0 SERVO_PWR B540C
+Rsteer SERVO_PWR 0 {vset/i_steer}
+
+.ic V(SERVO_BUCK)={vset} V(SERVO_RAW)={vset} V(ARM_PWR)={vset} V(SERVO_PWR)={vset} V(cesr)={vset}
++ V(c881e)={vset} V(carme)={vset} V(c887e)={vset} V(cse)={vset} V(integ)={i0} V(ARM_ITMR)=2.5 V(STEER_IN)={vin}
++ V(icmd)={i0}
+.end

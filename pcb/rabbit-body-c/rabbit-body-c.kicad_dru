@@ -1,0 +1,16 @@
+(version 1)
+(rule "LM61495 parts packed per SNVSBZ4A figure 11-2"
+	(constraint courtyard_clearance (min -3mm))
+	(condition "(A.Reference == 'C40?' || A.Reference == 'C60?' || A.Reference == 'R40?' || A.Reference == 'R60?' || A.Reference == 'U4' || A.Reference == 'U6' || A.Reference == 'L4' || A.Reference == 'L6') && (B.Reference == 'C40?' || B.Reference == 'C60?' || B.Reference == 'R40?' || B.Reference == 'R60?' || B.Reference == 'U4' || B.Reference == 'U6' || B.Reference == 'L4' || B.Reference == 'L6')"))
+(rule "DRV8243 strap and bypass parts next to the driver pins"
+	(constraint courtyard_clearance (min -0.5mm))
+	(condition "(A.Reference == 'C11??' || A.Reference == 'C12??' || A.Reference == 'R11??' || A.Reference == 'R12??' || A.Reference == 'U11' || A.Reference == 'U12') && (B.Reference == 'C11??' || B.Reference == 'C12??' || B.Reference == 'R11??' || B.Reference == 'R12??' || B.Reference == 'U11' || B.Reference == 'U12')"))
+(rule "GCT USB4115 library land: A1/B12 pads 0.19 mm from the locating peg (vendor drawing)"
+	(constraint hole_clearance (min 0.15mm))
+	(condition "A.intersectsCourtyard('J50') && B.intersectsCourtyard('J50')"))
+(rule "plated edge: every other net 1.5 mm back (1 mm GND ring + 0.5 mm)"
+	(constraint edge_clearance (min 1.5mm))
+	(condition "(A.existsOnLayer('Edge.Cuts') || B.existsOnLayer('Edge.Cuts')) && !(A.NetName == 'GND' || B.NetName == 'GND') && !(A.insideArea('zed_cutout') || B.insideArea('zed_cutout'))"))
+(rule "plated edge: GND copper reaches the edge (the edge segment may be A or B)"
+	(constraint edge_clearance (min 0mm))
+	(condition "A.NetName == 'GND' || B.NetName == 'GND'"))
